@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# SQLite / banco local
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Ambiente / credenciais
+.env
+.env.*
+config.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

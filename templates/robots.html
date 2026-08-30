@@ -1,0 +1,777 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="panel">
+
+
+<div class="panel-header">
+
+    <div>
+        <h2>Robôs</h2>
+
+        <p>
+            Gerencie suas automações e organize-as por pastas.
+        </p>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+
+        <button
+            type="button"
+            class="btn-secondary"
+            onclick="novaPasta()"
+        >
+            + Nova Pasta
+        </button>
+
+        <button
+            type="button"
+            class="btn-primary"
+            onclick="uploadRobot()"
+        >
+            ↑ Upload Robô
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="robots-content">
+
+    <div class="folders-section">
+
+        <div class="section-title">
+            Pastas
+        </div>
+
+
+        <div class="folder-list">
+
+            {% for folder in folders %}
+
+            <div
+                class="folder-item"
+                onclick="abrirPasta({{ folder.id }}, '{{ folder.name }}')"
+            >
+
+                <div class="folder-icon">
+                    📁
+                </div>
+
+                <div class="folder-info">
+
+                    <strong>
+                        {{ folder.name }}
+                    </strong>
+
+                    <small>
+                        Pasta de robôs
+                    </small>
+
+                </div>
+
+                <div
+                    style="
+                        margin-left: auto;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    "
+                >
+
+                    <button
+                        type="button"
+                        class="btn-danger"
+                        onclick="event.stopPropagation(); excluirPasta({{ folder.id }}, '{{ folder.name }}')"
+                    >
+                        🗑
+                    </button>
+
+                    <div class="folder-arrow">
+                        ›
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% else %}
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    📁
+                </div>
+
+                <h3>
+                    Nenhuma pasta cadastrada
+                </h3>
+
+                <p>
+                    Crie uma pasta para organizar seus robôs.
+                </p>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- CONTEÚDO DA PASTA -->
+    <!-- ================================================== -->
+
+    <div
+        id="folder-content"
+        class="folders-section"
+        style="display: none; margin-top: 30px;"
+    >
+
+        <div class="section-title">
+
+            <span id="folder-title">
+                Robôs
+            </span>
+
+        </div>
+
+
+        <div
+            id="robot-list"
+            class="folder-list"
+        >
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+</section>
+
+<script>
+
+let pastaAtualId = null;
+
+function novaPasta() {
+
+    const nome = prompt(
+        "Digite o nome da nova pasta:"
+    );
+
+    if (!nome) {
+        return;
+    }
+
+
+    fetch("/robot-folders", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            name: nome
+        })
+
+    })
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        if (data.status === "success") {
+
+            alert(
+                "Pasta criada com sucesso!"
+            );
+
+            window.location.reload();
+
+        } else {
+
+            alert(
+                data.message || "Erro ao criar pasta."
+            );
+
+        }
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert(
+            "Erro ao comunicar com o Control Room."
+        );
+
+    });
+
+}
+
+
+function abrirPasta(folderId, folderName) {
+    pastaAtualId = folderId;
+
+    console.log(
+        "Abrindo pasta:",
+        folderId,
+        folderName
+    );
+
+
+    fetch(
+        `/robot-folders/${folderId}/robots`
+    )
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        if (data.status !== "success") {
+
+            alert(
+                data.message ||
+                "Erro ao consultar a pasta."
+            );
+
+            return;
+        }
+
+
+        const folderContent =
+            document.getElementById(
+                "folder-content"
+            );
+
+        const folderTitle =
+            document.getElementById(
+                "folder-title"
+            );
+
+        const robotList =
+            document.getElementById(
+                "robot-list"
+            );
+
+
+        folderContent.style.display =
+            "block";
+
+
+        folderTitle.innerText =
+            "📁 " + data.folder.name;
+
+
+        robotList.innerHTML = "";
+
+
+        // ==================================================
+        // NENHUM ROBÔ
+        // ==================================================
+
+        if (data.robots.length === 0) {
+
+            robotList.innerHTML = `
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        📦
+                    </div>
+
+                    <h3>
+                        Nenhum robô nesta pasta
+                    </h3>
+
+                    <p>
+                        Faça upload de um robô para esta pasta.
+                    </p>
+
+                </div>
+
+            `;
+
+            return;
+        }
+
+
+        // ==================================================
+        // LISTA ROBÔS
+        // ==================================================
+
+        data.robots.forEach(robot => {
+
+            const robotItem =
+                document.createElement("div");
+
+
+            robotItem.className =
+                "folder-item";
+
+
+            robotItem.innerHTML = `
+
+                <div class="folder-icon">
+                    📦
+                </div>
+
+                <div class="folder-info">
+
+                    <strong>
+                        ${robot.filename}
+                    </strong>
+
+                    <small>
+                        Versão ${robot.version}
+                    </small>
+
+                </div>
+
+                <div style="
+                    margin-left: auto;
+                    display: flex;
+                    gap: 8px;
+                ">
+
+                    <button
+                        type="button"
+                        class="btn-primary"
+                        onclick="event.stopPropagation(); executarRobot(${robot.id})"
+                    >
+                        ▶ Executar
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn-danger"
+                        onclick="event.stopPropagation(); excluirRobot(${robot.id}, '${robot.filename}')"
+                    >
+                        🗑 Excluir
+                    </button>
+
+                </div>
+
+            `;
+
+
+            robotList.appendChild(
+                robotItem
+            );
+
+        });
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert(
+            "Erro ao comunicar com o Control Room."
+        );
+
+    });
+
+}
+
+async function executarRobot(robotId) {
+
+    try {
+
+        // ==================================================
+        // 1. BUSCA AGENTS ONLINE
+        // ==================================================
+
+        const agentsResponse =
+            await fetch("/agents");
+
+        const agentsData =
+            await agentsResponse.json();
+
+
+        if (
+            agentsData.status !== "success" ||
+            !agentsData.agents ||
+            agentsData.agents.length === 0
+        ) {
+
+            alert(
+                "Nenhum Agent online disponível."
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // 2. PEGA O PRIMEIRO AGENT ONLINE
+        // ==================================================
+
+        const agent =
+            agentsData.agents.find(
+                a => a.status === "online"
+            );
+
+
+        if (!agent) {
+
+            alert(
+                "Nenhum Agent online disponível."
+            );
+
+            return;
+        }
+
+
+        // ==================================================
+        // 3. CONFIRMA EXECUÇÃO
+        // ==================================================
+
+        const confirmar =
+            confirm(
+                "Deseja executar este robô?"
+            );
+
+
+        if (!confirmar) {
+            return;
+        }
+
+
+        // ==================================================
+        // 4. EXECUTA
+        // ==================================================
+
+        const response =
+            await fetch(
+                `/agents/${agent.agent_id}/execution/run`,
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        robot_id: robotId
+                    })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        // ==================================================
+        // 5. RESULTADO
+        // ==================================================
+
+        if (
+            data.status === "success"
+        ) {
+
+            alert(
+                "Robô enviado para execução com sucesso!"
+            );
+
+        } else {
+
+            alert(
+                data.message ||
+                "Não foi possível executar o robô."
+            );
+
+            console.error(
+                "Erro na execução:",
+                data
+            );
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Erro ao executar robô:",
+            error
+        );
+
+        alert(
+            "Erro ao comunicar com o Control Room."
+        );
+
+    }
+
+}
+async function uploadRobot() {
+
+    // ==================================================
+    // VALIDA SE UMA PASTA ESTÁ ABERTA
+    // ==================================================
+
+    if (!pastaAtualId) {
+
+        alert(
+            "Abra uma pasta antes de fazer o upload do robô."
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // CRIA INPUT DE ARQUIVO
+    // ==================================================
+
+    const input =
+        document.createElement("input");
+
+    input.type = "file";
+
+    input.accept = ".zip,.rar";
+
+
+    input.onchange = async function () {
+
+        const arquivo =
+            input.files[0];
+
+
+        if (!arquivo) {
+            return;
+        }
+
+
+        // ==================================================
+        // MONTA FORM DATA
+        // ==================================================
+
+        const formData =
+            new FormData();
+
+
+        formData.append(
+            "file",
+            arquivo
+        );
+
+
+        formData.append(
+            "folder_id",
+            pastaAtualId
+        );
+
+
+        // ==================================================
+        // ENVIA PARA O CONTROL ROOM
+        // ==================================================
+
+        try {
+
+            const response =
+                await fetch(
+                    "/robots/upload",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                data.status === "success"
+            ) {
+
+                alert(
+                    data.message ||
+                    "Robô enviado com sucesso!"
+                );
+
+
+                // Reabre a pasta atual
+                // para atualizar a lista
+
+                abrirPasta(
+                    pastaAtualId,
+                    document.getElementById(
+                        "folder-title"
+                    ).innerText.replace("📁 ", "")
+                );
+
+            } else {
+
+                alert(
+                    data.message ||
+                    "Erro ao enviar o robô."
+                );
+
+                console.error(
+                    "Erro no upload:",
+                    data
+                );
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Erro no upload:",
+                error
+            );
+
+            alert(
+                "Erro ao comunicar com o Control Room."
+            );
+
+        }
+
+    };
+
+
+    // ==================================================
+    // ABRE SELETOR DE ARQUIVO
+    // ==================================================
+
+    input.click();
+
+}
+
+
+
+//EXCLUSÃO DE ROBÔS
+async function excluirRobot(robotId, robotName) {
+
+    const confirmar = confirm(
+        `Tem certeza que deseja excluir o robô "${robotName}"?`
+    );
+
+    if (!confirmar) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `/robots/${robotId}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+
+            alert(
+                "Robô excluído com sucesso!"
+            );
+
+            // Atualiza a pasta atual
+            abrirPasta(
+                pastaAtualId,
+                document.getElementById(
+                    "folder-title"
+                ).innerText.replace("📁 ", "")
+            );
+
+        } else {
+
+            alert(
+                data.message ||
+                "Não foi possível excluir o robô."
+            );
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Erro ao excluir robô:",
+            error
+        );
+
+        alert(
+            "Erro ao comunicar com o Control Room."
+        );
+    }
+}
+
+
+//EXCLUSÃO DE PASTAS
+async function excluirPasta(folderId, folderName) {
+
+    const confirmar = confirm(
+        `Tem certeza que deseja excluir a pasta "${folderName}"?\n\n` +
+        `A pasta precisa estar vazia para ser excluída.`
+    );
+
+    if (!confirmar) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `/robot-folders/${folderId}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+
+            alert(
+                "Pasta excluída com sucesso!"
+            );
+
+            window.location.reload();
+
+        } else {
+
+            alert(
+                data.message ||
+                "Não foi possível excluir a pasta."
+            );
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Erro ao excluir pasta:",
+            error
+        );
+
+        alert(
+            "Erro ao comunicar com o Control Room."
+        );
+    }
+}
+
+
+
+
+
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <div>
+
+            <h2>Histórico</h2>
+
+            <p>
+                Histórico das execuções finalizadas
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Robô</th>
+                    <th>Agent</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                    <th>Duração</th>
+                    <th>Status</th>
+                    <th>Erro</th>
+                </tr>
+
+            </thead>
+
+            <tbody id="history-list">
+
+                <tr>
+
+                    <td colspan="8">
+                        Carregando histórico...
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<script>
+
+// Função para carregar o histórico de execuções
+async function carregarHistorico() {
+
+    const tbody = document.getElementById(
+        "history-list"
+    );
+
+    try {
+
+        const response = await fetch(
+            "/executions/history"
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "Erro ao consultar histórico"
+            );
+        }
+
+        const data = await response.json();
+
+        const executions = data.executions || [];
+
+        tbody.innerHTML = "";
+
+        if (executions.length === 0) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8">
+                        Nenhuma execução finalizada.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        executions.forEach(
+            execution => {
+
+                const inicio =
+                    execution.started_at
+                    ? new Date(
+                        execution.started_at
+                    )
+                    : null;
+
+                const fim =
+                    execution.finished_at
+                    ? new Date(
+                        execution.finished_at
+                    )
+                    : null;
+
+                let duracao = "-";
+
+                if (inicio && fim) {
+
+                    const segundos = Math.floor(
+                        (fim - inicio) / 1000
+                    );
+
+                    if (segundos < 60) {
+
+                        duracao =
+                            `${segundos}s`;
+
+                    } else {
+
+                        const minutos =
+                            Math.floor(
+                                segundos / 60
+                            );
+
+                        const resto =
+                            segundos % 60;
+
+                        duracao =
+                            `${minutos}m ${resto}s`;
+                    }
+                }
+
+                let statusTexto =
+                    execution.status;
+
+                if (
+                    execution.status ===
+                    "success"
+                ) {
+                    statusTexto = "Sucesso";
+
+                } else if (
+                    execution.status ===
+                    "error"
+                ) {
+                    statusTexto = "Erro";
+
+                } else if (
+                    execution.status ===
+                    "stopped"
+                ) {
+                    statusTexto = "Parado";
+                }
+
+                const linha = document.createElement(
+                    "tr"
+                );
+
+                linha.innerHTML = `
+
+                    <td>
+                        ${execution.id}
+                    </td>
+
+                    <td>
+                        ${execution.robot_name || "-"}
+                    </td>
+
+                    <td>
+                        ${execution.agent_name || "-"}
+                    </td>
+
+                    <td>
+                        ${
+                            inicio
+                            ? inicio.toLocaleString(
+                                "pt-BR"
+                            )
+                            : "-"
+                        }
+                    </td>
+
+                    <td>
+                        ${
+                            fim
+                            ? fim.toLocaleString(
+                                "pt-BR"
+                            )
+                            : "-"
+                        }
+                    </td>
+
+                    <td>
+                        ${duracao}
+                    </td>
+
+                    <td>
+                        ${statusTexto}
+                    </td>
+
+                    <td>
+                        ${
+                            execution.error_message
+                            || "-"
+                        }
+                    </td>
+
+                `;
+
+                tbody.appendChild(
+                    linha
+                );
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Erro ao carregar histórico:",
+            error
+        );
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8">
+                    Não foi possível carregar o histórico.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+
+carregarHistorico();
+
+
+// Atualiza o histórico a cada 5 segundos
+
+setInterval(
+    carregarHistorico,
+    5000
+);
+
+</script>
+
+{% endblock %}

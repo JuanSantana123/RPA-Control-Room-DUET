@@ -1,0 +1,1097 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <div>
+            <h2>Execuções</h2>
+
+            <p>
+                Execuções em andamento
+            </p>
+        </div>
+
+    </div>
+
+
+
+
+    <div class="execution-filters">
+
+    <div class="filter-group">
+
+        <label for="filtro-robo">
+            Robô
+        </label>
+
+        <select id="filtro-robo">
+            <option value="">
+                Todos
+            </option>
+        </select>
+
+    </div>
+
+
+    <div class="filter-group">
+
+        <label for="filtro-agent">
+            Agent
+        </label>
+
+        <select id="filtro-agent">
+            <option value="">
+                Todos
+            </option>
+        </select>
+
+    </div>
+
+
+    
+
+
+    <button
+        type="button"
+        class="btn-secondary"
+        onclick="aplicarFiltros()"
+    >
+        🔍 Filtrar
+    </button>
+
+
+    <button
+        type="button"
+        class="btn-secondary"
+        onclick="limparFiltros()"
+    >
+        Limpar
+    </button>
+
+</div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Robô</th>
+                    <th>Agent</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                    <th>Duração</th>
+                    <th>Status</th>
+                    <th>Erro</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="execution-list">
+
+                <tr>
+                    <td colspan="9">
+                        Carregando execuções...
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+
+
+<div
+    id="modal-execucao"
+    class="modal-overlay"
+    style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 99999;
+        background: rgba(0, 0, 0, 0.6);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    "
+>
+
+    <div
+        class="modal"
+        style="
+            position: relative;
+            width: 650px;
+            max-width: 90vw;
+            max-height: 90vh;
+            margin: 0;
+            padding: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-sizing: border-box;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.30);
+        "
+    >
+
+        <div
+            class="modal-header"
+            style="
+                width: 100%;
+                padding: 20px 24px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                box-sizing: border-box;
+                border-bottom: 1px solid #e5e7eb;
+            "
+        >
+
+            <div>
+                <h2 style="margin: 0;">
+                    Execução #<span id="detalhe-id"></span>
+                </h2>
+
+                <p
+                    style="
+                        margin: 5px 0 0;
+                        color: #6b7280;
+                    "
+                >
+                    Detalhes da execução
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="fecharDetalhesExecucao()"
+            >
+                ✕
+            </button>
+
+        </div>
+
+
+        <div
+            class="modal-body"
+            style="
+                width: 100%;
+                max-height: calc(90vh - 90px);
+                overflow-y: auto;
+                padding: 24px;
+                box-sizing: border-box;
+            "
+        >
+
+            <div
+                style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px;
+                "
+            >
+
+                <div
+                    style="
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Robô</span>
+                    <strong id="detalhe-robo">-</strong>
+                </div>
+
+                <div
+                    style="
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Agent</span>
+                    <strong id="detalhe-agent">-</strong>
+                </div>
+
+                <div
+                    style="
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Status</span>
+                    <strong id="detalhe-status">-</strong>
+                </div>
+
+                <div
+                    style="
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Duração</span>
+                    <strong id="detalhe-duracao">-</strong>
+                </div>
+
+                <div
+                    style="
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Início</span>
+                    <strong id="detalhe-inicio">-</strong>
+                </div>
+
+                <div
+                    style="
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Fim</span>
+                    <strong id="detalhe-fim">-</strong>
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top: 20px;
+                    padding-top: 20px;
+                    border-top: 1px solid #e5e7eb;
+                "
+            >
+
+                <h3 style="margin: 0 0 15px;">
+                    Identificação
+                </h3>
+
+                <div
+                    style="
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Robot ID</span>
+                    <strong id="detalhe-robot-id">-</strong>
+                </div>
+
+                <div
+                    style="
+                        margin-top: 12px;
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span class="detail-label">Agent ID</span>
+                    <strong
+                        id="detalhe-agent-id"
+                        style="word-break: break-all;"
+                    >
+                        -
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top: 20px;
+                    padding-top: 20px;
+                    border-top: 1px solid #e5e7eb;
+                "
+            >
+
+                <h3 style="margin: 0 0 15px;">
+                    Erro
+                </h3>
+
+                <div
+                    style="
+                        min-height: 45px;
+                        padding: 14px;
+                        background: #f8fafc;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        box-sizing: border-box;
+                    "
+                >
+                    <span
+                        id="detalhe-erro"
+                        style="word-break: break-word;"
+                    >
+                        -
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    let todasExecucoes = [];
+
+
+    // ============================================================
+    // CALCULA DURAÇÃO
+    // ============================================================
+
+    function calcularDuracao(inicio, fim) {
+
+        if (!inicio) {
+            return "-";
+        }
+
+        const dataInicio = new Date(inicio);
+
+        const dataFim = fim
+            ? new Date(fim)
+            : new Date();
+
+        const diferenca = Math.floor(
+            (dataFim - dataInicio) / 1000
+        );
+
+        if (diferenca < 0) {
+            return "-";
+        }
+
+        const horas = Math.floor(
+            diferenca / 3600
+        );
+
+        const minutos = Math.floor(
+            (diferenca % 3600) / 60
+        );
+
+        const segundos = diferenca % 60;
+
+
+        if (horas > 0) {
+
+            return (
+                horas + "h " +
+                minutos + "m " +
+                segundos + "s"
+            );
+
+        }
+
+
+        if (minutos > 0) {
+
+            return (
+                minutos + "m " +
+                segundos + "s"
+            );
+
+        }
+
+
+        return segundos + "s";
+    }
+
+
+    // ============================================================
+    // FORMATA DATA
+    // ============================================================
+
+    function formatarData(data) {
+
+        if (!data) {
+            return "-";
+        }
+
+        return new Date(data).toLocaleString("pt-BR");
+
+    }
+
+
+    // ============================================================
+    // CARREGA EXECUÇÕES DA API
+    // ============================================================
+
+    async function carregarExecucoes() {
+
+        try {
+
+            const response =
+                await fetch("/executions");
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                data.status !== "success"
+            ) {
+
+                console.error(
+                    "Erro ao consultar execuções:",
+                    data
+                );
+
+                return;
+
+            }
+
+
+            // Guarda todas as execuções
+            todasExecucoes = data.executions;
+
+
+            // Atualiza os filtros
+            popularFiltros();
+
+
+            // Mostra as execuções pelo filtro
+            aplicarFiltros();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Erro ao carregar execuções:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // ============================================================
+    // POPULA FILTROS
+    // ============================================================
+
+    function popularFiltros() {
+
+        const filtroRobo =
+            document.getElementById("filtro-robo");
+
+        const filtroAgent =
+            document.getElementById("filtro-agent");
+
+
+        if (!filtroRobo || !filtroAgent) {
+            return;
+        }
+
+
+        const roboSelecionado =
+            filtroRobo.value;
+
+        const agentSelecionado =
+            filtroAgent.value;
+
+
+        const robos = [
+            ...new Set(
+                todasExecucoes
+                    .map(
+                        execution =>
+                            execution.robot_name
+                    )
+                    .filter(Boolean)
+            )
+        ];
+
+
+        const agents = [
+            ...new Set(
+                todasExecucoes
+                    .map(
+                        execution =>
+                            execution.agent_name
+                    )
+                    .filter(Boolean)
+            )
+        ];
+
+
+        filtroRobo.innerHTML = `
+            <option value="">
+                Todos
+            </option>
+        `;
+
+
+        robos.forEach(robo => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = robo;
+
+            option.textContent = robo;
+
+            filtroRobo.appendChild(option);
+
+        });
+
+
+        filtroAgent.innerHTML = `
+            <option value="">
+                Todos
+            </option>
+        `;
+
+
+        agents.forEach(agent => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = agent;
+
+            option.textContent = agent;
+
+            filtroAgent.appendChild(option);
+
+        });
+
+
+        // Mantém seleção depois do refresh
+        filtroRobo.value =
+            roboSelecionado;
+
+        filtroAgent.value =
+            agentSelecionado;
+
+    }
+
+
+    // ============================================================
+    // RENDERIZA EXECUÇÕES
+    // ============================================================
+
+    function renderizarExecucoes(
+        execucaoLista
+    ) {
+
+        const executionList =
+            document.getElementById(
+                "execution-list"
+            );
+
+
+        executionList.innerHTML = "";
+
+
+        if (execucaoLista.length === 0) {
+
+            executionList.innerHTML = `
+
+                <tr>
+
+                    <td colspan="9">
+
+                        Nenhuma execução encontrada.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+
+        execucaoLista.forEach(
+            execution => {
+
+                const row =
+                    document.createElement("tr");
+
+
+                let statusHtml;
+
+                if (execution.status === "success") {
+
+                    statusHtml = `
+                        <span class="status-online">
+                            ● Sucesso
+                        </span>
+                    `;
+
+                }
+                else if (execution.status === "error") {
+
+                    statusHtml = `
+                        <span class="status-offline">
+                            ● Erro
+                        </span>
+                    `;
+
+                }
+                else if (execution.status === "stopped") {
+
+                    statusHtml = `
+                        <span class="status-offline">
+                            ● Parado
+                        </span>
+                    `;
+
+                }
+                else if (execution.status === "running") {
+
+                    statusHtml = `
+                        <span>
+                            ● Executando
+                        </span>
+                    `;
+
+                }
+                else {
+
+                    statusHtml = `
+                        <span>
+                            ● ${execution.status || "Desconhecido"}
+                        </span>
+                    `;
+
+                }
+
+                row.innerHTML = `
+
+                    <td>
+                        ${execution.id}
+                    </td>
+
+                    <td>
+                        ${execution.robot_name}
+                    </td>
+
+                    <td>
+                        ${execution.agent_name}
+                    </td>
+
+                    <td>
+                        ${formatarData(
+                            execution.started_at
+                        )}
+                    </td>
+
+                    <td>
+                        ${formatarData(
+                            execution.finished_at
+                        )}
+                    </td>
+
+                    <td>
+                        ${calcularDuracao(
+                            execution.started_at,
+                            execution.finished_at
+                        )}
+                    </td>
+
+                    <td>
+                        ${statusHtml}
+                    </td>
+
+                    <td>
+                        ${execution.error_message || "-"}
+                    </td>
+
+                    <td>
+
+                        <button
+                            type="button"
+                            class="btn-secondary"
+                            onclick="abrirDetalhesExecucao(${execution.id})"
+                        >
+                            Detalhes
+                        </button>
+
+                        ${
+                            execution.status === "running"
+                            ? `
+                                <button
+                                    type="button"
+                                    class="btn-danger"
+                                    onclick="pararExecucao(${execution.id}, '${execution.agent_id}')"
+                                    style="margin-left: 6px;"
+                                >
+                                    ⏹ Parar
+                                </button>
+                            `
+                            : ""
+                        }
+
+                    </td>
+
+                `;
+
+
+                executionList.appendChild(
+                    row
+                );
+
+            }
+        );
+
+    }
+
+
+    // ============================================================
+    // APLICA FILTROS
+    // ============================================================
+
+    function aplicarFiltros() {
+
+        const robo =
+            document.getElementById(
+                "filtro-robo"
+            ).value;
+
+
+        const agent =
+            document.getElementById(
+                "filtro-agent"
+            ).value;
+
+
+
+        const resultados =
+            todasExecucoes.filter(
+                execution => {
+
+                    const correspondeRobo =
+                        !robo ||
+                        execution.robot_name ===
+                        robo;
+
+
+                    const correspondeAgent =
+                        !agent ||
+                        execution.agent_name ===
+                        agent;
+
+
+                    return (
+                        correspondeRobo &&
+                        correspondeAgent
+                    );
+
+                }
+            );
+
+
+        renderizarExecucoes(
+            resultados
+        );
+
+    }
+
+
+    // ============================================================
+    // LIMPA FILTROS
+    // ============================================================
+
+    function limparFiltros() {
+
+        document.getElementById(
+            "filtro-robo"
+        ).value = "";
+
+
+        document.getElementById(
+            "filtro-agent"
+        ).value = "";
+
+
+        
+
+
+        renderizarExecucoes(
+            todasExecucoes
+        );
+
+    }
+
+
+    // ============================================================
+    // PRIMEIRA CARGA
+    // ============================================================
+
+    carregarExecucoes();
+
+
+    // ============================================================
+    // ATUALIZA A CADA 5 SEGUNDOS
+    // ============================================================
+
+    setInterval(
+        carregarExecucoes,
+        5000
+    );
+
+
+
+    //abrir detalhes das execuções
+   function abrirDetalhesExecucao(executionId) {
+
+    const execution =
+        todasExecucoes.find(
+            item => String(item.id) === String(executionId)
+        );
+
+
+    if (!execution) {
+
+        console.error(
+            "Execução não encontrada:",
+            executionId
+        );
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "detalhe-id"
+    ).textContent =
+        execution.id;
+
+
+    document.getElementById(
+        "detalhe-robo"
+    ).textContent =
+        execution.robot_name || "-";
+
+
+    document.getElementById(
+        "detalhe-agent"
+    ).textContent =
+        execution.agent_name || "-";
+
+
+    document.getElementById(
+        "detalhe-inicio"
+    ).textContent =
+        formatarData(
+            execution.started_at
+        );
+
+
+    document.getElementById(
+        "detalhe-fim"
+    ).textContent =
+        formatarData(
+            execution.finished_at
+        );
+
+
+    document.getElementById(
+        "detalhe-duracao"
+    ).textContent =
+        calcularDuracao(
+            execution.started_at,
+            execution.finished_at
+        );
+
+
+    document.getElementById(
+        "detalhe-robot-id"
+    ).textContent =
+        execution.robot_id || "-";
+
+
+    document.getElementById(
+        "detalhe-agent-id"
+    ).textContent =
+        execution.agent_id || "-";
+
+
+    document.getElementById(
+        "detalhe-erro"
+    ).textContent =
+        execution.error_message || "-";
+
+
+    let status = "● Executando";
+
+
+    if (execution.status === "success") {
+
+        status = "● Sucesso";
+
+    }
+    else if (execution.status === "error") {
+
+        status = "● Erro";
+
+    }
+    else if (execution.status === "stopped") {
+
+        status = "● Parado";
+
+    }
+    else if (execution.status === "running") {
+
+        status = "● Executando";
+
+    }
+    else {
+
+        status = `● ${execution.status || "Desconhecido"}`;
+
+    }
+
+    document.getElementById(
+        "detalhe-status"
+    ).textContent =
+        status;
+
+
+    const modal =
+    document.getElementById("modal-execucao");
+
+    modal.style.display = "flex";
+    modal.style.position = "fixed";
+    modal.style.top = "0";
+    modal.style.left = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.zIndex = "99999";
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+    modal.style.alignItems = "center";
+    modal.style.justifyContent = "center";
+
+}
+
+    function fecharDetalhesExecucao() {
+
+        document.getElementById(
+            "modal-execucao"
+        ).style.display = "none";
+
+    }
+
+
+// ============================================================
+// PARA EXECUÇÃO
+// ============================================================
+
+async function pararExecucao(
+    executionId,
+    agentId
+) {
+
+    const confirmar = confirm(
+        `Deseja realmente parar a execução #${executionId}?`
+    );
+
+    if (!confirmar) {
+        return;
+    }
+
+
+    try {
+
+        const response = await fetch(
+            `/agents/${agentId}/execution/stop`,
+            {
+                method: "POST"
+            }
+        );
+
+
+        const data = await response.json();
+
+
+        if (!response.ok || data.status !== "success") {
+
+            console.error(
+                "Erro ao parar execução:",
+                data
+            );
+
+            alert(
+                data.message ||
+                data.error ||
+                JSON.stringify(data) ||
+                "Não foi possível parar a execução."
+            );
+
+            return;
+        }
+
+
+        alert(
+            "Comando de parada enviado para o Agent."
+        );
+
+
+        // Atualiza a tabela imediatamente
+        carregarExecucoes();
+
+    }
+    catch (error) {
+
+        console.error(
+            "Erro ao enviar comando de stop:",
+            error
+        );
+
+        alert(
+            "Não foi possível comunicar com o Control Room."
+        );
+
+    }
+
+}
+</script>
+
+
+
+    </div>
+
+</section>
+
+{% endblock %}
