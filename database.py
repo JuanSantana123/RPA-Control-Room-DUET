@@ -78,15 +78,39 @@ def _atualizar_tabela_schedules():
                     )
                 )
 
+def _atualizar_tabela_executions():
+    # Colunas que podem precisar ser adicionadas
+    # em uma tabela executions já existente.
+    colunas = {
+        "pid": "INTEGER"
+    }
 
+    with engine.begin() as connection:
+        resultado = connection.execute(
+            text("PRAGMA table_info(executions)")
+        )
+
+        existentes = {
+            linha[1]
+            for linha in resultado.fetchall()
+        }
+
+        if not existentes:
+            return
+
+        for nome, definicao in colunas.items():
+            if nome not in existentes:
+                connection.execute(
+                    text(
+                        f"ALTER TABLE executions "
+                        f"ADD COLUMN {nome} {definicao}"
+                    )
+                )
 # ============================================================
 # CRIA BANCO / TABELAS
 # ============================================================
 
 def criar_banco():
-
-    Base.metadata.create_all(
-        bind=engine
-    )
-
+    Base.metadata.create_all(bind=engine)
     _atualizar_tabela_schedules()
+    _atualizar_tabela_executions()

@@ -157,6 +157,14 @@ class Execution(Base):
         nullable=False
     )
 
+    # PID do processo Python do robô no Agent.
+    # Permite identificar o processo específico
+    # responsável por esta execução.
+    pid = Column(
+        Integer,
+        nullable=True
+    )
+
     status = Column(
         String,
         nullable=False,
@@ -264,23 +272,4 @@ class Schedule(Base):
         nullable=True
     )
 
-    intervalo_ativo = Column(
-    Integer,
-    nullable=False,
-    default=0
-    )
-
-    intervalo_valor = Column(
-        Integer,
-        nullable=True
-    )
-
-    intervalo_unidade = Column(
-        String,
-        nullable=True
-    )
-
-    horario_fim = Column(
-        String,
-        nullable=True
-    )
+    
