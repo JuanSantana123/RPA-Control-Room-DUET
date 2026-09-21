@@ -268,3 +268,186 @@ def validar_delegacao_permissoes(
                 "porque elas não fazem parte das suas permissões atuais."
             ),
         )
+
+
+# ============================================================
+# PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
+# ============================================================
+#
+# Um "administrador funcional" não depende do nome de uma Role.
+#
+# Para conseguir recuperar/configurar o próprio RBAC do DUET,
+# pelo menos um usuário ATIVO precisa possuir simultaneamente:
+#
+#     Roles:edit
+#     Users:edit
+#
+# A validação abaixo permite simular remoções antes de qualquer
+# alteração no banco.
+# ============================================================
+
+PERMISSOES_ADMINISTRATIVAS_CRITICAS = {
+    ("Roles", "edit"),
+    ("Users", "edit"),
+}
+
+
+def _obter_permission_ids_criticos(
+    db: Session,
+) -> set[int]:
+    """
+    Localiza no catálogo os IDs das permissões necessárias
+    para administrar Roles e associações User -> Role.
+
+    Falha de catálogo também é tratada como erro de segurança:
+    não devemos permitir uma alteração administrativa se o
+    próprio catálogo RBAC estiver incompleto.
+    """
+
+    permissoes = (
+        db.query(Permission)
+        .filter(
+            Permission.resource.in_(
+                {
+                    resource
+                    for resource, _ in
+                    PERMISSOES_ADMINISTRATIVAS_CRITICAS
+                }
+            )
+        )
+        .all()
+    )
+
+    permission_ids_por_chave = {
+        (permissao.resource, permissao.action): permissao.id
+        for permissao in permissoes
+    }
+
+    faltantes = (
+        PERMISSOES_ADMINISTRATIVAS_CRITICAS
+        - set(permission_ids_por_chave.keys())
+    )
+
+    if faltantes:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "O catálogo RBAC está incompleto para validar "
+                "a segurança administrativa."
+            ),
+        )
+
+    return {
+        permission_ids_por_chave[chave]
+        for chave in PERMISSOES_ADMINISTRATIVAS_CRITICAS
+    }
+
+
+def validar_admin_funcional_restante(
+    db: Session,
+    role_id_removida: int | None = None,
+    user_id_alvo: int | None = None,
+    role_ids_finais_usuario: set[int] | None = None,
+    permission_ids_finais_role: set[int] | None = None,
+) -> None:
+    """
+    Simula o estado final do RBAC e impede que uma operação
+    deixe o DUET sem nenhum administrador funcional.
+
+    Parâmetros opcionais:
+
+    role_id_removida:
+        Simula a exclusão completa de uma Role.
+
+    user_id_alvo + role_ids_finais_usuario:
+        Simula a substituição/remoção das Roles de um usuário.
+
+    role_id_removida + permission_ids_finais_role:
+        Simula a substituição das Permissions de uma Role.
+        Nesse cenário a Role não é excluída; apenas suas
+        permissões são consideradas no estado futuro.
+    """
+
+    permission_ids_criticos = _obter_permission_ids_criticos(
+        db=db
+    )
+
+    usuarios_ativos = (
+        db.query(User)
+        .filter(User.is_active == 1)
+        .all()
+    )
+
+    for usuario in usuarios_ativos:
+
+        # ----------------------------------------------------
+        # DESCOBRIR AS ROLES QUE O USUÁRIO TERÁ APÓS A OPERAÇÃO
+        # ----------------------------------------------------
+
+        if (
+            user_id_alvo == usuario.id
+            and role_ids_finais_usuario is not None
+        ):
+            role_ids_usuario = set(
+                role_ids_finais_usuario
+            )
+
+        else:
+            role_ids_usuario = {
+                role_id
+                for (role_id,) in (
+                    db.query(UserRole.role_id)
+                    .filter(
+                        UserRole.user_id == usuario.id
+                    )
+                    .all()
+                )
+            }
+
+        # Quando estamos simulando EXCLUSÃO de Role,
+        # ela deixa de existir para todos os usuários.
+        if (
+            role_id_removida is not None
+            and permission_ids_finais_role is None
+        ):
+            role_ids_usuario.discard(
+                role_id_removida
+            )
+
+        permission_ids_usuario = set()
+
+        for role_id in role_ids_usuario:
+
+            # Se estamos simulando alteração das permissões
+            # desta Role, usamos o estado futuro informado.
+            if (
+                role_id == role_id_removida
+                and permission_ids_finais_role is not None
+            ):
+                permission_ids_usuario.update(
+                    permission_ids_finais_role
+                )
+                continue
+
+            permission_ids_usuario.update(
+                obter_permission_ids_role(
+                    role_id=role_id,
+                    db=db,
+                )
+            )
+
+        # O usuário continua sendo administrador funcional
+        # somente se possuir TODAS as permissões críticas.
+        if permission_ids_criticos.issubset(
+            permission_ids_usuario
+        ):
+            return
+
+    raise HTTPException(
+        status_code=409,
+        detail=(
+            "Esta alteração não pode ser concluída porque "
+            "deixaria o DUET sem nenhum usuário ativo capaz "
+            "de administrar perfis e permissões."
+        ),
+    )

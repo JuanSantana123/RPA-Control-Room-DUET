@@ -26,6 +26,7 @@ from models import User
 
 from auth.rbac_safety import (
     obter_permission_ids_role,
+    validar_admin_funcional_restante,
     validar_delegacao_permissao,
     validar_delegacao_permissoes,
 )
@@ -414,6 +415,26 @@ def atualizar_permissoes_role_service(
         db=db,
     )
 
+    # ========================================================
+    # PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
+    # ========================================================
+    #
+    # Antes de substituir as permissões da Role, simulamos
+    # exatamente como ela ficará.
+    #
+    # Se esta mudança remover a última combinação capaz de
+    # administrar Roles e usuários, a operação é bloqueada
+    # antes de qualquer DELETE/INSERT.
+    # ========================================================
+
+    validar_admin_funcional_restante(
+        db=db,
+        role_id_removida=role_id,
+        permission_ids_finais_role=set(
+            permission_ids
+        ),
+    )
+
     try:
 
         remover_permissoes_role(
@@ -472,6 +493,19 @@ def excluir_role_service(
             status_code=404,
             detail="Role não encontrada.",
         )
+
+    # ========================================================
+    # PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
+    # ========================================================
+    #
+    # Simula a remoção completa desta Role antes de excluir
+    # RolePermission, UserRole ou a própria Role.
+    # ========================================================
+
+    validar_admin_funcional_restante(
+        db=db,
+        role_id_removida=role_id,
+    )
 
     try:
 

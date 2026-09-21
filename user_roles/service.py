@@ -36,6 +36,7 @@ from sqlalchemy.exc import IntegrityError
 # ============================================================
 
 from auth.rbac_safety import (
+    validar_admin_funcional_restante,
     validar_delegacao_role,
     validar_delegacao_roles,
 )
@@ -376,6 +377,23 @@ def substituir_roles_usuario_service(
     )
 
     # --------------------------------------------------------
+    # PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
+    # --------------------------------------------------------
+    #
+    # Simula exatamente as Roles que o usuário terá depois da
+    # operação. Se ele for o último administrador funcional e
+    # perder essa capacidade, a alteração é recusada.
+    # --------------------------------------------------------
+
+    validar_admin_funcional_restante(
+        db=db,
+        user_id_alvo=user_id,
+        role_ids_finais_usuario=set(
+            role_ids
+        ),
+    )
+
+    # --------------------------------------------------------
     # SUBSTITUIÇÃO TRANSACIONAL
     # --------------------------------------------------------
 
@@ -492,6 +510,32 @@ def remover_role_usuario_service(
                 "uma Role inexistente."
             ),
         )
+
+    # ========================================================
+    # PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
+    # ========================================================
+    #
+    # Calcula as Roles que permanecerão com o usuário depois
+    # desta remoção e valida o estado futuro antes de alterar
+    # o relacionamento.
+    # ========================================================
+
+    relacionamentos_atuais = listar_relacionamentos_usuario(
+        db=db,
+        user_id=user_id,
+    )
+
+    role_ids_finais = {
+        item.role_id
+        for item in relacionamentos_atuais
+        if item.role_id != role_id
+    }
+
+    validar_admin_funcional_restante(
+        db=db,
+        user_id_alvo=user_id,
+        role_ids_finais_usuario=role_ids_finais,
+    )
 
     remover_relacionamento(
         db=db,

@@ -24,6 +24,18 @@ from auth.security import (
     validar_politica_senha,
 )
 
+# ============================================================
+# SEGURANÇA RBAC
+# ============================================================
+#
+# Impede que operações sobre usuários deixem o DUET sem
+# nenhum usuário ativo capaz de administrar o próprio RBAC.
+# ============================================================
+
+from auth.rbac_safety import (
+    validar_admin_funcional_restante,
+)
+
 from schemas.auth import (
     UserCreate,
     UserStatusUpdate,
@@ -86,6 +98,29 @@ def alterar_status_usuario_service(
             "status": "error",
             "message": "Usuário não encontrado.",
         }
+
+    # --------------------------------------------------------
+    # PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
+    # --------------------------------------------------------
+    #
+    # Se a operação solicitada for uma desativação, simulamos
+    # o usuário sem nenhuma Role efetiva.
+    #
+    # Como somente usuários ATIVOS são considerados pela
+    # proteção, isso representa corretamente o estado final:
+    # esse usuário deixa de participar da administração RBAC.
+    #
+    # A ativação de usuário não reduz privilégios e, portanto,
+    # não precisa desta validação.
+    # --------------------------------------------------------
+
+    if request.is_active is False:
+
+        validar_admin_funcional_restante(
+            db=db,
+            user_id_alvo=user_id,
+            role_ids_finais_usuario=set(),
+        )
 
     # --------------------------------------------------------
     # ATUALIZAR STATUS DO USUÁRIO
@@ -504,6 +539,27 @@ def excluir_usuario_service(
             "status": "error",
             "message": "Usuário não encontrado.",
         }
+
+
+    # --------------------------------------------------------
+    # PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
+    # --------------------------------------------------------
+    #
+    # A exclusão do DUET é operacional:
+    #
+    #     - desativa o usuário;
+    #     - revoga suas credenciais;
+    #     - remove suas Roles.
+    #
+    # Portanto simulamos o usuário sem Roles antes de executar
+    # qualquer uma dessas alterações.
+    # --------------------------------------------------------
+
+    validar_admin_funcional_restante(
+        db=db,
+        user_id_alvo=user_id,
+        role_ids_finais_usuario=set(),
+    )
 
     # --------------------------------------------------------
     # DESATIVAR USUÁRIO
