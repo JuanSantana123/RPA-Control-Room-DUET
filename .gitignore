@@ -14,7 +14,11 @@ env/
 *.sqlite3
 
 # Logs
+# Ignora tanto o log atual quanto logs rotacionados por data.
 *.log
+*.log.*
+
+
 
 # Ambiente / credenciais
 .env
@@ -28,3 +32,56 @@ config.ini
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+# ============================================================
+# DUET - Artefatos gerados em runtime
+# ============================================================
+
+# Instaladores personalizados gerados pelo Control Room.
+# O executável-base agent/RPA-Agent.exe NÃO é afetado.
+generated_installers/
+
+# ============================================================
+# Frontend
+# ============================================================
+
+# Dependências Node do frontend são restauradas com npm install.
+frontend/node_modules/
+
+# Build gerado pelo Vite.
+frontend/dist/
+
+# ============================================================
+# Arquivos temporários
+# ============================================================
+
+*.tmp
+*.temp
+
+
+# ============================================================
+# DUET - Workspaces de Desenvolvimento
+# ============================================================
+
+# Workspaces são cópias de trabalho criadas e alteradas durante
+# o desenvolvimento dos projetos. Não fazem parte do código-fonte
+# do Control Room.
+workspaces/
+
+
+# ============================================================
+# DUET - Storage interno
+# ============================================================
+
+# Builds, Libraries e Releases são artefatos administrados pelo
+# próprio DUET em runtime.
+storage/
+
+
+# ============================================================
+# DUET - Repositório de artefatos
+# ============================================================
+
+# Pacotes e versões de robôs são dados administrados pelo DUET,
+# e não código-fonte do Control Room.
+repository/

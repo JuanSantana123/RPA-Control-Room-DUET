@@ -1,0 +1,692 @@
+/* =========================================================
+   VAULT — GERENCIAMENTO DE CREDENCIAIS
+   ========================================================= */
+
+.vault-page {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* =========================================================
+   CABEÇALHO PRINCIPAL
+   ========================================================= */
+
+.vault-page .page-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.vault-page .page-heading h1 {
+    margin: 5px 0 0;
+    color: #172033;
+    font-size: 32px;
+    font-weight: 750;
+    letter-spacing: -0.8px;
+}
+
+.vault-page .page-heading p {
+    margin: 8px 0 0;
+    color: #7b8798;
+    font-size: 14px;
+}
+
+.vault-page .page-heading .primary-button {
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 9px;
+    font-weight: 650;
+}
+
+/* =========================================================
+   FORMULÁRIO DE NOVA PASTA
+   ========================================================= */
+
+.vault-page > .vault-form-panel {
+    margin-bottom: 24px;
+}
+
+/* =========================================================
+   LAYOUT PRINCIPAL
+   ========================================================= */
+
+.vault-layout {
+    display: grid;
+    grid-template-columns: 285px minmax(0, 1fr);
+    gap: 22px;
+    align-items: stretch;
+}
+
+/* =========================================================
+   PAINÉIS PRINCIPAIS
+   ========================================================= */
+
+.vault-folders-panel,
+.vault-credentials-panel {
+    min-width: 0;
+    min-height: 460px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e8edf3;
+    border-radius: 14px;
+    box-shadow:
+        0 2px 4px rgba(15, 23, 42, 0.025),
+        0 8px 24px rgba(15, 23, 42, 0.035);
+}
+
+/* =========================================================
+   CABEÇALHO DOS PAINÉIS
+   ========================================================= */
+
+.vault-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 64px;
+    padding: 0 22px;
+    border-bottom: 1px solid #edf1f5;
+    background: #ffffff;
+}
+
+.vault-panel-header h2 {
+    margin: 0;
+    color: #202b3c;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+
+/* =========================================================
+   PAINEL DE PASTAS
+   ========================================================= */
+
+.vault-folders-panel {
+    padding-bottom: 18px;
+}
+
+.vault-folders-panel .vault-panel-header {
+    margin-bottom: 12px;
+}
+
+.vault-folder-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 12px;
+}
+
+/* Cada nível da árvore */
+
+.vault-folder-item {
+    min-width: 0;
+}
+
+.vault-folder-item .vault-folder-item {
+    margin-top: 4px;
+    margin-left: 18px;
+}
+
+/* Linha da pasta */
+
+.vault-folder-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 5px;
+    min-height: 42px;
+}
+
+/* Botão principal da pasta */
+
+.vault-folder-select-button {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    gap: 9px;
+    padding: 10px 11px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: #59677a;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease;
+}
+
+.vault-folder-select-button:hover {
+    background: #f7f9fc;
+    border-color: #e9eef5;
+    color: #253247;
+}
+
+.vault-folder-select-button.selected {
+    background: linear-gradient(90deg, #eef5ff 0%, #f5f8ff 100%);
+    border-color: #d5e5ff;
+    color: #2463d4;
+    font-weight: 700;
+}
+
+.vault-folder-select-button.selected::before {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: -12px;
+    width: 3px;
+    border-radius: 0 4px 4px 0;
+    background: #3b82f6;
+    content: "";
+}
+
+/* Botões de ação das pastas */
+
+.vault-folder-action-button {
+    flex-shrink: 0;
+    min-height: 28px;
+    padding: 5px 7px;
+    border: 1px solid #e7ecf2;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #8491a3;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0;
+    transition:
+        opacity 0.18s ease,
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.vault-folder-row:hover .vault-folder-action-button {
+    opacity: 1;
+}
+
+.vault-folder-action-button:hover {
+    background: #f5f8fc;
+    border-color: #d6e0ec;
+    color: #334155;
+}
+
+/* =========================================================
+   PAINEL DE CREDENCIAIS
+   ========================================================= */
+
+.vault-credentials-panel {
+    padding-bottom: 24px;
+}
+
+.vault-credentials-panel > .vault-credentials-list {
+    padding: 20px 22px 0;
+}
+
+/* =========================================================
+   LISTA DE CREDENCIAIS
+   ========================================================= */
+
+.vault-credentials-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Card individual */
+
+.vault-credential-card {
+    position: relative;
+    padding: 20px 22px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e8edf3;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.025);
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.18s ease;
+}
+
+.vault-credential-card::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    background: #dbeafe;
+    content: "";
+}
+
+.vault-credential-card:hover {
+    border-color: #d8e3f0;
+    box-shadow:
+        0 5px 14px rgba(15, 23, 42, 0.055),
+        0 1px 3px rgba(15, 23, 42, 0.025);
+    transform: translateY(-1px);
+}
+
+/* Cabeçalho do card */
+
+.vault-credential-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.vault-credential-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    color: #202b3c;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+
+.vault-credential-header h3::before {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #eff6ff;
+    content: "🔐";
+    font-size: 14px;
+}
+
+/* Ações do card */
+
+.vault-credential-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vault-credential-actions .secondary-button {
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 7px;
+    font-size: 11px;
+}
+
+/* Campos exibidos */
+
+.vault-credential-card p {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 34px;
+    margin: 0;
+    padding: 7px 0;
+    border-bottom: 1px solid #f1f4f8;
+    color: #68778b;
+    font-size: 12px;
+}
+
+.vault-credential-card p:last-child {
+    border-bottom: none;
+}
+
+.vault-credential-card strong {
+    flex-shrink: 0;
+    color: #46566b;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.vault-credential-card p span {
+    overflow: hidden;
+    color: #7c8999;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* =========================================================
+   FORMULÁRIOS INTERNOS
+   ========================================================= */
+
+.vault-page .vault-form-panel {
+    padding: 22px;
+    background: #fbfcfe;
+    border: 1px solid #e7edf5;
+    border-radius: 12px;
+}
+
+.vault-page .vault-form-panel h3,
+.vault-page .vault-form-panel h4 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #263449;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.vault-form-group {
+    margin-bottom: 17px;
+}
+
+.vault-form-group label {
+    display: block;
+    margin-bottom: 7px;
+    color: #526176;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.vault-form-group input,
+.vault-form-group select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Linhas de campos de credenciais */
+
+.vault-field-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.vault-field-row input[type="text"],
+.vault-field-row input[type="password"] {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.vault-secret-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #526176;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.vault-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+/* =========================================================
+   ESTADOS VAZIOS
+   ========================================================= */
+
+.vault-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    margin: 0;
+    padding: 30px;
+    color: #9aa7b8;
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+/* =========================================================
+   ALERTAS
+   ========================================================= */
+
+.vault-page .alert-message {
+    margin-bottom: 20px;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 1050px) {
+    .vault-layout {
+        grid-template-columns: 250px minmax(0, 1fr);
+        gap: 16px;
+    }
+
+    .vault-folder-action-button {
+        padding: 5px;
+        font-size: 9px;
+    }
+
+    .vault-credential-card {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 850px) {
+    .vault-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .vault-folders-panel,
+    .vault-credentials-panel {
+        min-height: auto;
+    }
+
+    .vault-folder-action-button {
+        opacity: 1;
+    }
+
+    .vault-empty-state {
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 600px) {
+    .vault-page .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .vault-page .page-heading h1 {
+        font-size: 28px;
+    }
+
+    .vault-panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 18px;
+    }
+
+    .vault-credentials-panel > .vault-credentials-list {
+        padding: 16px;
+    }
+
+    .vault-field-row {
+        grid-template-columns: 1fr;
+    }
+
+    .vault-credential-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .vault-credential-actions {
+        width: 100%;
+    }
+
+    .vault-credential-actions button {
+        flex: 1;
+    }
+
+    .vault-credential-card p {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+    }
+}
+
+/* =========================================================
+   FORMULÁRIO MODERNO DE CRIAÇÃO DE PASTA
+   ========================================================= */
+
+.vault-create-folder-panel {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+    column-gap: 28px;
+    row-gap: 18px;
+    align-items: end;
+    margin-bottom: 24px;
+    padding: 24px 26px;
+    background: #ffffff;
+    border: 1px solid #e6edf5;
+    border-radius: 14px;
+    box-shadow:
+        0 2px 5px rgba(15, 23, 42, 0.025),
+        0 8px 22px rgba(15, 23, 42, 0.035);
+}
+
+/* Título da criação de pasta */
+
+.vault-create-folder-panel > h2 {
+    grid-column: 1 / -1;
+    position: relative;
+    margin: 0;
+    padding-left: 38px;
+    color: #202b3c;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 30px;
+}
+
+.vault-create-folder-panel > h2::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #eff6ff;
+    content: "📁";
+    font-size: 15px;
+}
+
+/* Grupos de campos */
+
+.vault-create-folder-panel .vault-form-group {
+    margin: 0;
+}
+
+.vault-create-folder-panel .vault-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #526176;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+}
+
+/* Inputs e select */
+
+.vault-create-folder-panel .form-input {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    border: 1px solid #dfe7f0;
+    border-radius: 8px;
+    background: #fbfcfe;
+    color: #263449;
+    font-size: 13px;
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.vault-create-folder-panel .form-input:hover {
+    border-color: #cbd8e8;
+    background: #ffffff;
+}
+
+.vault-create-folder-panel .form-input:focus {
+    border-color: #6ea4f8;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
+    outline: none;
+}
+
+/* Área dos botões */
+
+.vault-create-folder-panel .vault-form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 9px;
+    margin-top: 2px;
+    padding-top: 18px;
+    border-top: 1px solid #edf1f5;
+}
+
+/* Botão cancelar */
+
+.vault-create-folder-panel .secondary-button {
+    min-height: 38px;
+    padding: 0 15px;
+    border: 1px solid #dfe6ef;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Botão criar */
+
+.vault-create-folder-panel .primary-button {
+    min-height: 38px;
+    padding: 0 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* =========================================================
+   RESPONSIVIDADE DO FORMULÁRIO DE PASTA
+   ========================================================= */
+
+@media (max-width: 700px) {
+    .vault-create-folder-panel {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .vault-create-folder-panel .vault-form-actions {
+        grid-column: auto;
+        justify-content: stretch;
+    }
+
+    .vault-create-folder-panel .vault-form-actions button {
+        flex: 1;
+    }
+}

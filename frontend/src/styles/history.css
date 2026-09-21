@@ -1,0 +1,233 @@
+/* =========================================================
+   PÁGINA DE HISTÓRICO
+   ========================================================= */
+
+.history-page {
+    width: 100%;
+}
+
+/* =========================================================
+   PAINEL PRINCIPAL DO HISTÓRICO
+   ========================================================= */
+
+.history-panel {
+    width: 100%;
+    overflow: hidden;
+}
+
+/* =========================================================
+   WRAPPER DA TABELA
+   ========================================================= */
+
+.history-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* =========================================================
+   TABELA
+   ========================================================= */
+
+.history-table {
+    width: 100%;
+    min-width: 1450px;
+
+    border-collapse: collapse;
+    table-layout: auto;
+
+    font-size: 13px;
+}
+
+/* =========================================================
+   CABEÇALHO DA TABELA
+   ========================================================= */
+
+.history-table thead {
+    background: #f8fafc;
+}
+
+.history-table thead tr {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.history-table th {
+    padding: 14px 18px;
+
+    color: #64748b;
+
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+
+    white-space: nowrap;
+}
+
+/* =========================================================
+   LINHAS DA TABELA
+   ========================================================= */
+
+.history-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+
+    transition:
+        background-color 160ms ease;
+}
+
+.history-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.history-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* =========================================================
+   CÉLULAS
+   ========================================================= */
+
+.history-table td {
+    padding: 15px 18px;
+
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.5;
+
+    vertical-align: middle;
+}
+
+/* ID */
+.history-table th:first-child,
+.history-table td:first-child {
+    width: 70px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Robô */
+.history-table th:nth-child(2),
+.history-table td:nth-child(2) {
+    min-width: 170px;
+}
+
+/* Pasta */
+.history-table th:nth-child(3),
+.history-table td:nth-child(3) {
+    min-width: 220px;
+}
+
+/* Usuário */
+.history-table th:nth-child(4),
+.history-table td:nth-child(4) {
+    min-width: 120px;
+}
+
+/* Agent */
+.history-table th:nth-child(5),
+.history-table td:nth-child(5) {
+    min-width: 160px;
+}
+/* Datas */
+.history-table th:nth-child(4),
+.history-table th:nth-child(5),
+.history-table td:nth-child(4),
+.history-table td:nth-child(5) {
+    min-width: 155px;
+    white-space: nowrap;
+}
+
+/* Duração */
+.history-table th:nth-child(6),
+.history-table td:nth-child(6) {
+    min-width: 100px;
+    white-space: nowrap;
+}
+
+/* Status */
+.history-table th:nth-child(7),
+.history-table td:nth-child(7) {
+    min-width: 100px;
+    white-space: nowrap;
+}
+
+/* Erro */
+.history-table th:nth-child(8),
+.history-table td:nth-child(8) {
+    min-width: 220px;
+    max-width: 360px;
+}
+
+/* =========================================================
+   TEXTO DE ERRO
+   ========================================================= */
+
+.history-table td:last-child {
+    color: #64748b;
+    font-size: 12px;
+    word-break: break-word;
+}
+
+/* =========================================================
+   ESTADOS VAZIOS / CARREGAMENTO / ERRO
+   ========================================================= */
+
+.history-table tbody tr td[colspan="8"] {
+    padding: 52px 24px;
+
+    color: #94a3b8;
+
+    font-size: 13px;
+    text-align: center;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 900px) {
+    .history-table {
+        min-width: 950px;
+    }
+}
+
+@media (max-width: 650px) {
+    .history-page .page-heading h1 {
+        font-size: 24px;
+    }
+
+    .history-table th,
+    .history-table td {
+        padding: 12px 14px;
+    }
+}
+/* =========================================================
+   PASTA NO HISTÓRICO
+   ========================================================= */
+
+.history-folder-cell {
+    min-width: 200px;
+    max-width: 320px;
+
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.4;
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   USUÁRIO NO HISTÓRICO
+   ========================================================= */
+
+.history-user-cell {
+    min-width: 120px;
+
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}

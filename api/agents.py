@@ -1,849 +1,478 @@
 # ============================================================
-# ROUTER DE AGENTS
+# ROUTER - AGENTS
 # ============================================================
-# Centraliza consulta, heartbeat, cadastro, exclusão e monitoramento
-# dos Agents. As URLs permanecem iguais às APIs existentes.
+#
+# Camada HTTP do domínio de Agents.
+#
+# RESPONSABILIDADES DESTE ARQUIVO:
+# - declarar URLs;
+# - declarar métodos HTTP;
+# - aplicar autenticação e RBAC;
+# - receber parâmetros HTTP;
+# - fornecer sessão de banco aos services;
+# - delegar regras de negócio.
+#
+# REGRAS DE NEGÓCIO:
+# agents/
+#
+# CONTRATOS:
+# schemas/agents.py
 # ============================================================
 
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from auth.dependencies import get_usuario_atual
+from auth.permissions import require_permission
 from database import SessionLocal
-from models import Agent, Execution
-from datetime import datetime, timedelta
-import requests
-import time
-import logging
+from schemas.agents import (
+    AgentCreateRequest,
+    AgentEnvironmentUpdateRequest,
+    AgentRegisterRequest,
+)
+
+from agents.bootstrap_service import (
+    download_agent_bootstrap_service,
+    obter_installation_config_service,
+)
+
+from agents.catalog_service import (
+    alterar_ambiente_agent_service,
+    consultar_agent_service,
+    criar_agent_service,
+    excluir_agent_service,
+    listar_agents_disponiveis_execucao_service,
+    listar_agents_service,
+)
+
+from agents.installer_service import (
+    gerar_instalador_agent_service,
+)
+
+from agents.monitoring_service import (
+    monitorar_agents,
+    verificar_agents_offline,
+)
+
+from agents.registration_service import (
+    registrar_agent_service,
+)
 
 
 # ============================================================
-# MODELO - CADASTRO MANUAL DO AGENT
-# ============================================================
-#
-# Define os dados recebidos pelo endpoint:
-#
-# POST /agents/register
-#
-# O Control Room recebe o host e a porta do Agent
-# para conseguir consultar o serviço.
+# BANCO DE DADOS
 # ============================================================
 
-class AgentRegisterRequest(BaseModel):
+def get_db():
+    """
+    Cria uma sessão SQLAlchemy para a requisição HTTP.
 
-    host: str = Field(
-        ...,
-        min_length=1
-    )
+    O FastAPI executa o bloco finally mesmo quando ocorre
+    uma exceção durante o processamento da requisição.
+    """
 
-    port: int = Field(
-        ...,
-        ge=1,
-        le=65535
-    )
-    
-router = APIRouter(tags=["Agents"])
-logger = logging.getLogger("control_room")
+    db = SessionLocal()
+
+    try:
+        yield db
+
+    finally:
+        db.close()
+
+
+# ============================================================
+# ROUTER
+# ============================================================
+
+router = APIRouter(
+    tags=["Agents"],
+    dependencies=[
+        Depends(get_usuario_atual),
+    ],
+)
+
 
 # ============================================================
 # LISTAR AGENTS
 # ============================================================
 
-@router.get("/agents")
-def list_agents():
-    db = SessionLocal()
-    try:
-        agents = db.query(Agent).all()
-        return {
-            "status": "success",
-            "total": len(agents),
-            "agents": [
-                {
-                    "agent_id": agent.agent_id,
-                    "name": agent.name,
-                    "host": agent.host,
-                    "port": agent.port,
-                    "rpa_directory": agent.rpa_directory,
-                    "status": agent.status
-                }
-                for agent in agents
-            ]
-        }
-    finally:
-        db.close()
+@router.get(
+    "/agents",
+    summary="Listar Agents",
+    description=(
+        "Retorna todos os Agents cadastrados no Control Room. "
+        "A resposta contém informações de identificação, conexão, "
+        "diretório de RPAs e status atual de cada Agent. "
+        "Requer autenticação do usuário e a permissão 'Agents:view'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Agents", "view")
+        ),
+    ],
+)
+def list_agents(
+    db: Session = Depends(get_db),
+):
+    """
+    Lista os Agents ativos cadastrados no Control Room.
+
+    Permissão:
+        Agents:view
+    """
+
+    return listar_agents_service(db)
+
+
+# ============================================================
+# LISTAR AGENTS DISPONÍVEIS PARA EXECUÇÃO
+# ============================================================
+
+@router.get(
+    "/agents/execution/available-agents",
+    summary="Listar Agents disponíveis para execução",
+    description=(
+        "Retorna os Agents cadastrados no Control Room que podem "
+        "ser selecionados para uma execução manual de um robô. "
+        "O endpoint é utilizado pelo frontend para apresentar "
+        "os Agents disponíveis ao usuário. "
+        "Não retorna o agent_token. "
+        "Requer autenticação do usuário e a permissão "
+        "'Executions:execute'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Executions",
+                "execute",
+            )
+        ),
+    ],
+)
+def listar_agents_disponiveis_para_execucao(
+    db: Session = Depends(get_db),
+):
+    """
+    Lista Agents disponíveis para execução manual.
+
+    Permissão:
+        Executions:execute
+    """
+
+    return listar_agents_disponiveis_execucao_service(
+        db
+    )
+
 
 # ============================================================
 # CONSULTAR AGENT
 # ============================================================
 
-@router.get("/agents/{agent_id}")
-def get_agent(agent_id: str):
-    db = SessionLocal()
-    try:
-        agent = db.query(Agent).filter(
-            Agent.agent_id == agent_id
-        ).first()
-
-        if not agent:
-            return {
-                "status": "error",
-                "message": "Agent não encontrado",
-                "agent_id": agent_id
-            }
-
-        return {
-            "status": "success",
-            "agent": {
-                "agent_id": agent.agent_id,
-                "name": agent.name,
-                "host": agent.host,
-                "port": agent.port,
-                "rpa_directory": agent.rpa_directory,
-                "status": agent.status
-            }
-        }
-    finally:
-        db.close()
-
-# ============================================================
-# endpoint HEARTBEAT DO AGENT
-# ============================================================
-#
-# O Agent envia periodicamente:
-#
-# - agent_id
-# - name
-# - host (IP atual)
-# - port
-# - rpa_directory
-# - status
-#
-# Se o Agent já existir, atualizamos os dados.
-# Se ainda não existir, criamos o cadastro.
-#
-# Isso permite que o IP seja alterado pelo DHCP sem
-# necessidade de cadastro manual novamente.
-# ============================================================
-
-class AgentHeartbeatRequest(BaseModel):
-
-    agent_id: str = Field(
-        ...,
-        min_length=1
-    )
-
-    name: str = Field(
-        ...,
-        min_length=1
-    )
-
-    host: str = Field(
-        ...,
-        min_length=1
-    )
-
-    port: int = Field(
-        ...,
-        ge=1,
-        le=65535
-    )
-
-    rpa_directory: str = Field(
-        ...,
-        min_length=1
-    )
-
-    status: str = Field(
-        default="online",
-        min_length=1
-    )
-
-
-@router.post("/agents/heartbeat")
-def agent_heartbeat(
-    request: AgentHeartbeatRequest
+@router.get(
+    "/agents/{agent_id}",
+    summary="Consultar Agent",
+    description=(
+        "Retorna os dados de um Agent específico cadastrado no "
+        "Control Room. O Agent é localizado pelo seu identificador "
+        "único (agent_id). "
+        "Requer autenticação do usuário e a permissão 'Agents:view'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Agents", "view")
+        ),
+    ],
+)
+def get_agent(
+    agent_id: str,
+    db: Session = Depends(get_db),
 ):
+    """
+    Consulta um Agent pelo identificador.
 
-    db = SessionLocal()
+    Permissão:
+        Agents:view
+    """
 
-    try:
+    return consultar_agent_service(
+        agent_id,
+        db,
+    )
 
-        agent = db.query(Agent).filter(
-            Agent.agent_id == request.agent_id
-        ).first()
-
-        # ====================================================
-        # AGENT NOVO
-        # ====================================================
-
-        if not agent:
-
-            agent = Agent(
-                agent_id=request.agent_id,
-                name=request.name,
-                host=request.host,
-                port=request.port,
-                rpa_directory=request.rpa_directory,
-                status="online",
-                last_heartbeat=datetime.now()
-            )
-
-            db.add(agent)
-
-            db.commit()
-
-            db.refresh(agent)
-            logger.info(
-                f"[AGENT] Agent registrado e online | "
-                f"ID: {agent.agent_id} | "
-                f"Nome: {agent.name} | "
-                f"Host: {agent.host}:{agent.port}"
-            )
-
-            return {
-                "status": "success",
-                "message": "Agent registrado automaticamente",
-                "created": True,
-                "agent": {
-                    "agent_id": agent.agent_id,
-                    "name": agent.name,
-                    "host": agent.host,
-                    "port": agent.port,
-                    "rpa_directory": agent.rpa_directory,
-                    "status": agent.status
-                }
-            }
-
-
-        # ====================================================
-        # AGENT JÁ CADASTRADO
-        # ====================================================
-        #
-        # Aqui está a parte importante:
-        # se o IP mudou, o banco recebe o novo IP.
-        #
-
-        ip_mudou = agent.host != request.host
-
-        # ============================================================
-        # REGISTRA RETORNO DO AGENT AO ESTADO ONLINE
-        # ============================================================
-
-        if agent.status == "offline":
-
-            logger.info(
-                f"[AGENT] Agent voltou online | "
-                f"ID: {agent.agent_id} | "
-                f"Nome: {agent.name} | "
-                f"Host: {agent.host}:{agent.port}"
-            )
-
-        agent.name = request.name
-        agent.host = request.host
-        agent.port = request.port
-        agent.rpa_directory = request.rpa_directory
-        agent.status = "online"
-        agent.last_heartbeat = datetime.now()
-
-        db.commit()
-
-        db.refresh(agent)
-
-        return {
-            "status": "success",
-            "message": (
-                "Agent atualizado automaticamente"
-                if ip_mudou
-                else "Heartbeat recebido"
-            ),
-            "created": False,
-            "ip_changed": ip_mudou,
-            "agent": {
-                "agent_id": agent.agent_id,
-                "name": agent.name,
-                "host": agent.host,
-                "port": agent.port,
-                "rpa_directory": agent.rpa_directory,
-                "status": agent.status
-            }
-        }
-
-
-    
-
-    except Exception as error:
-
-        db.rollback()
-
-        return {
-            "status": "error",
-            "message": "Não foi possível processar o heartbeat do Agent",
-            "agent_id": request.agent_id,
-            "error": str(error)
-        }
-
-    finally:
-
-        db.close()
 
 # ============================================================
-# MONITORAMENTO DE AGENTS
-# ============================================================
-def verificar_agents_offline():
-
-    db = SessionLocal()
-
-    try:
-
-        agora = datetime.now()
-        limite = agora - timedelta(seconds=60)
-
-        agents = db.query(Agent).all()
-
-        for agent in agents:
-
-            if (
-                agent.last_heartbeat is not None
-                and agent.last_heartbeat < limite
-            ):
-
-                if agent.status != "offline":
-
-                    logger.warning(
-                    f"[AGENT] Agent ficou offline | "
-                    f"ID: {agent.agent_id} | "
-                    f"Nome: {agent.name} | "
-                    f"Host: {agent.host}:{agent.port} | "
-                    f"Último heartbeat: {agent.last_heartbeat}"
-                )
-
-                    agent.status = "offline"
-
-                    # ====================================================
-                    # MARCA EXECUÇÕES PENDENTES COMO ERRO
-                    # ====================================================
-
-                    execucoes = db.query(Execution).filter(
-                        Execution.agent_id == agent.agent_id,
-                        Execution.status == "running"
-                    ).all()
-
-                    for execucao in execucoes:
-
-                        execucao.status = "error"
-                        execucao.finished_at = agora
-                        execucao.error_message = (
-                            "Agent ficou offline durante a execução"
-                        )
-
-                        print(
-                            f"[EXECUÇÃO INTERROMPIDA] "
-                            f"Execution #{execucao.id} | "
-                            f"Agent: {agent.name}"
-                        )
-
-        db.commit()
-
-    except Exception as error:
-
-        db.rollback()
-
-        print(
-            f"[ERRO] Monitoramento de Agents: {error}"
-        )
-
-    finally:
-
-        db.close()
-
-def monitorar_agents():
-
-    while True:
-
-        verificar_agents_offline()
-
-        time.sleep(10)
-
-# ============================================================
-# REGISTRAR AGENT MANUALMENTE
+# REGISTRAR AGENT
 # ============================================================
 
-@router.post("/agents/register")
+@router.post(
+    "/agents/register",
+    summary="Registrar Agent",
+    description=(
+        "Registra um Agent existente no Control Room. "
+        "O endpoint valida a comunicação com o Agent informado, "
+        "obtém suas informações de configuração e atualiza seu "
+        "cadastro no Control Room. "
+        "Requer autenticação do usuário e a permissão 'Agents:create'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Agents", "create")
+        ),
+    ],
+)
 def register_agent(
-    request: AgentRegisterRequest
+    request: AgentRegisterRequest,
+    db: Session = Depends(get_db),
 ):
+    """
+    Valida e registra um Agent previamente criado.
 
-    host = request.host
-    port = request.port
+    Permissão:
+        Agents:create
+    """
 
-    base_url = f"http://{host}:{port}"
+    return registrar_agent_service(
+        request,
+        db,
+    )
 
-
-    # ========================================================
-    # 1. CONSULTA HEALTH DO AGENT
-    # ========================================================
-
-    health_url = f"{base_url}/health"
-
-    try:
-
-        response = requests.get(
-            health_url,
-            timeout=5
-        )
-
-    except requests.RequestException as error:
-
-        return {
-            "status": "error",
-            "message": "Não foi possível conectar ao Agent",
-            "host": host,
-            "port": port,
-            "error": str(error)
-        }
-
-
-    # ========================================================
-    # 2. VALIDA HTTP
-    # ========================================================
-
-    if response.status_code != 200:
-
-        return {
-            "status": "error",
-            "message": "Agent respondeu com erro no /health",
-            "host": host,
-            "port": port,
-            "http_status": response.status_code
-        }
-
-
-    # ========================================================
-    # 3. LÊ HEALTH
-    # ========================================================
-
-    try:
-
-        health = response.json()
-
-    except ValueError:
-
-        return {
-            "status": "error",
-            "message": "Agent retornou JSON inválido no /health"
-        }
-
-
-    # ========================================================
-    # 4. VALIDA STATUS DO AGENT
-    # ========================================================
-
-    if health.get("status") != "online":
-
-        return {
-            "status": "error",
-            "message": "Agent não está online",
-            "health": health
-        }
-
-
-    # ========================================================
-    # 5. O AGENT PRECISA INFORMAR O ID
-    # ========================================================
-
-    agent_id = health.get("agent_id")
-
-    if not agent_id:
-
-        return {
-            "status": "error",
-            "message": "Agent não informou agent_id",
-            "health": health
-        }
-
-
-    # ========================================================
-    # 6. VERIFICA SE JÁ ESTÁ CADASTRADO
-    # ========================================================
-
-
-    db = SessionLocal()
-
-    try:
-
-        agent_existente = db.query(Agent).filter(
-            Agent.agent_id == agent_id
-        ).first()
-
-    finally:
-
-        db.close()
-
-
-    if agent_existente:
-
-        return {
-
-            "status": "error",
-
-            "message": "Agent já cadastrado",
-
-            "agent": {
-
-                "agent_id": agent_existente.agent_id,
-
-                "name": agent_existente.name,
-
-                "host": agent_existente.host,
-
-                "port": agent_existente.port,
-
-                "rpa_directory": agent_existente.rpa_directory,
-
-                "status": agent_existente.status
-
-            }
-
-        }
-
-
-    # ========================================================
-    # 7. CONSULTA CONFIG DO AGENT
-    # ========================================================
-
-    config_url = f"{base_url}/config"
-
-    try:
-
-        response = requests.get(
-            config_url,
-            timeout=5
-        )
-
-    except requests.RequestException as error:
-
-        return {
-            "status": "error",
-            "message": "Não foi possível consultar /config do Agent",
-            "agent_id": agent_id,
-            "error": str(error)
-        }
-
-
-    # ========================================================
-    # 8. VALIDA HTTP DO CONFIG
-    # ========================================================
-
-    if response.status_code != 200:
-
-        return {
-            "status": "error",
-            "message": "Agent respondeu com erro no /config",
-            "agent_id": agent_id,
-            "http_status": response.status_code
-        }
-
-
-    # ========================================================
-    # 9. LÊ CONFIG
-    # ========================================================
-
-    try:
-
-        config_response = response.json()
-
-    except ValueError:
-
-        return {
-            "status": "error",
-            "message": "Agent retornou JSON inválido no /config",
-            "agent_id": agent_id
-        }
-
-
-    # ========================================================
-    # 10. VALIDA RESPOSTA DO CONFIG
-    # ========================================================
-
-    if config_response.get("status") != "success":
-
-        return {
-            "status": "error",
-            "message": "Resposta inválida do /config",
-            "agent_id": agent_id,
-            "response": config_response
-        }
-
-
-    config = config_response.get("config")
-
-
-    if not isinstance(config, dict):
-
-        return {
-            "status": "error",
-            "message": "Configuração do Agent inválida",
-            "agent_id": agent_id
-        }
-
-
-    # ========================================================
-    # 11. CAMPOS OBRIGATÓRIOS
-    # ========================================================
-
-    campos_obrigatorios = [
-        "agent_id",
-        "name",
-        "host",
-        "port",
-        "status",
-        "rpa_directory"
-    ]
-
-
-    campos_faltantes = [
-        campo
-        for campo in campos_obrigatorios
-        if not config.get(campo)
-    ]
-
-
-    if campos_faltantes:
-
-        return {
-            "status": "error",
-            "message": "Configuração do Agent incompleta",
-            "agent_id": agent_id,
-            "campos_faltantes": campos_faltantes
-        }
-
-
-    # ========================================================
-    # 12. VALIDA IDENTIDADE
-    # ========================================================
-
-    if config["agent_id"] != agent_id:
-
-        return {
-            "status": "error",
-            "message": "agent_id do /health não corresponde ao /config",
-            "health": health,
-            "config": config
-        }
-
-
-    # ========================================================
-    # 13. VALIDA HOST
-    # ========================================================
-
-    if config["host"] != host:
-
-        return {
-            "status": "error",
-            "message": "Host informado não corresponde ao Agent",
-            "host_informado": host,
-            "host_agent": config["host"]
-        }
-
-
-    # ========================================================
-    # 14. VALIDA PORTA
-    # ========================================================
-
-    if int(config["port"]) != int(port):
-
-        return {
-            "status": "error",
-            "message": "Porta informada não corresponde ao Agent",
-            "port_informada": port,
-            "port_agent": config["port"]
-        }
-
-
-    # ========================================================
-    # 15. VALIDA DIRETÓRIO DOS RPAs
-    # ========================================================
-
-    if not config["rpa_directory"]:
-
-        return {
-            "status": "error",
-            "message": "rpa_directory não informado",
-            "agent_id": agent_id
-        }
-
-
-    # ========================================================
-    # 16. ATIVA O AGENT
-    #
-    # Aqui está a parte que estava faltando.
-    #
-    # O Control Room chama o Agent e manda:
-    #
-    # {
-    #     "status": "online"
-    # }
-    #
-    # O próprio Agent grava isso no config.json.
-    # ========================================================
-
-    status_url = f"{base_url}/config/status"
-
-    try:
-
-        response = requests.put(
-            status_url,
-            json={
-                "status": "online"
-            },
-            timeout=5
-        )
-
-    except requests.RequestException as error:
-
-        return {
-            "status": "error",
-            "message": "Agent validado, mas não foi possível ativá-lo",
-            "agent_id": agent_id,
-            "error": str(error)
-        }
-
-
-    # ========================================================
-    # 17. VALIDA ATIVAÇÃO
-    # ========================================================
-
-    if response.status_code != 200:
-
-        return {
-            "status": "error",
-            "message": "Não foi possível alterar o status do Agent para online",
-            "agent_id": agent_id,
-            "http_status": response.status_code,
-            "response": response.text
-        }
-
-
-    try:
-
-        status_response = response.json()
-
-    except ValueError:
-
-        return {
-            "status": "error",
-            "message": "Agent retornou JSON inválido ao atualizar status",
-            "agent_id": agent_id
-        }
-
-
-    if status_response.get("status") != "success":
-
-        return {
-            "status": "error",
-            "message": "Agent não confirmou ativação",
-            "agent_id": agent_id,
-            "response": status_response
-        }
-
-
-    # ========================================================
-    # 18. MONTA AGENT CADASTRADO
-    # ========================================================
-
-    agent = {
-
-        "agent_id": config["agent_id"],
-
-        "name": config["name"],
-
-        "host": config["host"],
-
-        "port": int(config["port"]),
-
-        "rpa_directory": config["rpa_directory"],
-
-        "status": "online"
-    }
-
-
-    # ========================================================
-    # 19. CADASTRA NO CONTROL ROOM
-    # ========================================================
-    db = SessionLocal()
-
-    try:
-        db_agent = Agent(
-            agent_id=agent["agent_id"],
-            name=agent["name"],
-            host=agent["host"],
-            port=agent["port"],
-            rpa_directory=agent["rpa_directory"],
-            status=agent["status"]
-        )
-
-        db.add(db_agent)
-        db.commit()
-        db.refresh(db_agent)
-
-    finally:
-        db.close()
-
-
-    # ========================================================
-    # 20. RETORNO
-    # ========================================================
-
-    return {
-
-        "status": "success",
-
-        "message": "Agent validado, ativado e cadastrado",
-
-        "agent": agent
-    }
 
 # ============================================================
-# Endpoint deletar agente do Contro Room
+# CRIAR AGENT
 # ============================================================
 
-@router.delete("/agents/{agent_id}")
-def delete_agent(agent_id: str):
+@router.post(
+    "/agents",
+    summary="Criar Agent",
+    description=(
+        "Cria um novo Agent no Control Room. "
+        "O Agent é criado inicialmente com status 'pending' "
+        "e recebe um identificador e um token exclusivos. "
+        "O token é utilizado posteriormente pelo Agent para "
+        "autenticar suas comunicações com o Control Room. "
+        "Requer autenticação do usuário e a permissão 'Agents:create'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Agents", "create")
+        ),
+    ],
+)
+def create_agent(
+    request: AgentCreateRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Cria o cadastro inicial de um Agent.
 
-    db = SessionLocal()
+    Permissão:
+        Agents:create
+    """
 
-    try:
+    return criar_agent_service(
+        request,
+        db,
+    )
 
-        agent = db.query(Agent).filter(
-            Agent.agent_id == agent_id
-        ).first()
 
-        if not agent:
+# ============================================================
+# CONFIGURAÇÃO DE INSTALAÇÃO
+# ============================================================
 
-            return {
-                "status": "error",
-                "message": "Agent não encontrado",
-                "agent_id": agent_id
-            }
+@router.get(
+    "/agents/{agent_id}/installation-config",
+    summary="Obter configuração de instalação do Agent",
+    description=(
+        "Retorna a configuração necessária para instalar e configurar "
+        "um Agent específico. A resposta contém dados de bootstrap, "
+        "incluindo o agent_token necessário para a comunicação do Agent "
+        "com o Control Room. "
+        "Este endpoint deve ser tratado como sensível e seu conteúdo "
+        "não deve ser compartilhado. "
+        "Requer autenticação do usuário e a permissão 'Agents:view'."
+    ),
+    dependencies=[
+        Depends(
+            # Este endpoint entrega configuração contendo material de
+            # autenticação do Agent. Agents:view não é suficiente.
+            require_permission("Agents", "bootstrap")
+        ),
+    ],
+)
+def get_installation_config(
+    agent_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna a configuração de instalação do Agent.
 
-        db.delete(agent)
-        db.commit()
+    ATENÇÃO:
+        O retorno contém agent_token.
 
-        return {
-            "status": "success",
-            "message": "Agent removido do Control Room",
-            "agent_id": agent_id
-        }
+    Permissão atual:
+        Agents:view
 
-    except Exception as error:
+    A adequação dessa permissão será analisada posteriormente
+    durante o hardening de segurança.
+    """
 
-        db.rollback()
+    return obter_installation_config_service(
+        agent_id,
+        db,
+    )
 
-        return {
-            "status": "error",
-            "message": "Não foi possível remover o Agent",
-            "agent_id": agent_id,
-            "error": str(error)
-        }
 
-    finally:
+# ============================================================
+# DOWNLOAD DO BOOTSTRAP
+# ============================================================
 
-        db.close()
+@router.get(
+    "/agents/{agent_id}/bootstrap",
+    summary="Baixar bootstrap do Agent",
+    description=(
+        "Gera e retorna o arquivo de bootstrap necessário para "
+        "configurar um Agent específico. O arquivo contém as "
+        "informações necessárias para o Agent se conectar ao "
+        "Control Room, incluindo o agent_token. "
+        "Este arquivo deve ser tratado como uma credencial sensível. "
+        "Requer autenticação do usuário e a permissão 'Agents:view'."
+    ),
+    dependencies=[
+        Depends(
+            # O arquivo de bootstrap contém agent_token e, portanto,
+            # exige autorização específica para material de bootstrap.
+            require_permission("Agents", "bootstrap")
+        ),
+    ],
+)
+def download_agent_bootstrap(
+    agent_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Gera o bootstrap para download.
+
+    ATENÇÃO:
+        O arquivo contém agent_token.
+
+    Permissão atual:
+        Agents:view
+    """
+
+    return download_agent_bootstrap_service(
+        agent_id,
+        db,
+    )
+
+
+# ============================================================
+# DOWNLOAD DO INSTALADOR
+# ============================================================
+
+@router.get(
+    "/agents/{agent_id}/download",
+    summary="Baixar instalador do Agent",
+    description=(
+        "Gera e disponibiliza o instalador personalizado de um Agent. "
+        "O instalador é configurado com as informações necessárias "
+        "para que o Agent se conecte ao Control Room. "
+        "O agent_token é utilizado internamente na geração do instalador "
+        "e não é retornado diretamente pela API. "
+        "Requer autenticação do usuário e a permissão 'Agents:create'."
+    ),
+    dependencies=[
+        Depends(
+            # O instalador é personalizado com material de autenticação
+            # do Agent, portanto sua obtenção exige Agents:bootstrap.
+            require_permission("Agents", "bootstrap")
+        ),
+    ],
+)
+def download_agent(
+    agent_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Gera o instalador personalizado do Agent.
+
+    Permissão:
+        Agents:create
+    """
+
+    return gerar_instalador_agent_service(
+        agent_id,
+        db,
+    )
+
+# ============================================================
+# ALTERAR AMBIENTE DO AGENT
+# ============================================================
+
+@router.patch(
+    "/agents/{agent_id}/environment",
+    summary="Alterar ambiente do Agent",
+    description=(
+        "Altera administrativamente o ambiente operacional "
+        "de um Agent entre Desenvolvimento/Homologação e Produção. "
+        "Requer a permissão 'Agents:edit'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Agents",
+                "edit",
+            )
+        ),
+    ],
+)
+def update_agent_environment(
+    agent_id: str,
+    request: AgentEnvironmentUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Altera o ambiente operacional do Device.
+
+    Permissão:
+        Agents:edit
+    """
+
+    return alterar_ambiente_agent_service(
+        agent_id,
+        request.environment,
+        db,
+    )
+# ============================================================
+# EXCLUIR AGENT
+# ============================================================
+
+@router.delete(
+    "/agents/{agent_id}",
+    summary="Excluir Agent",
+    description=(
+        "Remove logicamente um Agent cadastrado no Control Room. "
+        "O registro permanece no banco para preservar o histórico "
+        "das execuções relacionadas. "
+        "Requer autenticação do usuário e a permissão 'Agents:delete'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Agents", "delete")
+        ),
+    ],
+)
+def delete_agent(
+    agent_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Executa o soft delete do Agent.
+
+    Permissão:
+        Agents:delete
+    """
+
+    return excluir_agent_service(
+        agent_id,
+        db,
+    )

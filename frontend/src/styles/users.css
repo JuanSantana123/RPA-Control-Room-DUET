@@ -1,0 +1,691 @@
+/* =========================================================
+   USERS / USER MANAGEMENT
+   Administração de usuários do Control Room
+   ========================================================= */
+
+.users-page {
+    width: 100%;
+    max-width: 1380px;
+    margin: 0 auto;
+}
+
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
+.users-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.users-page-eyebrow {
+    margin: 0 0 7px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.users-page-header h1 {
+    margin: 0;
+    color: #172033;
+    font-size: 32px;
+    font-weight: 750;
+    letter-spacing: -0.8px;
+}
+
+.users-page-header p {
+    margin: 8px 0 0;
+    color: #7b8798;
+    font-size: 14px;
+}
+
+/* =========================================================
+   BOTÕES
+   ========================================================= */
+
+.users-primary-button,
+.users-secondary-button,
+.users-danger-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.18s ease;
+}
+
+.users-primary-button {
+    padding: 0 17px;
+    border: 1px solid #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.users-primary-button:hover:not(:disabled) {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 5px 14px rgba(37, 99, 235, 0.2);
+    transform: translateY(-1px);
+}
+
+.users-secondary-button {
+    padding: 0 14px;
+    border: 1px solid #dce4ee;
+    background: #ffffff;
+    color: #64748b;
+}
+
+.users-secondary-button:hover:not(:disabled) {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+}
+
+.users-danger-button {
+    padding: 0 13px;
+    border: 1px solid #fee2e2;
+    background: #fffafa;
+    color: #dc2626;
+}
+
+.users-danger-button:hover {
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.users-primary-button:disabled,
+.users-secondary-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* =========================================================
+   ALERTAS
+   ========================================================= */
+
+.users-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 13px 16px;
+    border: 1px solid;
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.users-alert-error {
+    border-color: #fecaca;
+    background: #fff7f7;
+    color: #b91c1c;
+}
+
+.users-alert-success {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+/* =========================================================
+   PAINÉIS
+   ========================================================= */
+
+.users-panel {
+    overflow: hidden;
+    margin-bottom: 24px;
+    border: 1px solid #e5ebf3;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow:
+        0 2px 5px rgba(15, 23, 42, 0.025),
+        0 8px 22px rgba(15, 23, 42, 0.035);
+}
+
+.users-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 68px;
+    padding: 0 24px;
+    border-bottom: 1px solid #edf1f5;
+}
+
+.users-panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.users-panel-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #eff6ff;
+    font-size: 18px;
+}
+
+.users-panel-heading h2 {
+    margin: 0;
+    color: #202b3c;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.users-panel-heading p {
+    margin: 4px 0 0;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.users-panel-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+/* =========================================================
+   FORMULÁRIOS
+   ========================================================= */
+
+.users-form-content {
+    padding: 24px;
+}
+
+.users-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.users-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.users-field-group label {
+    color: #526176;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.users-field-group input,
+.users-field-group select {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    border: 1px solid #dfe7f0;
+    border-radius: 8px;
+    background: #fbfcfe;
+    color: #263449;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.users-field-group input:hover,
+.users-field-group select:hover {
+    border-color: #cbd8e8;
+    background: #ffffff;
+}
+
+.users-field-group input:focus,
+.users-field-group select:focus {
+    border-color: #6ea4f8;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.users-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #edf1f5;
+}
+
+/* =========================================================
+   PAINÉIS DE EDIÇÃO
+   ========================================================= */
+
+.users-edit-panel {
+    border-color: #dbeafe;
+    background: #fbfdff;
+}
+
+.users-edit-panel .users-panel-header {
+    background: #f8fbff;
+}
+
+.users-edit-content {
+    padding: 24px;
+}
+
+.users-edit-description {
+    margin: 0 0 18px;
+    color: #7b8798;
+    font-size: 13px;
+}
+
+.users-role-selection {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.users-role-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 13px;
+    border: 1px solid #e3eaf2;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.users-role-option:hover {
+    border-color: #bfdbfe;
+    background: #f8fbff;
+    color: #2563eb;
+}
+
+.users-role-option:has(input:checked) {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.users-role-option input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #2563eb;
+}
+
+.users-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #edf1f5;
+}
+
+/* =========================================================
+   LISTA DE USUÁRIOS
+   ========================================================= */
+
+.users-list-panel {
+    overflow: hidden;
+}
+
+.users-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 850px;
+}
+
+.users-table thead {
+    background: #f8fafc;
+}
+
+.users-table th {
+    height: 46px;
+    padding: 0 20px;
+    border-bottom: 1px solid #e8edf3;
+    color: #8491a3;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.7px;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.users-table td {
+    height: 72px;
+    padding: 0 20px;
+    border-bottom: 1px solid #f0f3f7;
+    color: #526176;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.users-table tbody tr {
+    transition: background 0.16s ease;
+}
+
+.users-table tbody tr:hover {
+    background: #fbfdff;
+}
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* =========================================================
+   IDENTIDADE DO USUÁRIO
+   ========================================================= */
+
+.users-identity {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 180px;
+}
+
+.users-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #e8f0fe;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.users-identity-info {
+    min-width: 0;
+}
+
+.users-identity-name {
+    overflow: hidden;
+    margin: 0 0 3px;
+    color: #263449;
+    font-size: 13px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.users-identity-username {
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* =========================================================
+   ROLES
+   ========================================================= */
+
+.users-role-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-width: 260px;
+}
+
+.users-role-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 23px;
+    padding: 0 8px;
+    border: 1px solid #e0e7ff;
+    border-radius: 6px;
+    background: #f5f7ff;
+    color: #5969a8;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.users-no-role {
+    color: #a0acbb;
+    font-size: 11px;
+}
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.users-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 25px;
+    padding: 0 9px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.users-status::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    content: "";
+}
+
+.users-status-active {
+    background: #ecfdf3;
+    color: #15803d;
+}
+
+.users-status-active::before {
+    background: #22c55e;
+}
+
+.users-status-inactive {
+    background: #f8fafc;
+    color: #94a3b8;
+}
+
+.users-status-inactive::before {
+    background: #cbd5e1;
+}
+
+/* =========================================================
+   AÇÕES
+   ========================================================= */
+
+.users-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.users-action-button {
+    min-height: 31px;
+    padding: 0 9px;
+    border: 1px solid #e1e8f0;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #64748b;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background 0.16s ease,
+        border-color 0.16s ease,
+        color 0.16s ease;
+}
+
+.users-action-button:hover {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.users-action-button.users-action-danger {
+    border-color: #fee2e2;
+    background: #fffafa;
+    color: #dc2626;
+}
+
+.users-action-button.users-action-danger:hover {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+/* =========================================================
+   ESTADOS VAZIOS
+   ========================================================= */
+
+.users-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+    padding: 30px;
+    color: #9aa7b8;
+    font-size: 12px;
+    text-align: center;
+}
+
+.users-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    border-radius: 13px;
+    background: #f8fafc;
+    font-size: 21px;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+    .users-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .users-role-selection {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .users-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .users-page-header h1 {
+        font-size: 28px;
+    }
+
+    .users-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .users-form-content,
+    .users-edit-content {
+        padding: 18px;
+    }
+
+    .users-role-selection {
+        grid-template-columns: 1fr;
+    }
+
+    .users-panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 18px;
+    }
+
+    .users-actions {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .users-action-button {
+        width: 100%;
+    }
+}
+
+
+/* ============================================================
+   BOTÃO DE DESATIVAÇÃO
+   ============================================================ */
+
+.users-action-warning {
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #d97706;
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.users-action-warning:hover {
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.55);
+}
+
+
+/* ============================================================
+   BOTÃO DE ATIVAÇÃO
+   ============================================================ */
+
+.users-action-success {
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.users-action-success:hover {
+    background: rgba(34, 197, 94, 0.16);
+    border-color: rgba(34, 197, 94, 0.55);
+}

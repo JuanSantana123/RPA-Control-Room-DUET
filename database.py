@@ -1,25 +1,36 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-
-
+import os
 # ============================================================
 # BANCO DE DADOS
 # ============================================================
 
-DATABASE_URL = "sqlite:///./control_room.db"
+# ============================================================
+# CONFIGURAÇÃO DO BANCO DE DADOS
+# ============================================================
 
+# O Control Room utiliza exclusivamente PostgreSQL.
+#
+# A DATABASE_URL deve estar configurada no ambiente antes
+# de iniciar a aplicação.
+#
+# Não existe fallback para SQLite.
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL não configurada. "
+        "O Control Room requer PostgreSQL."
+    )
 
 # ============================================================
 # ENGINE
 # ============================================================
 
+# O Control Room utiliza exclusivamente PostgreSQL.
 engine = create_engine(
-    DATABASE_URL,
-    connect_args={
-        "check_same_thread": False
-    }
+    DATABASE_URL
 )
-
 
 # ============================================================
 # BASE DOS MODELOS
@@ -39,78 +50,16 @@ SessionLocal = sessionmaker(
 )
 
 
-# ============================================================
-# MIGRAÇÃO DA TABELA DE AGENDAMENTOS
-# ============================================================
 
-def _atualizar_tabela_schedules():
-
-    colunas = {
-        "intervalo_ativo": "INTEGER NOT NULL DEFAULT 0",
-        "intervalo_valor": "INTEGER",
-        "intervalo_unidade": "VARCHAR",
-        "horario_fim": "VARCHAR"
-    }
-
-    with engine.begin() as connection:
-
-        resultado = connection.execute(
-            text("PRAGMA table_info(schedules)")
-        )
-
-        existentes = {
-            linha[1]
-            for linha in resultado.fetchall()
-        }
-
-        # A tabela pode ainda não existir. O create_all abaixo
-        # cuidará da criação inicial.
-        if not existentes:
-            return
-
-        for nome, definicao in colunas.items():
-
-            if nome not in existentes:
-
-                connection.execute(
-                    text(
-                        f"ALTER TABLE schedules ADD COLUMN {nome} {definicao}"
-                    )
-                )
-
-def _atualizar_tabela_executions():
-    # Colunas que podem precisar ser adicionadas
-    # em uma tabela executions já existente.
-    colunas = {
-        "pid": "INTEGER"
-    }
-
-    with engine.begin() as connection:
-        resultado = connection.execute(
-            text("PRAGMA table_info(executions)")
-        )
-
-        existentes = {
-            linha[1]
-            for linha in resultado.fetchall()
-        }
-
-        if not existentes:
-            return
-
-        for nome, definicao in colunas.items():
-            if nome not in existentes:
-                connection.execute(
-                    text(
-                        f"ALTER TABLE executions "
-                        f"ADD COLUMN {nome} {definicao}"
-                    )
-                )
 # ============================================================
 # CRIA BANCO / TABELAS
 # ============================================================
 
 def criar_banco():
+
+    # Cria todas as tabelas definidas nos models.py
+    # que ainda não existem no banco de dados.
+    #
+    # Isso funciona tanto para SQLite quanto para PostgreSQL.
     Base.metadata.create_all(bind=engine)
-    _atualizar_tabela_schedules()
-    _atualizar_tabela_executions()
+

@@ -1,38 +1,129 @@
+
 # ============================================================
-# ROUTER DE AGENDAMENTOS
+# MÓDULOS DO SCHEDULER
+# ============================================================
+#
+# O router HTTP utiliza os cálculos temporais do Scheduler,
+# enquanto execução e gerenciamento da thread permanecem
+# isolados nos módulos próprios da engine.
 # ============================================================
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from scheduler.calculations import (
+    _horario_para_datetime,
+    calcular_proxima_execucao,
+)
+
+# Contrato Pydantic utilizado pelos endpoints de criação
+# e atualização de agendamentos.
+from schemas.schedules import ScheduleCreateRequest
+import os
+
+from fastapi import APIRouter, Depends
+# Importa a função responsável por verificar se o usuário
+# possui a permissão necessária para executar cada operação.
+from auth.permissions import require_permission
 from database import SessionLocal
-from models import Schedule, Robot, Agent
-from datetime import datetime, timedelta
+# Modelos utilizados pelos endpoints de gerenciamento
+# e preservação histórica dos agendamentos.
+from models import Schedule, Robot, Agent, Execution
+from datetime import datetime
 from pathlib import Path
-from api.executions import run_agent_robot, ExecutionRequest
-import time
+
+# ============================================================
+# CÁLCULOS TEMPORAIS DO SCHEDULER
+# ============================================================
+#
+# As regras responsáveis por calcular datas e horários das
+# próximas execuções ficam isoladas no módulo do Scheduler.
+#
+# O router continua consumindo as mesmas funções e mantendo
+# exatamente o comportamento existente.
+# ============================================================
+
+from scheduler.calculations import (
+    _horario_para_datetime,
+    calcular_proxima_execucao,
+    proxima_execucao_apos_execucao,
+)
+
+# Dependência responsável por validar
+# a sessão do usuário autenticado.
+from auth.dependencies import get_usuario_atual
 
 
 router = APIRouter(
-    tags=["Schedules"]
+    tags=["Schedules"],
+    dependencies=[
+        Depends(get_usuario_atual)
+    ]
 )
 
-
 # ============================================================
-# LISTAR AGENDAMENTOS
+# ENDPOINT LISTAR AGENDAMENTOS
+# ============================================================
+#
+# Permite visualizar os agendamentos somente para usuários
+# que possuem a permissão:
+#
+#     Schedules:view
+#
+# A autenticação do usuário já é validada pelo mecanismo
+# global de autenticação do Control Room.
+# Aqui adicionamos a autorização específica desta operação.
 # ============================================================
 
-@router.get("/api/schedules")
+@router.get(
+    "/schedules",
+    summary="Listar agendamentos",
+    description=(
+        "Retorna todos os agendamentos ativos cadastrados no "
+        "Control Room. A resposta contém informações do robô, "
+        "Agent, tipo de agendamento, data e horário, periodicidade, "
+        "próxima execução e última execução. "
+        "Requer a permissão 'Schedules:view'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Schedules", "view")
+        )
+    ]
+)
 def listar_agendamentos():
+    """
+    Lista os agendamentos ativos.
+
+    Parâmetros:
+        Nenhum.
+
+    Permissão necessária:
+        Schedules:view
+    """
 
     db = SessionLocal()
 
     try:
 
-        schedules = db.query(
-            Schedule
-        ).order_by(
-            Schedule.id.desc()
-        ).all()
+        # Lista todos os agendamentos ainda existentes.
+        #
+        # IMPORTANTE:
+        #   ativo = 1 -> Schedule habilitado para disparos.
+        #   ativo = 0 -> Schedule desativado manualmente.
+        #
+        # Desativar NÃO significa excluir.
+        #
+        # Portanto, ambos devem permanecer visíveis na tela para que
+        # o usuário possa posteriormente editar, reativar ou excluir.
+        #
+        # Schedules realmente encerrados, como "once" já consumido,
+        # são removidos fisicamente pelo Scheduler e naturalmente não
+        # aparecerão nesta consulta.
+        schedules = (
+            db.query(Schedule)
+            .order_by(
+                Schedule.id.desc()
+            )
+            .all()
+        )
 
         resultado = []
 
@@ -124,532 +215,18 @@ def listar_agendamentos():
 
 
 # ============================================================
-# FUNÇÃO AUXILIAR - CONVERTE HORÁRIO
-# ============================================================
-
-def _horario_para_datetime(data_base, horario):
-
-    try:
-
-        hora, minuto = horario.split(":")[:2]
-
-        return data_base.replace(
-            hour=int(hora),
-            minute=int(minuto),
-            second=0,
-            microsecond=0
-        )
-
-    except (ValueError, AttributeError):
-
-        return None
-
-
-# ============================================================
-# CALCULAR PRÓXIMA EXECUÇÃO
-# ============================================================
-
-def calcular_proxima_execucao(schedule, agora=None):
-
-    if agora is None:
-        agora = datetime.now()
-
-    inicio = schedule.data_inicio
-
-    if not inicio:
-        return None
-
-    horario_inicial = _horario_para_datetime(
-        inicio,
-        schedule.horario
-    )
-
-    if horario_inicial is None:
-        return None
-
-
-    # ========================================================
-    # UMA VEZ
-    # ========================================================
-
-    if schedule.tipo == "once":
-
-        return horario_inicial
-
-
-    # ========================================================
-    # CONFIGURAÇÕES DE INTERVALO
-    # ========================================================
-
-    intervalo_ativo = getattr(
-        schedule,
-        "intervalo_ativo",
-        0
-    )
-
-    intervalo_valor = getattr(
-        schedule,
-        "intervalo_valor",
-        None
-    )
-
-    intervalo_unidade = getattr(
-        schedule,
-        "intervalo_unidade",
-        None
-    )
-
-    horario_fim = getattr(
-        schedule,
-        "horario_fim",
-        None
-    )
-
-
-    if (
-        intervalo_ativo
-        and intervalo_valor
-        and intervalo_valor > 0
-        and intervalo_unidade
-        and horario_fim
-    ):
-
-        if intervalo_unidade == "minutes":
-
-            incremento = timedelta(
-                minutes=intervalo_valor
-            )
-
-        elif intervalo_unidade == "hours":
-
-            incremento = timedelta(
-                hours=intervalo_valor
-            )
-
-        else:
-
-            incremento = None
-
-
-        if incremento:
-
-            # ------------------------------------------------
-            # DIÁRIO COM INTERVALO
-            # ------------------------------------------------
-
-            if schedule.tipo == "daily":
-
-                if inicio > agora:
-
-                    return horario_inicial
-
-                candidato = _horario_para_datetime(
-                    agora,
-                    schedule.horario
-                )
-
-                if candidato is None:
-                    return None
-
-                if candidato <= agora:
-
-                    candidato += timedelta(days=1)
-
-                return candidato
-
-
-            # ------------------------------------------------
-            # SEMANAL COM INTERVALO
-            # ------------------------------------------------
-
-            if schedule.tipo == "weekly":
-
-                dias = {
-                    "mon": 0,
-                    "tue": 1,
-                    "wed": 2,
-                    "thu": 3,
-                    "fri": 4,
-                    "sat": 5,
-                    "sun": 6
-                }
-
-                selecionados = set(
-                    dia.strip().lower()
-                    for dia in (
-                        schedule.dias_semana or ""
-                    ).split(",")
-                    if dia.strip()
-                )
-
-                numeros = sorted(
-                    dias[dia]
-                    for dia in selecionados
-                    if dia in dias
-                )
-
-                if not numeros:
-                    return None
-
-                for deslocamento in range(0, 8):
-
-                    data = (
-                        agora +
-                        timedelta(days=deslocamento)
-                    ).replace(
-                        hour=0,
-                        minute=0,
-                        second=0,
-                        microsecond=0
-                    )
-
-                    if data.weekday() not in numeros:
-                        continue
-
-                    inicio_dia = _horario_para_datetime(
-                        data,
-                        schedule.horario
-                    )
-
-                    fim_dia = _horario_para_datetime(
-                        data,
-                        horario_fim
-                    )
-
-                    if (
-                        inicio_dia is None
-                        or fim_dia is None
-                    ):
-                        continue
-
-                    if inicio_dia < inicio:
-                        continue
-
-                    if agora < inicio_dia:
-                        return inicio_dia
-
-                    candidato = inicio_dia
-
-                    while candidato <= agora:
-
-                        candidato += incremento
-
-                    if candidato <= fim_dia:
-
-                        return candidato
-
-                return None
-
-
-            # ------------------------------------------------
-            # MENSAL COM INTERVALO
-            # ------------------------------------------------
-
-            if schedule.tipo == "monthly":
-
-                dia_mes = inicio.day
-
-                ano = agora.year
-                mes = agora.month
-
-                for _ in range(24):
-
-                    try:
-
-                        data = datetime(
-                            ano,
-                            mes,
-                            dia_mes
-                        )
-
-                    except ValueError:
-
-                        data = None
-
-                    if data is not None:
-
-                        inicio_dia = _horario_para_datetime(
-                            data,
-                            schedule.horario
-                        )
-
-                        fim_dia = _horario_para_datetime(
-                            data,
-                            horario_fim
-                        )
-
-                        if (
-                            inicio_dia is not None
-                            and fim_dia is not None
-                            and inicio_dia >= inicio
-                        ):
-
-                            if agora < inicio_dia:
-
-                                return inicio_dia
-
-                            candidato = inicio_dia
-
-                            while candidato <= agora:
-
-                                candidato += incremento
-
-                            if candidato <= fim_dia:
-
-                                return candidato
-
-                    mes += 1
-
-                    if mes > 12:
-
-                        mes = 1
-                        ano += 1
-
-                return None
-
-
-    # ========================================================
-    # DIÁRIO SEM INTERVALO
-    # ========================================================
-
-    if schedule.tipo == "daily":
-
-        candidato = _horario_para_datetime(
-            agora,
-            schedule.horario
-        )
-
-        if candidato is None:
-            return None
-
-        if candidato < inicio:
-
-            candidato = horario_inicial
-
-        if candidato <= agora:
-
-            candidato += timedelta(days=1)
-
-        return candidato
-
-
-    # ========================================================
-    # SEMANAL SEM INTERVALO
-    # ========================================================
-
-    if schedule.tipo == "weekly":
-
-        dias = {
-            "mon": 0,
-            "tue": 1,
-            "wed": 2,
-            "thu": 3,
-            "fri": 4,
-            "sat": 5,
-            "sun": 6
-        }
-
-        selecionados = set(
-            dia.strip().lower()
-            for dia in (
-                schedule.dias_semana or ""
-            ).split(",")
-            if dia.strip()
-        )
-
-        numeros = sorted(
-            dias[dia]
-            for dia in selecionados
-            if dia in dias
-        )
-
-        if not numeros:
-            return None
-
-        for deslocamento in range(0, 8):
-
-            data = agora + timedelta(
-                days=deslocamento
-            )
-
-            candidato = _horario_para_datetime(
-                data,
-                schedule.horario
-            )
-
-            if (
-                data.weekday() in numeros
-                and candidato is not None
-                and candidato >= inicio
-                and candidato > agora
-            ):
-
-                return candidato
-
-        return None
-
-
-    # ========================================================
-    # MENSAL SEM INTERVALO
-    # ========================================================
-
-    if schedule.tipo == "monthly":
-
-        dia_mes = inicio.day
-
-        ano = agora.year
-        mes = agora.month
-
-        for _ in range(24):
-
-            try:
-
-                candidato_base = datetime(
-                    ano,
-                    mes,
-                    dia_mes
-                )
-
-            except ValueError:
-
-                candidato_base = None
-
-            if candidato_base is not None:
-
-                candidato = _horario_para_datetime(
-                    candidato_base,
-                    schedule.horario
-                )
-
-                if (
-                    candidato is not None
-                    and candidato >= inicio
-                    and candidato > agora
-                ):
-
-                    return candidato
-
-            mes += 1
-
-            if mes > 12:
-
-                mes = 1
-                ano += 1
-
-        return None
-
-
-    return None
-
-
-# ============================================================
-# PRÓXIMA EXECUÇÃO APÓS UMA EXECUÇÃO
-# ============================================================
-
-def proxima_execucao_apos_execucao(
-    schedule,
-    agora=None
-):
-
-    if agora is None:
-        agora = datetime.now()
-
-
-    # ========================================================
-    # UMA VEZ
-    # ========================================================
-
-    if schedule.tipo == "once":
-
-        return None
-
-
-    # ========================================================
-    # INTERVALO
-    # ========================================================
-
-    intervalo_ativo = getattr(
-        schedule,
-        "intervalo_ativo",
-        0
-    )
-
-    intervalo_valor = getattr(
-        schedule,
-        "intervalo_valor",
-        None
-    )
-
-    intervalo_unidade = getattr(
-        schedule,
-        "intervalo_unidade",
-        None
-    )
-
-    horario_fim = getattr(
-        schedule,
-        "horario_fim",
-        None
-    )
-
-
-    if (
-        intervalo_ativo
-        and intervalo_valor
-        and intervalo_valor > 0
-        and intervalo_unidade
-        and horario_fim
-    ):
-
-        if intervalo_unidade == "minutes":
-
-            incremento = timedelta(
-                minutes=intervalo_valor
-            )
-
-        elif intervalo_unidade == "hours":
-
-            incremento = timedelta(
-                hours=intervalo_valor
-            )
-
-        else:
-
-            incremento = None
-
-
-        if incremento:
-
-            proxima = agora + incremento
-
-            fim = _horario_para_datetime(
-                agora,
-                horario_fim
-            )
-
-            if (
-                fim is not None
-                and proxima <= fim
-            ):
-
-                return proxima
-
-
-    # ========================================================
-    # SEM INTERVALO / FIM DO INTERVALO
-    # ========================================================
-
-    return calcular_proxima_execucao(
-        schedule,
-        agora
-    )
-
-
-# ============================================================
 # EXECUTAR AGENDAMENTO
 # ============================================================
 
 def executar_agendamento(schedule_id):
+    logger.info(
+        f"[SCHEDULER] DISPARANDO AGENDAMENTO | "
+        f"Schedule ID: {schedule_id} | "
+        f"Thread: {threading.current_thread().name}"
+    )
+    # ========================================================
+    # CARREGA O AGENDAMENTO
+    # ========================================================
 
     db = SessionLocal()
 
@@ -668,6 +245,10 @@ def executar_agendamento(schedule_id):
         robot_id = schedule.robot_id
         agent_id_agendado = schedule.agent_id
 
+        # Captura o usuário enquanto o Schedule ainda
+        # está vinculado à sessão do banco.
+        user_id = schedule.user_id
+
     finally:
 
         db.close()
@@ -683,12 +264,19 @@ def executar_agendamento(schedule_id):
 
     try:
 
+        # ----------------------------------------------------
+        # Agent específico
+        # ----------------------------------------------------
+
         if agent_id_agendado:
 
+            # Busca o Agent específico somente se ele
+            # continuar ativo no Control Room.
             agent = db.query(
                 Agent
             ).filter(
-                Agent.agent_id == agent_id_agendado
+                Agent.agent_id == agent_id_agendado,
+                Agent.is_active == 1
             ).first()
 
             if agent and agent.status == "online":
@@ -697,12 +285,22 @@ def executar_agendamento(schedule_id):
                     agent.agent_id
                 )
 
+        # ----------------------------------------------------
+        # Agent automático
+        # ----------------------------------------------------
+
         else:
 
+            # Seleciona somente Agents ativos e online.
+            #
+            # Um Agent removido logicamente pode continuar
+            # armazenado no banco para preservar o histórico,
+            # mas nunca deve receber novas execuções.
             agents = db.query(
                 Agent
             ).filter(
-                Agent.status == "online"
+                Agent.status == "online",
+                Agent.is_active == 1
             ).order_by(
                 Agent.name
             ).all()
@@ -717,12 +315,88 @@ def executar_agendamento(schedule_id):
         db.close()
 
 
+    # ========================================================
+    # NENHUM AGENT DISPONÍVEL
+    # ========================================================
+
     if not agent_ids:
 
         return {
             "status": "waiting",
             "message": "Nenhum Agent online"
         }
+
+
+    # ========================================================
+    # CONSUME O DISPARO DO AGENDAMENTO
+    # ========================================================
+    #
+    # IMPORTANTE:
+    #
+    # Assim que o horário do agendamento chega, precisamos
+    # retirar esse disparo da condição "vencido".
+    #
+    # Caso contrário, se a execução ficar "queued", o Scheduler
+    # roda novamente daqui a 5 segundos e cria outra execução.
+    #
+    # Para "once":
+    #   - desativa definitivamente.
+    #
+    # Para os demais:
+    #   - calcula imediatamente a próxima execução.
+    #
+    # Dessa forma, o agendamento não fica preso no mesmo
+    # horário enquanto a RPA está aguardando na fila.
+    # ========================================================
+
+    agora = datetime.now()
+
+    db = SessionLocal()
+
+    try:
+
+        schedule = db.query(
+            Schedule
+        ).filter(
+            Schedule.id == schedule_id,
+            Schedule.ativo == 1
+        ).first()
+
+        if not schedule:
+            return {
+                "status": "error",
+                "message": "Agendamento não encontrado ou inativo"
+            }
+
+        schedule.ultima_execucao = agora
+
+        # ----------------------------------------------------
+        # UMA VEZ
+        # ----------------------------------------------------
+
+        if schedule.tipo == "once":
+
+            schedule.ativo = 0
+            schedule.proxima_execucao = None
+
+        # ----------------------------------------------------
+        # RECORRENTES
+        # ----------------------------------------------------
+
+        else:
+
+            schedule.proxima_execucao = (
+                proxima_execucao_apos_execucao(
+                    schedule,
+                    agora
+                )
+            )
+
+        db.commit()
+
+    finally:
+
+        db.close()
 
 
     # ========================================================
@@ -733,57 +407,59 @@ def executar_agendamento(schedule_id):
 
     for agent_id in agent_ids:
 
-        resultado = run_agent_robot(
-            agent_id,
-            ExecutionRequest(
-                robot_id=robot_id
+        try:
+
+            # O Scheduler chama diretamente a função interna de execução.
+            #
+            # Diferente da execução manual, aqui não existe uma requisição
+            # HTTP para o FastAPI resolver o usuário através de Depends.
+            #
+            # O user_id já foi recuperado do próprio agendamento.
+            resultado = _executar_robot(
+                agent_id=agent_id,
+                request=ExecutionRequest(
+                    robot_id=robot_id,
+                    user_id=user_id
+                )
             )
-        )
+
+        except Exception as error:
+
+            resultado = {
+                "status": "error",
+                "message": str(error)
+            }
 
         ultimo_resultado = resultado
 
-        if resultado.get("status") == "success":
 
-            agora = datetime.now()
+        # ====================================================
+        # EXECUÇÃO ACEITA
+        # ====================================================
+        #
+        # Tanto "success" quanto "queued" significam que o
+        # disparo do agendamento foi consumido.
+        #
+        # "queued" NÃO é um erro.
+        #
+        # A execução ficará aguardando o Agent ficar disponível.
+        # ====================================================
 
-            db = SessionLocal()
-
-            try:
-
-                schedule = db.query(
-                    Schedule
-                ).filter(
-                    Schedule.id == schedule_id
-                ).first()
-
-                if schedule:
-
-                    schedule.ultima_execucao = agora
-
-                    if schedule.tipo == "once":
-
-                        schedule.ativo = 0
-                        schedule.proxima_execucao = None
-
-                    else:
-
-                        schedule.proxima_execucao = (
-                            proxima_execucao_apos_execucao(
-                                schedule,
-                                agora
-                            )
-                        )
-
-                    db.commit()
-
-            finally:
-
-                db.close()
+        if resultado.get("status") in (
+            "success",
+            "queued"
+        ):
 
             return resultado
 
 
-        # Agent ocupado → tenta o próximo.
+        # ====================================================
+        # AGENT OCUPADO
+        # ====================================================
+        #
+        # Se houver múltiplos Agents disponíveis, tenta o
+        # próximo.
+        # ====================================================
 
         if resultado.get("message") == \
                 "Agent não está disponível para execução":
@@ -791,144 +467,91 @@ def executar_agendamento(schedule_id):
             continue
 
 
-        # Outro erro → não tenta outro Agent
-        # quando um Agent específico foi escolhido.
+        # ====================================================
+        # OUTRO ERRO
+        # ====================================================
+        #
+        # Se foi escolhido um Agent específico, não tenta
+        # outro automaticamente.
+        # ====================================================
 
         if agent_id_agendado:
 
             break
 
 
+    # ========================================================
+    # RETORNO FINAL
+    # ========================================================
+
     return ultimo_resultado or {
         "status": "waiting",
         "message": "Nenhum Agent disponível"
     }
-
-
 # ============================================================
-# SCHEDULER
+# ENDPOINT EXCLUIR AGENDAMENTO
 # ============================================================
-
-def scheduler_loop():
-
-    while True:
-
-        try:
-
-            agora = datetime.now()
-
-            db = SessionLocal()
-
-            try:
-
-                schedules = db.query(
-                    Schedule
-                ).filter(
-                    Schedule.ativo == 1
-                ).all()
-
-                # Inicializa próxima execução dos
-                # agendamentos que ainda estão NULL.
-
-                for schedule in schedules:
-
-                    if schedule.proxima_execucao is None:
-
-                        proxima = calcular_proxima_execucao(
-                            schedule,
-                            agora
-                        )
-
-                        if proxima is not None:
-
-                            schedule.proxima_execucao = proxima
-
-                db.commit()
-
-                vencidos = [
-
-                    schedule.id
-
-                    for schedule in sorted(
-                        schedules,
-                        key=lambda s: s.proxima_execucao
-                        or datetime.max
-                    )
-
-                    if (
-                        schedule.proxima_execucao is not None
-                        and schedule.proxima_execucao <= agora
-                    )
-                ]
-
-            finally:
-
-                db.close()
-
-
-            for schedule_id in vencidos:
-
-                executar_agendamento(
-                    schedule_id
-                )
-
-        except Exception as error:
-
-            print(
-                f"[SCHEDULER] Erro: {error}"
-            )
-
-        # Verifica os agendamentos a cada 5 segundos.
-
-        
-        time.sleep(5)
-
-
-# ============================================================
-# INICIAR SCHEDULER
+#
+# Permite excluir um agendamento somente para usuários
+# que possuem a permissão:
+#
+#     Schedules:delete
+#
+# A autenticação do usuário já é validada pelo router.
+# Aqui adicionamos a autorização específica da operação.
 # ============================================================
 
-scheduler_thread = None
+@router.delete(
+    "/schedules/{schedule_id}",
+    summary="Excluir agendamento",
+    description=(
+        "Exclui um agendamento cadastrado no Control Room. "
+        "O agendamento é identificado pelo parâmetro 'schedule_id'. "
+        "Requer a permissão 'Schedules:delete'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Schedules", "delete")
+        )
+    ]
+)
 
-
-def iniciar_scheduler():
-
-    global scheduler_thread
-
-    if (
-        scheduler_thread is not None
-        and scheduler_thread.is_alive()
-    ):
-
-        return
-
-    import threading
-
-    scheduler_thread = threading.Thread(
-        target=scheduler_loop,
-        daemon=True,
-        name="RPA-Scheduler"
-    )
-
-    scheduler_thread.start()
-
-
-# ============================================================
-# EXCLUIR AGENDAMENTO
-# ============================================================
-
-@router.delete("/api/schedules/{schedule_id}")
 def delete_schedule(schedule_id: int):
+    """
+    Exclui definitivamente um agendamento sem remover o
+    histórico das execuções que ele já originou.
+
+    Parâmetros:
+        schedule_id:
+            Identificador único do agendamento.
+
+    Regra de negócio:
+        - o Schedule representa planejamento futuro;
+        - a Execution representa histórico;
+        - excluir o Schedule interrompe novos disparos;
+        - Executions existentes são sempre preservadas;
+        - schedule_id das Executions históricas é desvinculado;
+        - schedule_run_id permanece preservado.
+
+    Permissão necessária:
+        Schedules:delete
+    """
 
     db = SessionLocal()
 
     try:
 
-        schedule = db.query(
-            Schedule
-        ).filter(
-            Schedule.id == schedule_id
-        ).first()
+        # ====================================================
+        # LOCALIZA O AGENDAMENTO
+        # ====================================================
+
+        schedule = (
+            db.query(Schedule)
+            .filter(
+                Schedule.id == schedule_id
+            )
+            .first()
+        )
 
         if not schedule:
 
@@ -938,67 +561,138 @@ def delete_schedule(schedule_id: int):
                 "schedule_id": schedule_id
             }
 
+        # ====================================================
+        # INTERROMPE O PLANEJAMENTO
+        # ====================================================
+        #
+        # Antes de remover o registro, retiramos o Schedule
+        # explicitamente da condição de execução.
+        #
+        # Isso também deixa clara a intenção da operação caso
+        # futuramente existam outros passos dentro desta
+        # transação.
+        # ====================================================
+
+        schedule.ativo = 0
+        schedule.proxima_execucao = None
+
+        db.flush()
+
+        # ====================================================
+        # PRESERVA O HISTÓRICO DE EXECUÇÕES
+        # ====================================================
+        #
+        # Execution NÃO pertence ao ciclo de vida do Schedule.
+        #
+        # Removemos somente a FK schedule_id.
+        #
+        # Permanecem preservados:
+        #
+        #   - Execution.id
+        #   - Robot / nome histórico
+        #   - versão
+        #   - Agent
+        #   - usuário
+        #   - status
+        #   - início/fim
+        #   - erros
+        #   - schedule_run_id
+        #
+        # Portanto, excluir um Schedule nunca apaga o histórico.
+        # ====================================================
+
+        executions_desvinculadas = (
+            db.query(Execution)
+            .filter(
+                Execution.schedule_id == schedule_id
+            )
+            .update(
+                {
+                    Execution.schedule_id: None
+                },
+                synchronize_session=False
+            )
+        )
+
+        # ====================================================
+        # REMOVE O PLANEJAMENTO
+        # ====================================================
+
         db.delete(schedule)
 
+        # Schedule + desvinculação das Executions fazem parte
+        # da mesma transação.
         db.commit()
 
         return {
             "status": "success",
             "message": "Agendamento excluído com sucesso",
-            "schedule_id": schedule_id
+            "schedule_id": schedule_id,
+            "executions_preserved":
+                executions_desvinculadas
         }
 
-    except Exception as error:
+    except Exception:
 
+        # Nenhum estado parcial é mantido caso a operação falhe.
         db.rollback()
 
         return {
             "status": "error",
             "message": "Não foi possível excluir o agendamento",
-            "schedule_id": schedule_id,
-            "error": str(error)
+            "schedule_id": schedule_id
         }
 
     finally:
 
         db.close()
-
-
 # ============================================================
-# MODELO DE CRIAÇÃO/ATUALIZAÇÃO
+# ENDPOINT CRIAR AGENDAMENTO
 # ============================================================
-
-class ScheduleCreateRequest(BaseModel):
-
-    robot_id: int
-
-    agent_id: str | None = None
-
-    tipo: str
-
-    data_inicio: str
-
-    horario: str
-
-    dias_semana: str | None = None
-
-    intervalo_ativo: bool = False
-
-    intervalo_valor: int | None = None
-
-    intervalo_unidade: str | None = None
-
-    horario_fim: str | None = None
-
-
-# ============================================================
-# CRIAR AGENDAMENTO
+#
+# Permite criar um novo agendamento somente para usuários
+# que possuem a permissão:
+#
+#     Schedules:create
+#
+# A função continua recebendo somente o request do agendamento.
+# A autorização é feita antes da execução da função.
 # ============================================================
 
-@router.post("/api/schedules")
+@router.post(
+    "/schedules",
+    summary="Criar agendamento",
+    description=(
+        "Cria um novo agendamento para execução de um robô. "
+        "O agendamento pode ser único, diário, semanal ou mensal. "
+        "Também permite configurar intervalo de execução e horário "
+        "de término quando aplicável. "
+        "Requer a permissão 'Schedules:create'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Schedules", "create")
+        )
+    ]
+)
 def criar_agendamento(
-    request: ScheduleCreateRequest
+    request: ScheduleCreateRequest,
+
+    # Recupera o usuário autenticado para registrar
+    # quem criou o agendamento.
+    usuario=Depends(get_usuario_atual)
 ):
+    """
+    Cria um novo agendamento.
+
+    Parâmetros:
+        request:
+            Dados do agendamento, incluindo robô, Agent opcional,
+            tipo, data, horário e configurações de periodicidade.
+
+    Permissão necessária:
+        Schedules:create
+    """
 
     db = SessionLocal()
 
@@ -1020,17 +714,24 @@ def criar_agendamento(
 
         if request.agent_id:
 
+            # Permite criar o agendamento somente com um Agent
+            # que ainda esteja ativo no Control Room.
+            #
+            # Agents removidos logicamente continuam no banco
+            # para preservar o histórico, mas não podem receber
+            # novos agendamentos.
             agent = db.query(
                 Agent
             ).filter(
-                Agent.agent_id == request.agent_id
+                Agent.agent_id == request.agent_id,
+                Agent.is_active == 1
             ).first()
 
             if not agent:
 
                 return {
                     "status": "error",
-                    "message": "Agent não encontrado"
+                    "message": "Agent não encontrado ou inativo"
                 }
 
 
@@ -1078,23 +779,152 @@ def criar_agendamento(
 
         agora = datetime.now()
 
-        if data_horario <= agora:
+        # ========================================================
+        # VALIDAÇÕES ESPECÍFICAS DO TIPO
+        # ========================================================
 
-            return {
-                "status": "error",
-                "message": (
-                    "O horário informado já passou. "
-                    "Selecione uma data e horário futuros."
-                )
+        # --------------------------------------------------------
+        # SEMANAL
+        # --------------------------------------------------------
+        #
+        # Um Schedule semanal precisa possuir pelo menos um
+        # dia da semana válido.
+        if request.tipo == "weekly":
+
+            dias_validos = {
+                "mon",
+                "tue",
+                "wed",
+                "thu",
+                "fri",
+                "sat",
+                "sun",
             }
 
+            dias_selecionados = {
+                dia.strip().lower()
+                for dia in (
+                    request.dias_semana or ""
+                ).split(",")
+                if dia.strip()
+            }
+
+            if not dias_selecionados:
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Selecione pelo menos um dia da semana."
+                    )
+                }
+
+            if not dias_selecionados.issubset(
+                dias_validos
+            ):
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Existem dias da semana inválidos."
+                    )
+                }
+
+
+        # --------------------------------------------------------
+        # INTERVALO
+        # --------------------------------------------------------
+
+        if request.intervalo_ativo:
+
+            if (
+                request.intervalo_valor is None
+                or request.intervalo_valor <= 0
+            ):
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Informe um intervalo maior que zero."
+                    )
+                }
+
+            if request.intervalo_unidade not in (
+                "minutes",
+                "hours",
+            ):
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Unidade de intervalo inválida."
+                    )
+                }
+
+            if not request.horario_fim:
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Informe o horário final do intervalo."
+                    )
+                }
+
+            fim_intervalo = _horario_para_datetime(
+                data_inicio,
+                request.horario_fim
+            )
+
+            if fim_intervalo is None:
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Horário final inválido. Use HH:MM."
+                    )
+                }
+
+            if fim_intervalo <= data_horario:
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "O horário final deve ser posterior "
+                        "ao horário inicial."
+                    )
+                }
+
+
+        # ========================================================
+        # CALCULA PRIMEIRA OCORRÊNCIA
+        # ========================================================
 
         if request.tipo == "once":
+
+            # Uma execução única não possui uma ocorrência futura
+            # alternativa. Portanto, o horário configurado precisa
+            # efetivamente estar no futuro.
+            if data_horario <= agora:
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "O horário informado já passou. "
+                        "Selecione uma data e horário futuros."
+                    )
+                }
 
             proxima_execucao = data_horario
 
         else:
 
+            # Recorrências NÃO devem ser rejeitadas simplesmente
+            # porque o primeiro horário possível já passou.
+            #
+            # O cálculo procura a próxima ocorrência futura válida.
+            #
+            # Exemplo:
+            # sábado 18:51 + semanal às 18:50
+            # -> domingo 18:50, se domingo estiver selecionado.
             proxima_execucao = calcular_proxima_execucao(
 
                 Schedule(
@@ -1114,7 +944,7 @@ def criar_agendamento(
                     horario_fim=request.horario_fim
                 ),
 
-                datetime.now()
+                agora
             )
 
 
@@ -1135,6 +965,8 @@ def criar_agendamento(
             robot_id=request.robot_id,
 
             agent_id=request.agent_id,
+                # Usuário que criou o agendamento.
+            user_id=usuario.id,
 
             tipo=request.tipo,
 
@@ -1238,11 +1070,49 @@ def criar_agendamento(
 
 
 # ============================================================
-# OPÇÕES PARA NOVO AGENDAMENTO
+# ENDPOINT OPÇÕES PARA NOVO AGENDAMENTO
 # ============================================================
-
-@router.get("/api/schedules/options")
+#
+# Permite consultar as opções disponíveis para criação de
+# agendamentos somente para usuários que possuem a permissão:
+#
+#     Schedules:view
+#
+# A autenticação do usuário já é validada pelo router.
+# Aqui adicionamos a autorização específica da operação.
+# ============================================================
+@router.get(
+    "/schedules/options",
+    summary="Consultar opções de agendamento",
+    description=(
+        "Retorna as opções disponíveis para criação de um agendamento. "
+        "A resposta contém os robôs disponíveis no repositório e "
+        "os Agents cadastrados no Control Room. "
+        "Requer a permissão 'Schedules:view'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Schedules", "view")
+        )
+    ]
+)
 def opcoes_agendamento():
+    """
+    Retorna as opções disponíveis para criação de agendamentos.
+
+    Parâmetros:
+        Nenhum.
+
+    Retorna:
+        robots:
+            Robôs disponíveis para seleção.
+
+        agents:
+            Agents disponíveis para seleção.
+
+    Permissão necessária:
+        Schedules:view
+    """
 
     db = SessionLocal()
 
@@ -1276,8 +1146,16 @@ def opcoes_agendamento():
             })
 
 
+        # Retorna somente Agents ativos para seleção
+        # em novos agendamentos.
+        #
+        # Agents removidos logicamente permanecem no banco
+        # para preservar o histórico, mas não podem mais
+        # ser selecionados para novas execuções.
         agents_db = db.query(
             Agent
+        ).filter(
+            Agent.is_active == 1
         ).order_by(
             Agent.name
         ).all()
@@ -1309,11 +1187,43 @@ def opcoes_agendamento():
 
 
 # ============================================================
-# CONSULTAR AGENDAMENTO
+# ENDPOINT CONSULTAR AGENDAMENTO
+# ============================================================
+#
+# Permite consultar um agendamento específico somente para
+# usuários que possuem a permissão:
+#
+#     Schedules:view
+#
+# A autenticação do usuário já é validada pelo router.
+# Aqui adicionamos a autorização específica da operação.
 # ============================================================
 
-@router.get("/api/schedules/{schedule_id}")
+@router.get(
+    "/schedules/{schedule_id}",
+    summary="Consultar agendamento",
+    description=(
+        "Retorna os dados completos de um agendamento específico. "
+        "O agendamento é localizado pelo parâmetro 'schedule_id'. "
+        "Requer a permissão 'Schedules:view'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Schedules", "view")
+        )
+    ]
+)
 def get_schedule(schedule_id: int):
+    """
+    Consulta um agendamento específico.
+
+    Parâmetros:
+        schedule_id:
+            Identificador único do agendamento.
+
+    Permissão necessária:
+        Schedules:view
+    """
 
     db = SessionLocal()
 
@@ -1434,14 +1344,50 @@ def get_schedule(schedule_id: int):
 
 
 # ============================================================
-# ATUALIZAR AGENDAMENTO
+# ENDPOINT ATUALIZAR AGENDAMENTO
+# ============================================================
+#
+# Permite alterar um agendamento somente para usuários
+# que possuem a permissão:
+#
+#     Schedules:edit
+#
+# A autenticação do usuário já é validada pelo router.
+# Aqui adicionamos a autorização específica da operação.
 # ============================================================
 
-@router.put("/api/schedules/{schedule_id}")
+@router.put(
+    "/schedules/{schedule_id}",
+    summary="Atualizar agendamento",
+    description=(
+        "Atualiza as configurações de um agendamento existente. "
+        "Permite alterar o robô, Agent, tipo, data, horário, "
+        "periodicidade e configurações de intervalo. "
+        "Requer a permissão 'Schedules:edit'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Schedules", "edit")
+        )
+    ]
+)
 def update_schedule(
     schedule_id: int,
     request: ScheduleCreateRequest
 ):
+    """
+    Atualiza um agendamento existente.
+
+    Parâmetros:
+        schedule_id:
+            Identificador único do agendamento.
+
+        request:
+            Novas configurações do agendamento.
+
+    Permissão necessária:
+        Schedules:edit
+    """
 
     db = SessionLocal()
 
@@ -1467,9 +1413,188 @@ def update_schedule(
             }
 
 
+
+        # ========================================================
+        # VALIDAÇÕES DA EDIÇÃO
+        # ========================================================
+
+        tipos_permitidos = {
+            "once",
+            "daily",
+            "weekly",
+            "monthly",
+        }
+
+        if request.tipo not in tipos_permitidos:
+
+            return {
+                "status": "error",
+                "message": "Tipo de agendamento inválido"
+            }
+
+
+        # O Robot precisa continuar existindo.
+        robot = (
+            db.query(Robot)
+            .filter(
+                Robot.id == request.robot_id
+            )
+            .first()
+        )
+
+        if not robot:
+
+            return {
+                "status": "error",
+                "message": "Robô não encontrado"
+            }
+
+
+        # Agent específico precisa continuar ativo.
+        if request.agent_id:
+
+            agent = (
+                db.query(Agent)
+                .filter(
+                    Agent.agent_id == request.agent_id,
+                    Agent.is_active == 1,
+                )
+                .first()
+            )
+
+            if not agent:
+
+                return {
+                    "status": "error",
+                    "message": "Agent não encontrado ou inativo"
+                }
+
+
+        # Semanal exige pelo menos um dia válido.
+        if request.tipo == "weekly":
+
+            dias_validos = {
+                "mon",
+                "tue",
+                "wed",
+                "thu",
+                "fri",
+                "sat",
+                "sun",
+            }
+
+            dias_selecionados = {
+                dia.strip().lower()
+                for dia in (
+                    request.dias_semana or ""
+                ).split(",")
+                if dia.strip()
+            }
+
+            if (
+                not dias_selecionados
+                or not dias_selecionados.issubset(
+                    dias_validos
+                )
+            ):
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Selecione dias da semana válidos."
+                    )
+                }
+
+
+        # Intervalo exige configuração completa.
+        if request.intervalo_ativo:
+
+            if (
+                request.intervalo_valor is None
+                or request.intervalo_valor <= 0
+            ):
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Informe um intervalo maior que zero."
+                    )
+                }
+
+            if request.intervalo_unidade not in (
+                "minutes",
+                "hours",
+            ):
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Unidade de intervalo inválida."
+                    )
+                }
+
+            if not request.horario_fim:
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "Informe o horário final do intervalo."
+                    )
+                }
+
         data_inicio = datetime.fromisoformat(
             request.data_inicio
         )
+
+        # Converte o horário inicial informado.
+        data_horario = _horario_para_datetime(
+            data_inicio,
+            request.horario
+        )
+
+        if data_horario is None:
+
+            return {
+                "status": "error",
+                "message": "Horário inválido. Use HH:MM."
+            }
+
+
+        if request.intervalo_ativo:
+
+            fim_intervalo = _horario_para_datetime(
+                data_inicio,
+                request.horario_fim
+            )
+
+            if (
+                fim_intervalo is None
+                or fim_intervalo <= data_horario
+            ):
+
+                return {
+                    "status": "error",
+                    "message": (
+                        "O horário final deve ser posterior "
+                        "ao horário inicial."
+                    )
+                }
+
+
+        # Schedule "once" não pode ser atualizado para uma
+        # ocorrência que já passou.
+        if (
+            request.tipo == "once"
+            and data_horario <= datetime.now()
+        ):
+
+            return {
+                "status": "error",
+                "message": (
+                    "O horário informado já passou. "
+                    "Selecione uma data e horário futuros."
+                )
+            }
 
 
         schedule.robot_id = request.robot_id
@@ -1503,13 +1628,30 @@ def update_schedule(
         )
 
 
-        schedule.proxima_execucao = (
+        # Recalcula a próxima ocorrência com a configuração
+        # já aplicada ao objeto Schedule.
+        nova_proxima_execucao = (
             calcular_proxima_execucao(
                 schedule,
                 datetime.now()
             )
         )
 
+        if nova_proxima_execucao is None:
+
+            db.rollback()
+
+            return {
+                "status": "error",
+                "message": (
+                    "Não foi possível calcular a próxima execução. "
+                    "Verifique a data, horário e periodicidade."
+                )
+            }
+
+        schedule.proxima_execucao = (
+            nova_proxima_execucao
+        )
 
         db.commit()
 
@@ -1548,14 +1690,52 @@ def update_schedule(
 
 
 # ============================================================
-# ATIVAR / DESATIVAR AGENDAMENTO
+# ENDPOINT ATIVAR / DESATIVAR AGENDAMENTO
+# ============================================================
+#
+# Permite ativar ou desativar um agendamento somente para
+# usuários que possuem a permissão:
+#
+#     Schedules:edit
+#
+# A autenticação do usuário já é validada pelo router.
+# Aqui adicionamos a autorização específica da operação.
 # ============================================================
 
-@router.put("/api/schedules/{schedule_id}/status")
+@router.put(
+    "/schedules/{schedule_id}/status",
+    summary="Alterar status do agendamento",
+    description=(
+        "Ativa ou desativa um agendamento existente. "
+        "O parâmetro 'ativo' define se o agendamento ficará "
+        "habilitado ou desabilitado para execução. "
+        "Requer a permissão 'Schedules:edit'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission("Schedules", "edit")
+        )
+    ]
+)
 def alterar_status_schedule(
     schedule_id: int,
     ativo: bool
 ):
+    """
+    Ativa ou desativa um agendamento.
+
+    Parâmetros:
+        schedule_id:
+            Identificador único do agendamento.
+
+        ativo:
+            Define o novo status do agendamento.
+            True ativa o agendamento.
+            False desativa o agendamento.
+
+    Permissão necessária:
+        Schedules:edit
+    """
 
     db = SessionLocal()
 
@@ -1581,11 +1761,79 @@ def alterar_status_schedule(
             }
 
 
-        schedule.ativo = (
-            1
-            if ativo
-            else 0
-        )
+        # ========================================================
+        # ATIVAR
+        # ========================================================
+
+        if ativo:
+
+            agora = datetime.now()
+
+            # Para Schedule "once", a ocorrência original precisa
+            # continuar no futuro.
+            if schedule.tipo == "once":
+
+                proxima_execucao = (
+                    calcular_proxima_execucao(
+                        schedule,
+                        agora
+                    )
+                )
+
+                if (
+                    proxima_execucao is None
+                    or proxima_execucao <= agora
+                ):
+
+                    return {
+                        "status": "error",
+                        "message": (
+                            "Este agendamento único já venceu. "
+                            "Edite a data/horário antes de reativá-lo."
+                        ),
+                        "schedule_id": schedule_id,
+                    }
+
+            else:
+
+                # Recorrentes procuram a próxima ocorrência futura
+                # válida a partir do momento da reativação.
+                proxima_execucao = (
+                    calcular_proxima_execucao(
+                        schedule,
+                        agora
+                    )
+                )
+
+                if proxima_execucao is None:
+
+                    return {
+                        "status": "error",
+                        "message": (
+                            "Não existe próxima execução válida "
+                            "para este agendamento."
+                        ),
+                        "schedule_id": schedule_id,
+                    }
+
+            schedule.proxima_execucao = (
+                proxima_execucao
+            )
+
+            schedule.ativo = 1
+
+
+        # ========================================================
+        # DESATIVAR
+        # ========================================================
+
+        else:
+
+            # Desativar não exclui e não apaga a configuração.
+            #
+            # O Schedule permanece visível na interface e poderá
+            # posteriormente ser editado, reativado ou excluído.
+            schedule.ativo = 0
 
 
         db.commit()

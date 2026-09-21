@@ -1,0 +1,392 @@
+/* =========================================================
+   LOGS / SYSTEM ACTIVITY
+   Visualização de logs do Control Room
+   ========================================================= */
+
+.logs-page {
+    width: 100%;
+    max-width: 1380px;
+    margin: 0 auto;
+}
+
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
+.logs-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.logs-page-eyebrow {
+    margin: 0 0 7px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.logs-page-header h1 {
+    margin: 0;
+    color: #172033;
+    font-size: 32px;
+    font-weight: 750;
+    letter-spacing: -0.8px;
+}
+
+.logs-page-header p {
+    margin: 8px 0 0;
+    color: #7b8798;
+    font-size: 14px;
+}
+
+/* =========================================================
+   AÇÕES DO CABEÇALHO
+   ========================================================= */
+
+.logs-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logs-live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    background: #f0fdf4;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.logs-live-indicator::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+    content: "";
+}
+
+.logs-refresh-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 13px;
+    border: 1px solid #dce4ee;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #64748b;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.logs-refresh-button:hover {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+/* =========================================================
+   ALERTA
+   ========================================================= */
+
+.logs-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 13px 16px;
+    border: 1px solid #fecaca;
+    border-radius: 9px;
+    background: #fff7f7;
+    color: #b91c1c;
+    font-size: 12px;
+}
+
+/* =========================================================
+   PAINEL PRINCIPAL
+   ========================================================= */
+
+.logs-panel {
+    overflow: hidden;
+    border: 1px solid #e5ebf3;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow:
+        0 2px 5px rgba(15, 23, 42, 0.025),
+        0 8px 22px rgba(15, 23, 42, 0.035);
+}
+
+.logs-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 68px;
+    padding: 0 24px;
+    border-bottom: 1px solid #edf1f5;
+}
+
+.logs-panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logs-panel-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    font-size: 18px;
+}
+
+.logs-panel-heading h2 {
+    margin: 0;
+    color: #202b3c;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.logs-panel-heading p {
+    margin: 4px 0 0;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.logs-panel-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 25px;
+    height: 25px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+/* =========================================================
+   LISTA DE LOGS
+   ========================================================= */
+
+.logs-list {
+    display: flex;
+    flex-direction: column;
+    background: #fbfcfe;
+}
+
+.logs-entry {
+    display: grid;
+    grid-template-columns: 185px minmax(82px, 100px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    padding: 15px 24px;
+    border-bottom: 1px solid #edf1f5;
+    transition: background 0.16s ease;
+}
+
+.logs-entry:hover {
+    background: #f8fbff;
+}
+
+.logs-entry:last-child {
+    border-bottom: none;
+}
+
+.logs-timestamp {
+    padding-top: 2px;
+    color: #94a3b8;
+    font-family: "Consolas", "SFMono-Regular", monospace;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.logs-level {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-width: 58px;
+    min-height: 23px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-family: "Consolas", "SFMono-Regular", monospace;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.logs-level-info {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.logs-level-success {
+    background: #ecfdf3;
+    color: #15803d;
+}
+
+.logs-level-warning {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.logs-level-error,
+.logs-level-critical {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.logs-level-debug {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.logs-message {
+    min-width: 0;
+    color: #475569;
+    font-family: "Consolas", "SFMono-Regular", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   ESTADOS
+   ========================================================= */
+
+.logs-loading-state,
+.logs-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+    padding: 30px;
+    color: #9aa7b8;
+    font-size: 12px;
+    text-align: center;
+}
+
+.logs-state-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    border-radius: 13px;
+    background: #f8fafc;
+    font-size: 21px;
+}
+
+/* =========================================================
+   RODAPÉ DO PAINEL
+   ========================================================= */
+
+.logs-panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 42px;
+    padding: 0 24px;
+    border-top: 1px solid #edf1f5;
+    background: #ffffff;
+    color: #a0acbb;
+    font-size: 10px;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 850px) {
+    .logs-entry {
+        grid-template-columns: 150px 90px minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px 18px;
+    }
+
+    .logs-panel-header {
+        padding: 0 18px;
+    }
+
+    .logs-panel-footer {
+        padding: 0 18px;
+    }
+}
+
+@media (max-width: 650px) {
+    .logs-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .logs-page-header h1 {
+        font-size: 28px;
+    }
+
+    .logs-header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .logs-entry {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        padding: 14px 18px;
+    }
+
+    .logs-timestamp {
+        order: 1;
+    }
+
+    .logs-level {
+        order: 2;
+    }
+
+    .logs-message {
+        order: 3;
+    }
+
+    .logs-panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 18px;
+    }
+
+    .logs-panel-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        padding: 12px 18px;
+    }
+}

@@ -1,0 +1,719 @@
+/* =========================================================
+   PÁGINA DE AGENTS
+   ========================================================= */
+
+.agents-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
+.agents-page .page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.agents-page .page-eyebrow {
+  margin-bottom: 8px;
+
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.agents-page .page-heading h1 {
+  color: var(--color-text-primary);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.agents-page .page-heading p {
+  margin-top: 7px;
+
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.agents-page .page-heading-icon {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* =========================================================
+   PAINÉIS DE CONTEÚDO
+   ========================================================= */
+
+.agents-page .content-panel {
+  overflow: hidden;
+
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+
+  box-shadow: var(--shadow-sm);
+}
+
+.agents-page .content-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 20px 24px;
+
+  border-bottom: 1px solid var(--color-border);
+}
+
+.agents-page .content-panel-header h2 {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.agents-page .content-panel-header p {
+  margin-top: 5px;
+
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.agents-page .section-icon {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #dbeafe;
+  border-radius: 9px;
+
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* =========================================================
+   FORMULÁRIO DE CADASTRO
+   ========================================================= */
+
+.agent-form {
+  display: grid;
+  grid-template-columns: 0.8fr 1.5fr auto;
+  align-items: end;
+  gap: 18px;
+
+  padding: 24px;
+}
+
+.form-field {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.input-with-icon {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon svg {
+  position: absolute;
+  left: 13px;
+
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.input-with-icon input {
+  width: 100%;
+  height: 42px;
+
+  padding: 0 13px 0 38px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: var(--color-text-primary);
+
+  font-family: inherit;
+  font-size: 13px;
+
+  outline: none;
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.input-with-icon input::placeholder {
+  color: #a1a1aa;
+}
+
+.input-with-icon input:focus {
+  border-color: #93c5fd;
+
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-with-icon input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* =========================================================
+   SELECT DO FORMULÁRIO DE AGENT
+   ========================================================= */
+
+/*
+ * Mantém o select de Ambiente com a mesma linguagem visual
+ * utilizada pelo campo de Porta.
+ */
+.input-with-icon select {
+  width: 100%;
+  height: 42px;
+
+  padding: 0 38px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: var(--color-text-primary);
+
+  font-family: inherit;
+  font-size: 13px;
+
+  outline: none;
+  cursor: pointer;
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.input-with-icon select:focus {
+  border-color: #93c5fd;
+
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-with-icon select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.primary-button {
+  height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 0 18px;
+
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+
+  box-shadow:
+    0 4px 10px rgba(37, 99, 235, 0.18);
+}
+
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* =========================================================
+   LISTAGEM
+   ========================================================= */
+
+.agents-list-panel .panel-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-loading {
+  padding: 42px 24px;
+
+  text-align: center;
+
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.panel-empty-state {
+  min-height: 220px;
+  padding: 40px 24px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+}
+
+.panel-empty-icon {
+  width: 52px;
+  height: 52px;
+
+  margin-bottom: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 13px;
+
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.panel-empty-state h3 {
+  margin-bottom: 7px;
+
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.panel-empty-state p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* =========================================================
+   GRID DE AGENTS
+   ========================================================= */
+
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  padding: 24px;
+}
+
+/* =========================================================
+   CARD INDIVIDUAL DO AGENT
+   ========================================================= */
+
+.agent-card {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 11px;
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.agent-card:hover {
+  transform: translateY(-1px);
+
+  border-color: #d1d5db;
+
+  box-shadow:
+    0 6px 18px rgba(15, 23, 42, 0.05);
+}
+
+.agent-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 18px 18px 16px;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.agent-card-identity {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.agent-avatar {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 10px;
+
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.agent-card-identity h3 {
+  overflow: hidden;
+
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-id {
+  display: block;
+
+  margin-top: 4px;
+
+  overflow: hidden;
+
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  flex-shrink: 0;
+
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.agent-status-online {
+  color: #16a34a;
+}
+
+.agent-status-offline {
+  color: #94a3b8;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+
+  display: inline-block;
+
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* =========================================================
+   DETALHES DO AGENT
+   ========================================================= */
+
+.agent-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+
+  padding: 18px;
+}
+
+.agent-detail {
+  min-width: 0;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.agent-detail > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+
+  color: #94a3b8;
+}
+
+.agent-detail > div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-detail span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.agent-detail strong {
+  overflow: hidden;
+
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   RODAPÉ E AÇÕES
+   ========================================================= */
+
+.agent-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  margin-top: auto;
+  padding: 14px 18px;
+
+  border-top: 1px solid #f1f5f9;
+}
+
+.agent-session {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.agent-session strong {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.agent-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+
+  /*
+   * Evita quebra de linha e mantém todas as ações
+   * alinhadas no mesmo grupo visual.
+   */
+  flex-wrap: nowrap;
+}
+
+.secondary-button,
+.danger-button {
+  height: 34px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  /*
+   * Um pouco mais de espaço horizontal deixa as ações
+   * proporcionais e evita aparência de botão comprimido.
+   */
+  padding: 0 12px;
+
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+
+  line-height: 1;
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+
+
+/*
+ * A ação de alteração possui texto maior.
+ * Mantemos uma largura mínima para ela não parecer
+ * comprimida em relação às demais ações.
+ */
+/*
+ * A alteração de ambiente é uma ação de configuração.
+ * Por isso ela fica visualmente mais discreta que Download
+ * e Excluir, sem alterar o componente ou seu comportamento.
+ */
+.agent-actions .secondary-button:first-child {
+  min-width: auto;
+  height: 34px;
+
+  /*
+   * Cria separação física entre Alterar ambiente
+   * e o botão Baixar.
+   */
+  margin-right: 4px;
+  padding: 0 12px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: var(--color-text-secondary);
+
+  font-size: 11px;
+  font-weight: 600;
+
+  box-shadow: none;
+}
+
+.agent-actions .secondary-button:first-child:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: var(--color-text-primary);
+
+  box-shadow: none;
+}
+
+/*
+ * Download e exclusão continuam compactos,
+ * mas com dimensões visuais equivalentes.
+ */
+.agent-actions .secondary-button:not(:first-child),
+.agent-actions .danger-button {
+  min-width: 82px;
+}
+.secondary-button {
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+  color: #2563eb;
+}
+
+.secondary-button:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.danger-button {
+  border: 1px solid #fee2e2;
+  background: #fffafa;
+  color: #dc2626;
+}
+
+.danger-button:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .agent-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .agent-form .primary-button {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 900px) {
+  .agents-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .agents-page .page-heading {
+    align-items: flex-start;
+  }
+
+  .agent-form {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-form .primary-button {
+    width: 100%;
+  }
+
+  .agents-grid {
+    padding: 16px;
+  }
+
+  .agent-details {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .agent-card-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .agent-actions {
+    width: 100%;
+  }
+
+  .secondary-button,
+  .danger-button {
+    flex: 1;
+  }
+}

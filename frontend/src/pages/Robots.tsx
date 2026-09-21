@@ -1,28 +1,53 @@
-import { useEffect, useState } from "react";
-import api from "../services/api";
-
 // ============================================================
-// TIPO - PASTA DE ROBÔS
+// DUET CORE - ROBOTS
 // ============================================================
-
-interface RobotFolder {
-    id: number;
-    name: string;
-    parent_id: number | null;
-}
-
-// ============================================================
-// TIPO - ROBÔ
+//
+// Página responsável pela composição da área de Robots.
+//
+// A lógica especializada está sendo distribuída entre:
+// - hooks de domínio;
+// - componentes visuais;
+// - tipos compartilhados;
+// - utilitários.
+//
+// Robots.tsx permanece como camada de orquestração da tela.
 // ============================================================
 
-interface Robot {
-    id: number;
-    name: string;
-    filename: string;
-    version: string;
-    file_hash: string;
-    file_path: string;
-}
+import {
+    useState,
+} from "react";
+
+import {
+    Folder,
+    Package,
+    Plus,
+} from "lucide-react";
+
+import LibrariesPanel from "../components/libraries/LibrariesPanel";
+
+import RobotsHeader from "../components/robots/RobotsHeader";
+import RobotFolderTree from "../components/robots/RobotFolderTree";
+import CreateRobotFolderForm from "../components/robots/CreateRobotFolderForm";
+import RobotExecutionAgent from "../components/robots/RobotExecutionAgent";
+import RobotsGrid from "../components/robots/RobotsGrid";
+
+import {
+    useRobotFolders,
+} from "../hooks/robots/useRobotFolders";
+
+import {
+    useRobotsData,
+} from "../hooks/robots/useRobotsData";
+
+import {
+    useRobotExecution,
+} from "../hooks/robots/useRobotExecution";
+
+import {
+    useRobotLibraries,
+} from "../hooks/robots/useRobotLibraries";
+
+// ============================================================
 
 // ============================================================
 // PÁGINA DE ROBÔS
@@ -31,797 +56,444 @@ interface Robot {
 function Robots() {
 
     // ========================================================
-    // ESTADOS
+    // MENSAGENS DA PÁGINA
+    // ========================================================
+    //
+    // Error e success continuam pertencendo à página porque
+    // diferentes domínios precisam apresentar mensagens no
+    // mesmo espaço visual.
     // ========================================================
 
-    const [folders, setFolders] = useState<RobotFolder[]>([]);
+    const [
+        error,
+        setError,
+    ] = useState<string>("");
 
-    const [robots, setRobots] = useState<Robot[]>([]);
 
-    const [selectedFolder, setSelectedFolder] =
-        useState<RobotFolder | null>(null);
-
-    // Guarda quais pastas estão abertas na árvore.
-    // Cada ID representa uma pasta expandida.
-    const [expandedFolders, setExpandedFolders] =
-        useState<Set<number>>(new Set());
-
-    const [loadingFolders, setLoadingFolders] = useState(true);
-
-    const [loadingRobots, setLoadingRobots] = useState(false);
-
-    const [error, setError] = useState("");
-
-    // ========================================================
-    // ESTADO - UPLOAD
-    // ========================================================
-
-    const [uploading, setUploading] = useState(false);
-
-    // ========================================================
-    // ESTADO - CRIAÇÃO DE PASTA
-    // ========================================================
-
-    // Guarda o nome digitado pelo usuário.
-    const [newFolderName, setNewFolderName] = useState("");
-    // Guarda a pasta onde a nova pasta será criada.
-    // null significa que a pasta será criada na raiz.
-    const [newFolderParentId, setNewFolderParentId] =
-        useState<number | null>(null);
-
-    // Controla o estado do botão durante a criação.
-    const [creatingFolder, setCreatingFolder] = useState(false);
-
-    // ========================================================
-    // BUSCAR PASTAS
-    // ========================================================
-
-    const carregarPastas = async () => {
-
-        try {
-
-            setLoadingFolders(true);
-
-            const response = await api.get("/robot-folders");
-
-            // Guarda as pastas retornadas pelo backend.
-            setFolders(response.data.folders);
-
-        } catch (err) {
-
-            console.error(
-                "Erro ao buscar pastas de robôs:",
-                err
-            );
-
-            setError(
-                "Não foi possível carregar as pastas de robôs."
-            );
-
-        } finally {
-
-            setLoadingFolders(false);
-        }
-    };
-
-    // ========================================================
-    // CARREGAMENTO INICIAL
-    // ========================================================
-
-    useEffect(() => {
-
-        carregarPastas();
-
-    }, []);
+    const [
+        success,
+        setSuccess,
+    ] = useState<string>("");
 
 
     // ========================================================
-    // MONTA A ÁRVORE DE PASTAS
+    // PASTAS
     // ========================================================
 
-    // Retorna todas as pastas filhas de uma determinada pasta.
-    // A função é recursiva, então não existe limite de níveis.
-    const obterSubpastas = (
-        parentId: number
-    ): RobotFolder[] => {
+    const {
+        folders,
 
-        return folders.filter(
-            (folder) =>
-                folder.parent_id === parentId
-        );
-    };
+        selectedFolder,
+        setSelectedFolder,
 
-    // ========================================================
-    // ALTERNA EXPANSÃO DA PASTA
-    // ========================================================
+        rootSelected,
+        setRootSelected,
 
-    // Abre ou fecha uma pasta na árvore.
-    const alternarPasta = (folderId: number) => {
+        expandedFolders,
+        loadingFolders,
 
-        setExpandedFolders((atual) => {
+        newFolderName,
+        setNewFolderName,
 
-            const novo = new Set(atual);
+        newFolderParentId,
+        creatingFolder,
 
-            if (novo.has(folderId)) {
-                novo.delete(folderId);
-            } else {
-                novo.add(folderId);
-            }
+        showFolderForm,
 
-            return novo;
-        });
-    };
+        openFolderMenu,
+        setOpenFolderMenu,
 
+        alternarPasta,
 
-    // ========================================================
-    // RENDERIZA UMA PASTA DA ÁRVORE
-    // ========================================================
+        abrirCriacaoPastaRaiz,
+        abrirCriacaoSubpasta,
 
-    // Renderiza a pasta e, recursivamente, todas as suas
-    // subpastas, independentemente da quantidade de níveis.
-    const renderizarPasta = (
-        folder: RobotFolder,
-        nivel: number = 0
-    ): React.ReactNode => {
+        criarPasta,
+        excluirPasta,
+    } = useRobotFolders({
+        setError,
+    });
 
-        const subpastas = obterSubpastas(folder.id);
-
-        const expandida = expandedFolders.has(folder.id);
-
-        return (
-            <div key={folder.id}>
-
-                {/* Linha da pasta atual */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        marginLeft: `${nivel * 24}px`,
-                        marginBottom: "4px",
-                    }}
-                >
-
-                    {/* Abre/fecha somente quando existem subpastas */}
-                    {subpastas.length > 0 ? (
-                        <button
-                            type="button"
-                            onClick={() =>
-                                alternarPasta(folder.id)
-                            }
-                            style={{
-                                width: "28px",
-                                padding: "4px",
-                                cursor: "pointer",
-                            }}
-                        >
-                            {expandida ? "▼" : "▶"}
-                        </button>
-                    ) : (
-                        <span
-                            style={{
-                                width: "28px",
-                                textAlign: "center",
-                            }}
-                        >
-                            •
-                        </span>
-                    )}
-
-                    {/* Seleciona a pasta */}
-                    <button
-                        type="button"
-                        onClick={() =>
-                            carregarRobos(folder)
-                        }
-                        style={{
-                            padding: "7px 12px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                        }}
-                    >
-                        📁 {folder.name}
-                    </button>
-
-                    {/* Exclui a pasta */}
-                    <button
-                        type="button"
-                        onClick={() =>
-                            excluirPasta(folder)
-                        }
-                        style={{
-                            padding: "7px 10px",
-                            cursor: "pointer",
-                        }}
-                    >
-                        Excluir
-                    </button>
-
-                </div>
-
-                {/* Renderiza as subpastas somente quando
-                    a pasta estiver expandida. */}
-                {expandida && (
-                    <div>
-                        {subpastas.map((subpasta) =>
-                            renderizarPasta(
-                                subpasta,
-                                nivel + 1
-                            )
-                        )}
-                    </div>
-                )}
-
-            </div>
-        );
-    };
-    // ========================================================
-    // CRIAR PASTA
-    // ========================================================
-
-    const criarPasta = async () => {
-
-        // Remove espaços desnecessários antes de enviar.
-        const nome = newFolderName.trim();
-
-        // Não permite criar pasta sem nome.
-        if (!nome) {
-
-            setError("Informe um nome para a pasta.");
-
-            return;
-        }
-
-        try {
-
-            setCreatingFolder(true);
-
-            setError("");
-
-            // ========================================================
-            // CRIA A PASTA NO CONTROL ROOM
-            // ========================================================
-
-            // O backend recebe:
-            //
-            // POST /robot-folders
-            //
-            // {
-            //     "name": "Nome da pasta",
-            //     "parent_id": null
-            // }
-            //
-            // Como ainda não estamos trabalhando com subpastas,
-            // parent_id será null.
-
-            const response = await api.post(
-                "/robot-folders",
-                {
-                    name: nome,
-                    parent_id: newFolderParentId
-                }
-            );
-
-            console.log(
-                "Pasta criada com sucesso:",
-                response.data
-            );
-
-            // Limpa o campo depois da criação.
-            setNewFolderName("");
-
-            // Atualiza a lista de pastas.
-            await carregarPastas();
-
-        } catch (err) {
-
-            console.error(
-                "Erro ao criar pasta:",
-                err
-            );
-
-            setError(
-                "Não foi possível criar a pasta."
-            );
-
-        } finally {
-
-            setCreatingFolder(false);
-        }
-    };
-
-    
 
     // ========================================================
-    // BUSCAR ROBÔS DA PASTA
+    // ROBOTS
     // ========================================================
 
-    const carregarRobos = async (folder: RobotFolder) => {
+    const {
+        robots,
+        loadingRobots,
 
-        // Guarda qual pasta está selecionada.
-        setSelectedFolder(folder);
+        openRobotMenu,
+        setOpenRobotMenu,
 
-        // Limpa os robôs exibidos anteriormente.
-        setRobots([]);
+        uploadTargetFolderId,
+        setUploadTargetFolderId,
 
-        // Ativa o carregamento.
-        setLoadingRobots(true);
+        uploadInputRef,
 
-        // Limpa eventual erro anterior.
-        setError("");
+        carregarRobosRaiz,
+        carregarRobos,
 
-        try {
+        abrirUploadParaPasta,
+        enviarRobo,
 
-            const response = await api.get(
-                `/robot-folders/${folder.id}/robots`
-            );
+        excluirRobo,
+        baixarRobo,
 
-            // Guarda os robôs da pasta selecionada.
-            setRobots(response.data.robots);
+        criarProjetoDeAlteracao,
+    } = useRobotsData({
+        folders,
 
-        } catch (err) {
+        selectedFolder,
+        rootSelected,
 
-            console.error(
-                "Erro ao buscar robôs da pasta:",
-                err
-            );
+        setSelectedFolder,
+        setRootSelected,
 
-            setError(
-                "Não foi possível carregar os robôs desta pasta."
-            );
+        setError,
+        setSuccess,
+    });
 
-        } finally {
 
-            setLoadingRobots(false);
-        }
-    };
+    // ========================================================
+    // EXECUÇÃO
+    // ========================================================
 
-    
+    const {
+        executionAgents,
 
-    
-    // ============================================================
-    // UPLOAD DE ROBÔ
-    // ============================================================
+        selectedExecutionAgent,
+        setSelectedExecutionAgent,
 
-    const enviarRobo = async (file: File) => {
-        console.log("enviarRobo foi chamado", file.name);
-        // O robô obrigatoriamente precisa pertencer
-        // a uma pasta antes de ser enviado.
-        console.log("PASTA SELECIONADA:", selectedFolder);
-        if (!selectedFolder) {
+        executingRobotId,
 
-            setError(
-                "Selecione uma pasta antes de enviar o robô."
-            );
+        executarRobo,
+    } = useRobotExecution();
 
-            return;
-        }
 
-        setUploading(true);
+    // ========================================================
+    // LIBRARIES DO RELEASE
+    // ========================================================
 
-        setError("");
+    const {
+        robotLibraries,
+        loadedRobotLibraries,
 
-        try {
+        expandedRobotLibraries,
+        loadingRobotLibraries,
 
-            // ========================================================
-            // FORM DATA
-            // ========================================================
-
-            const formData = new FormData();
-
-            // Adiciona o arquivo selecionado.
-            formData.append("file", file);
-
-            // Se existe uma pasta selecionada,
-            // envia o ID dela.
-            if (selectedFolder) {
-
-                formData.append(
-                    "folder_id",
-                    String(selectedFolder.id)
-                );
-            }
-
-            // ========================================================
-            // ENVIO PARA O CONTROL ROOM
-            // ========================================================
-
-            const response = await api.post(
-                "/robots/upload",
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
-
-            console.log(
-                "Upload realizado com sucesso:",
-                response.data
-            );
-
-            // ========================================================
-            // ATUALIZA A LISTA
-            // ========================================================
-
-            if (selectedFolder) {
-
-                await carregarRobos(selectedFolder);
-            }
-
-        } catch (err) {
-
-            console.error(
-                "Erro ao fazer upload do robô:",
-                err
-            );
-
-            setError(
-                "Não foi possível fazer o upload do robô."
-            );
-
-        } finally {
-
-            setUploading(false);
-        }
-    };
-
-    // ============================================================
-    // EXCLUIR ROBÔ
-    // ============================================================
-
-    const excluirRobo = async (robot: Robot) => {
-
-        const confirmar = window.confirm(
-            `Deseja realmente excluir o robô "${robot.name}"?`
-        );
-
-        if (!confirmar) {
-            return;
-        }
-
-        try {
-
-            const response = await api.delete(
-                `/robots/${robot.id}`
-            );
-
-            console.log(
-                "Robô excluído:",
-                response.data
-            );
-
-            // Recarrega os robôs da pasta atual.
-            if (selectedFolder) {
-
-                await carregarRobos(selectedFolder);
-            }
-
-        } catch (err) {
-
-            console.error(
-                "Erro ao excluir robô:",
-                err
-            );
-
-            setError(
-                "Não foi possível excluir o robô."
-            );
-        }
-    };
-
-    // ============================================================
-    // EXCLUIR PASTA
-    // ============================================================
-
-    const excluirPasta = async (folder: RobotFolder) => {
-
-        // Pede confirmação antes de excluir.
-        const confirmar = window.confirm(
-            `Deseja realmente excluir a pasta "${folder.name}"?`
-        );
-
-        // Se o usuário cancelar, não faz nada.
-        if (!confirmar) {
-            return;
-        }
-
-        try {
-
-            setError("");
-
-            // Chama o endpoint do Control Room:
-            //
-            // DELETE /robot-folders/{folder_id}
-            await api.delete(
-                `/robot-folders/${folder.id}`
-            );
-
-            // Se a pasta excluída estava selecionada,
-            // limpa a seleção e os robôs exibidos.
-            if (selectedFolder?.id === folder.id) {
-
-                setSelectedFolder(null);
-                setRobots([]);
-            }
-
-            // Atualiza a lista de pastas.
-            await carregarPastas();
-
-        } catch (err) {
-
-            console.error(
-                "Erro ao excluir pasta:",
-                err
-            );
-
-            setError(
-                "Não foi possível excluir a pasta."
-            );
-        }
-    };
-
-
-
+        alternarBibliotecasDoRobo,
+    } = useRobotLibraries({
+        setError,
+    });
     // ========================================================
     // INTERFACE
     // ========================================================
 
     return (
+        <div className="page-container robots-page">
+            {/* ========================================================
+                INPUT OCULTO - UPLOAD DE ROBOT
 
-        <div>
+                O menu contextual de uma pasta define o folder_id e abre
+                este input. O arquivo escolhido é enviado para a pasta
+                selecionada.
+            ======================================================== */}
+            <input
+                ref={uploadInputRef}
+                type="file"
+                accept=".zip"
+                style={{
+                    display: "none",
+                }}
+                onChange={async (event) => {
 
-            {/* ====================================================
-                TÍTULO
-                ==================================================== */}
+                    const file =
+                        event.target.files?.[0];
 
-            <h1>
-                Robôs
-            </h1>
 
-            {/* ====================================================
-                ERRO
-                ==================================================== */}
+                    if (
+                        !file ||
+                        uploadTargetFolderId === null
+                    ) {
+                        return;
+                    }
+
+
+                    await enviarRobo(
+                        file,
+                        uploadTargetFolderId
+                    );
+
+
+                    // Permite selecionar novamente o mesmo ZIP.
+                    event.target.value = "";
+
+                    setUploadTargetFolderId(null);
+                }}
+            />
+
+
+
+            {/* Cabeçalho principal da página. */}
+            <RobotsHeader />
+            
+
+            {/* ============================================================
+                MENSAGEM DE ERRO
+                ============================================================
+
+                Exibe o motivo real retornado pelo backend.
+            ============================================================ */}
 
             {error && (
-                <div
-                    style={{
-                        padding: "10px",
-                        marginBottom: "15px",
-                        border: "1px solid red",
-                        borderRadius: "5px",
-                    }}
-                >
+                <div className="alert alert-error">
                     {error}
                 </div>
             )}
 
-            {/* ====================================================
-                CRIAR PASTA
-                ==================================================== */}
 
-            <section>
+            {/* ============================================================
+                MENSAGEM DE SUCESSO
+                ============================================================
 
-                <h2>
-                    Criar Pasta
-                </h2>
+                Só aparece depois que o backend confirmou a operação.
+            ============================================================ */}
 
-                {/* Campo onde o usuário informa o nome da pasta. */}
-                <input
-                    type="text"
-                    placeholder="Nome da pasta"
-                    value={newFolderName}
-                    disabled={creatingFolder}
-                    onChange={(event) => {
-                        setNewFolderName(event.target.value);
-                    }}
-                    onKeyDown={(event) => {
+            {success && (
+                <div className="alert alert-success">
+                    {success}
+                </div>
+            )}
 
-                        // Permite criar a pasta pressionando Enter.
-                        if (event.key === "Enter") {
-                            criarPasta();
+            {/* Área superior: criação de pasta e upload */}
+            {/* ========================================================
+                CRIAÇÃO DE PASTAS
+            ======================================================== */}
+            <div className="robots-management-grid">
+
+                {showFolderForm && (
+                    <CreateRobotFolderForm
+                        folders={folders}
+                        newFolderName={newFolderName}
+                        newFolderParentId={newFolderParentId}
+                        creatingFolder={creatingFolder}
+                        onFolderNameChange={
+                            setNewFolderName
                         }
-                    }}
-                />
-                {/* Seleciona a pasta pai da nova pasta.
-                    "Raiz" significa que a pasta ficará no nível principal. */}
-                <select
-                    value={newFolderParentId ?? ""}
-                    disabled={creatingFolder}
-                    onChange={(event) => {
-                        const value = event.target.value;
-
-                        setNewFolderParentId(
-                            value === "" ? null : Number(value)
-                        );
-                    }}
-                >
-                    <option value="">
-                        Pasta raiz
-                    </option>
-
-                    {folders.map((folder) => (
-                        <option
-                            key={folder.id}
-                            value={folder.id}
-                        >
-                            {folder.name}
-                        </option>
-                    ))}
-                </select>
-                {/* Botão responsável por chamar POST /robot-folders. */}
-                <button
-                    onClick={criarPasta}
-                    disabled={
-                        creatingFolder ||
-                        !newFolderName.trim()
-                    }
-                >
-                    {creatingFolder
-                        ? "Criando..."
-                        : "Criar pasta"}
-                </button>
-
-            </section>
-
-            {/* ====================================================
-                UPLOAD DE ROBÔ
-                ==================================================== */}
-
-            <section>
-
-                <h2>
-                    Upload de Robô
-                </h2>
-
-                <input
-                    type="file"
-                    accept=".zip,.rar"
-                    disabled={uploading}
-                    onChange={(event) => {
-
-                        const file =
-                            event.target.files?.[0];
-
-                        if (!file) {
-                            return;
+                        onCreateFolder={
+                            criarPasta
                         }
-                        console.log("INPUT DE ARQUIVO FUNCIONOU", file.name);
-                        enviarRobo(file);
-
-                        // Permite selecionar novamente
-                        // o mesmo arquivo posteriormente.
-                        event.target.value = "";
-
-                    }}
-                />
-
-                {uploading && (
-                    <p>
-                        Enviando robô...
-                    </p>
+                    />
                 )}
 
-            </section>
+            </div>
 
-            {/* ====================================================
-                PASTAS
-                ==================================================== */}
-
-            <section>
-
-                <h2>
-                    Pastas
-                </h2>
-
-                {loadingFolders ? (
-
-                    <p>
-                        Carregando pastas...
-                    </p>
-
-                ) : folders.length === 0 ? (
-
-                    <p>
-                        Nenhuma pasta cadastrada.
-                    </p>
-
-                ) : (
-
-                    <div>
-
-                        {/* Mostra somente as pastas da raiz.
-                        As subpastas serão renderizadas recursivamente
-                        pela função renderizarPasta(). */}
-                    {folders
-                        .filter(
-                            (folder) =>
-                                folder.parent_id === null
-                        )
-                        .map((folder) =>
-                            renderizarPasta(folder)
-                        )}
-
-                    </div>
-                )}
-
-            </section>
-
-            {/* ====================================================
-                ROBÔS DA PASTA SELECIONADA
-                ==================================================== */}
-
-            {selectedFolder && (
-
-                <section>
-
-                    <h2>
-                        Robôs — {selectedFolder.name}
-                    </h2>
-
-                    {loadingRobots ? (
-
-                        <p>
-                            Carregando robôs...
-                        </p>
-
-                    ) : robots.length === 0 ? (
-
-                        <p>
-                            Nenhum robô nesta pasta.
-                        </p>
-
-                    ) : (
+            {/* Lista de pastas */}
+            <section className="content-panel robots-folders-panel">
+                <div className="content-panel-header">
+                    <div className="section-heading-group">
+                        <div className="section-icon">
+                            <Folder size={18} strokeWidth={1.8} />
+                        </div>
 
                         <div>
-
-                            {robots.map((robot) => (
-
-                                <div key={robot.id}>
-
-                                    {/* Nome do robô. */}
-                                    <h3>
-                                        {robot.name}
-                                    </h3>
-
-                                    {/* Arquivo utilizado pelo robô. */}
-                                    <p>
-                                        <strong>
-                                            Arquivo:
-                                        </strong>{" "}
-                                        {robot.filename}
-                                    </p>
-
-                                    {/* Versão atual do robô. */}
-                                    <p>
-                                        <strong>
-                                            Versão:
-                                        </strong>{" "}
-                                        {robot.version}
-                                    </p>
-
-                                    {/* Botão para excluir o robô. */}
-                                    <button
-                                        onClick={() =>
-                                            excluirRobo(robot)
-                                        }
-                                    >
-                                        Excluir
-                                    </button>
-
-                                </div>
-
-                            ))}
-
+                            <h2>Pastas de robôs</h2>
+                            <p>
+                                Selecione uma pasta para visualizar seus robôs.
+                            </p>
                         </div>
-                    )}
+                    </div>
 
+
+                    <div className="panel-header-meta">
+                        <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={
+                                    abrirCriacaoPastaRaiz
+                                }
+                        >
+                            <Plus size={15} strokeWidth={1.9} />
+                            Nova pasta
+                        </button>
+
+                        <span className="panel-count">
+                            {folders.length}
+                        </span>
+
+                        <span className="panel-count-label">
+                            pastas
+                        </span>
+                    </div>
+                    
+                </div>
+
+                <RobotFolderTree
+                    folders={folders}
+                    loadingFolders={loadingFolders}
+                    rootSelected={rootSelected}
+                    selectedFolder={selectedFolder}
+                    expandedFolders={expandedFolders}
+                    openFolderMenu={openFolderMenu}
+
+                    onSelectRoot={
+                        carregarRobosRaiz
+                    }
+
+                    onSelectFolder={
+                        carregarRobos
+                    }
+
+                    onToggleFolder={
+                        alternarPasta
+                    }
+
+                    onSetOpenFolderMenu={
+                        setOpenFolderMenu
+                    }
+
+                    onUploadRobot={(
+                        folderId
+                    ) => {
+
+                        // Preserva o comportamento existente:
+                        // o menu é fechado antes de abrir o seletor.
+                        setOpenFolderMenu(null);
+
+                        abrirUploadParaPasta(
+                            folderId
+                        );
+                    }}
+
+                    onCreateSubfolder={
+                        abrirCriacaoSubpasta
+                    }
+
+                    onDeleteFolder={
+                        excluirPasta
+                    }
+                />
+            </section>
+
+            {/* Robôs da pasta selecionada */}
+            {(rootSelected || selectedFolder) && (
+                <section className="content-panel selected-robots-panel">
+                    <div className="content-panel-header">
+                        <div className="section-heading-group">
+                            <div className="section-icon">
+                                <Package size={18} strokeWidth={1.8} />
+                            </div>
+
+                            <div>
+                                <h2>
+                                    {rootSelected
+                                        ? "Raiz de Robôs"
+                                        : selectedFolder?.name}
+                                </h2>
+                                <p>
+                                    {rootSelected
+                                        ? "Robôs publicados diretamente na raiz."
+                                        : "Robôs disponíveis nesta pasta."}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="panel-header-meta">
+                            <span className="panel-count">
+                                {robots.length}
+                            </span>
+
+                            <span className="panel-count-label">
+                                robôs
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Agent de execução */}
+                    {/* ========================================================
+                            AGENT DE EXECUÇÃO
+                        ======================================================== */}
+                        <RobotExecutionAgent
+                            executionAgents={
+                                executionAgents
+                            }
+                            selectedExecutionAgent={
+                                selectedExecutionAgent
+                            }
+                            onSelectedExecutionAgentChange={
+                                setSelectedExecutionAgent
+                            }
+                        />
+
+
+                        {/* ========================================================
+                            ROBOTS DA LOCALIZAÇÃO SELECIONADA
+                        ======================================================== */}
+                        <RobotsGrid
+                            robots={robots}
+                            loadingRobots={loadingRobots}
+
+                            openRobotMenu={
+                                openRobotMenu
+                            }
+
+                            expandedRobotLibraries={
+                                expandedRobotLibraries
+                            }
+
+                            loadingRobotLibraries={
+                                loadingRobotLibraries
+                            }
+
+                            robotLibraries={
+                                robotLibraries
+                            }
+
+                            loadedRobotLibraries={
+                                loadedRobotLibraries
+                            }
+
+                            selectedExecutionAgent={
+                                selectedExecutionAgent
+                            }
+
+                            executingRobotId={
+                                executingRobotId
+                            }
+
+                            onSetOpenRobotMenu={
+                                setOpenRobotMenu
+                            }
+
+                            onDownloadRobot={
+                                baixarRobo
+                            }
+
+                            onDeleteRobot={
+                                excluirRobo
+                            }
+
+                            onToggleLibraries={
+                                alternarBibliotecasDoRobo
+                            }
+
+                            onCreateNewVersion={
+                                criarProjetoDeAlteracao
+                            }
+
+                            onExecuteRobot={
+                                executarRobo
+                            }
+                        />
                 </section>
             )}
 
+            {/* Catálogo global de Bibliotecas.
+                A lógica fica isolada em components/libraries. */}
+            <LibrariesPanel />
         </div>
-    );
+);
 }
 
 export default Robots;

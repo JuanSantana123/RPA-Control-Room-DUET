@@ -1,151 +1,129 @@
-import { useEffect, useState } from "react";
-import api from "../services/api";
+// ============================================================
+// DUET CORE - LOGS PAGE
+// ============================================================
+//
+// Página principal de acompanhamento dos Logs do Control Room.
+//
+// Responsabilidade:
+// - conectar useLogsData aos componentes visuais;
+// - apresentar mensagens de erro;
+// - compor cabeçalho e painel de eventos.
+//
+// Arquitetura:
+//
+// Logs
+//   │
+//   ├── useLogsData
+//   │     ├── GET /logs
+//   │     ├── loading / erro
+//   │     ├── atualização manual
+//   │     └── polling de 5 segundos
+//   │
+//   ├── LogsHeader
+//   │
+//   └── LogsPanel
+//
+// Esta página NÃO:
+// - executa chamadas HTTP diretamente;
+// - cria timers;
+// - armazena logs diretamente;
+// - classifica níveis de log;
+// - renderiza individualmente os registros.
+//
+// A página funciona somente como camada de composição.
+// ============================================================
+
+import LogsHeader
+    from "../components/logs/LogsHeader";
+
+import LogsPanel
+    from "../components/logs/LogsPanel";
+
+import {
+    useLogsData,
+} from "../hooks/logs/useLogsData";
 
 
-interface Log {
-    timestamp: string;
-    level: string;
-    message: string;
-}
+// ============================================================
+// PÁGINA DE LOGS
+// ============================================================
+
+function Logs() {
+
+    // ========================================================
+    // DADOS
+    // ========================================================
+
+    const {
+        logs,
+        loading,
+        error,
+        carregarLogs,
+    } = useLogsData();
 
 
-export default function Logs() {
-
-    const [logs, setLogs] = useState<Log[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-
-
-    const carregarLogs = async () => {
-
-        try {
-
-            const response = await api.get("/logs");
-
-            if (response.data.status === "success") {
-                setLogs(response.data.logs);
-                setError("");
-            } else {
-                setError("Não foi possível carregar os logs.");
-            }
-
-        } catch (err) {
-
-            console.error("Erro ao carregar logs:", err);
-            setError("Erro ao conectar com o Control Room.");
-
-        } finally {
-
-            setLoading(false);
-
-        }
-    };
-
-
-    useEffect(() => {
-
-        carregarLogs();
-
-        // Atualiza os logs automaticamente a cada 5 segundos.
-        const intervalo = setInterval(() => {
-            carregarLogs();
-        }, 5000);
-
-        return () => {
-            clearInterval(intervalo);
-        };
-
-    }, []);
-
+    // ========================================================
+    // INTERFACE
+    // ========================================================
 
     return (
-        <div>
+        <div className="logs-page">
 
-            <h1>Logs</h1>
+            {/* ==================================================
+                CABEÇALHO
+                ================================================== */}
+
+            <LogsHeader
+                onRefresh={
+                    carregarLogs
+                }
+            />
 
 
-            {loading && (
-                <p>Carregando logs...</p>
-            )}
-
+            {/* ==================================================
+                ALERTA DE ERRO
+                ================================================== */}
 
             {error && (
-                <div
-                    style={{
-                        padding: "12px",
-                        marginBottom: "15px",
-                        border: "1px solid #dc2626",
-                        borderRadius: "6px",
-                        color: "#dc2626"
-                    }}
-                >
-                    {error}
+
+                <div className="logs-alert">
+
+                    <span>
+                        ⚠
+                    </span>
+
+                    <span>
+                        {error}
+                    </span>
+
                 </div>
+
             )}
 
 
-            {!loading && !error && (
-                <div
-                    style={{
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                        overflow: "hidden"
-                    }}
-                >
+            {/* ==================================================
+                PAINEL DE LOGS
+                ================================================== */}
 
-                    {logs.length === 0 ? (
-
-                        <div style={{ padding: "20px" }}>
-                            Nenhum log encontrado.
-                        </div>
-
-                    ) : (
-
-                        logs.map((log, index) => (
-
-                            <div
-                                key={index}
-                                style={{
-                                    padding: "12px 16px",
-                                    borderBottom:
-                                        index < logs.length - 1
-                                            ? "1px solid #eee"
-                                            : "none"
-                                }}
-                            >
-
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "12px",
-                                        marginBottom: "4px"
-                                    }}
-                                >
-
-                                    <strong>
-                                        {log.timestamp}
-                                    </strong>
-
-                                    <strong>
-                                        [{log.level}]
-                                    </strong>
-
-                                </div>
-
-
-                                <div>
-                                    {log.message}
-                                </div>
-
-                            </div>
-
-                        ))
-
-                    )}
-
-                </div>
-            )}
+            <LogsPanel
+                logs={
+                    logs
+                }
+                loading={
+                    loading
+                }
+                error={
+                    error
+                }
+            />
 
         </div>
     );
 }
+
+
+// ============================================================
+// EXPORTAÇÃO
+// ============================================================
+
+export default Logs;

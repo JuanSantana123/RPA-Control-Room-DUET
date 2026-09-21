@@ -1,0 +1,106 @@
+/* ==========================================================
+   TERMINAL DO ROBOT STUDIO
+   ========================================================== */
+
+.studio-terminal {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  height: 220px;
+  min-height: 140px;
+
+  background: #111318;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+
+.studio-terminal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 34px;
+  padding: 0 12px;
+
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+
+  color: rgba(255, 255, 255, 0.72);
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+
+/* ==========================================================
+   STATUS
+   ========================================================== */
+
+.studio-terminal__status {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+.studio-terminal__status--connected {
+  color: #7ddc9a;
+}
+
+.studio-terminal__status--connecting {
+  color: #e7c66b;
+}
+
+.studio-terminal__status--error {
+  color: #ef7b7b;
+}
+
+.studio-terminal__status--disconnected {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+
+/* ==========================================================
+   XTERM
+   ========================================================== */
+
+.studio-terminal__xterm {
+  flex: 1;
+
+  min-height: 0;
+
+  padding: 8px 10px;
+
+  overflow: hidden;
+}
+
+.studio-terminal__xterm .xterm {
+  height: 100%;
+}
+
+.studio-terminal__xterm .xterm-viewport {
+  overflow-y: auto;
+}
+
+
+/* ==========================================================
+   SEM CHECKOUT
+   ========================================================== */
+
+.studio-terminal__disabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 1;
+
+  padding: 16px;
+
+  font-size: 12px;
+
+  color: rgba(255, 255, 255, 0.46);
+}

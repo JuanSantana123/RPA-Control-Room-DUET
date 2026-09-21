@@ -17,19 +17,15 @@ import axios from "axios";
  * ============================================================
  */
 const api = axios.create({
-  baseURL: "http://localhost:9000",
-});
+    // Endereço da API do Control Room.
+    baseURL: "http://localhost:9000",
 
-/**
- * Exporta o cliente Axios configurado.
- *
- * Assim, as páginas e componentes do React não precisam
- * repetir a URL do Control Room.
- *
- * Exemplo:
- *
- * api.get("/agents")
- * api.get("/executions")
- * api.post("/agents/VM_001/execution/run")
- */
+    // Permite que o navegador envie os cookies
+    // de sessão nas requisições para a API.
+    //
+    // Sem isso, o cookie HttpOnly criado no login
+    // não será enviado pelo Axios nas próximas chamadas.
+    withCredentials: true
+});
+ 
 export default api;

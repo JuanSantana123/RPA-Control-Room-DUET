@@ -1,0 +1,2813 @@
+/* ============================================================
+   LIBRARIES PANEL
+
+   Estilos exclusivos do módulo components/libraries.
+   O prefixo .libraries-module evita colisões com a árvore de Robôs.
+   ============================================================ */
+
+.libraries-module {
+    width: 100%;
+    margin-top: 20px;
+}
+
+/* ============================================================
+   CATÁLOGO GLOBAL DE BIBLIOTECAS — COMPONENTE ISOLADO
+   ============================================================ */
+
+/*
+   O catálogo continua visualmente dentro da página de Robôs,
+   mas todo o estilo fica isolado neste componente.
+*/
+.libraries-module .libraries-catalog-panel {
+    position: relative;
+    overflow: visible !important;
+    margin-top: 20px;
+}
+
+
+/* ============================================================
+   CABEÇALHO DO CATÁLOGO
+   ============================================================ */
+
+.libraries-module .libraries-catalog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    padding: 20px 24px;
+
+    border-bottom: 1px solid var(--color-border);
+    background:
+        linear-gradient(
+            180deg,
+            rgba(248, 250, 252, 0.74) 0%,
+            rgba(255, 255, 255, 0) 100%
+        );
+}
+
+.libraries-module .libraries-catalog-title-group {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.libraries-module .libraries-catalog-title-icon {
+    width: 40px;
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: 1px solid #ddd6fe;
+    border-radius: 11px;
+
+    background: #f5f3ff;
+    color: #6d28d9;
+}
+
+.libraries-module .libraries-catalog-eyebrow {
+    margin-bottom: 4px;
+
+    color: #8b5cf6;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+}
+
+.libraries-module .libraries-catalog-title-group h2 {
+    margin: 0;
+
+    color: var(--color-text-primary);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+.libraries-module .libraries-catalog-title-group p {
+    max-width: 680px;
+    margin: 5px 0 0;
+
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.libraries-module .libraries-catalog-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+
+    flex-shrink: 0;
+}
+
+.libraries-module .library-toolbar-button {
+    width: 36px;
+    height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #64748b;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.16s ease,
+        border-color 0.16s ease,
+        color 0.16s ease;
+}
+
+.libraries-module .library-toolbar-button:hover:not(:disabled) {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+}
+
+.libraries-module .library-toolbar-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   MENSAGENS DO CATÁLOGO
+   ============================================================ */
+
+.libraries-module .libraries-catalog-message-area {
+    display: grid;
+    gap: 8px;
+
+    padding: 14px 24px 0;
+}
+
+.libraries-module .library-inline-alert {
+    min-height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 9px 10px 9px 13px;
+
+    border: 1px solid;
+    border-radius: 9px;
+
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.libraries-module .library-inline-alert-error {
+    border-color: #fecaca;
+    background: #fff7f7;
+    color: #b91c1c;
+}
+
+.libraries-module .library-inline-alert-success {
+    border-color: #bbf7d0;
+    background: #f6fff9;
+    color: #15803d;
+}
+
+.libraries-module .library-inline-alert button {
+    width: 26px;
+    height: 26px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: 0;
+    border-radius: 7px;
+
+    background: transparent;
+    color: currentColor;
+
+    cursor: pointer;
+}
+
+.libraries-module .library-inline-alert button:hover {
+    background: rgba(15, 23, 42, 0.06);
+}
+
+
+/* ============================================================
+   WORKSPACE — EXPLORADOR + DETALHES
+   ============================================================ */
+
+.libraries-module .libraries-workspace {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+
+    min-height: 500px;
+}
+
+.libraries-module .libraries-explorer {
+    min-width: 0;
+
+    border-right: 1px solid var(--color-border);
+    background: #fbfcfe;
+}
+
+.libraries-module .libraries-explorer-toolbar {
+    padding: 16px;
+
+    border-bottom: 1px solid #edf1f5;
+}
+
+.libraries-module .libraries-search {
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 0 10px;
+
+    border: 1px solid #dfe5ec;
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    transition:
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.libraries-module .libraries-search:focus-within {
+    border-color: #c4b5fd;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.08);
+}
+
+.libraries-module .libraries-search > svg {
+    flex-shrink: 0;
+    color: #94a3b8;
+}
+
+.libraries-module .libraries-search input {
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+
+    border: 0;
+    outline: 0;
+
+    background: transparent;
+    color: #334155;
+
+    font: inherit;
+    font-size: 12px;
+}
+
+.libraries-module .libraries-search input::placeholder {
+    color: #a7b0bd;
+}
+
+.libraries-module .libraries-search button {
+    width: 24px;
+    height: 24px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: 0;
+    border-radius: 6px;
+
+    background: transparent;
+    color: #94a3b8;
+
+    cursor: pointer;
+}
+
+.libraries-module .libraries-search button:hover {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.libraries-module .libraries-explorer-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 10px;
+
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.libraries-module .libraries-explorer-stat-separator {
+    width: 3px;
+    height: 3px;
+
+    border-radius: 999px;
+    background: #cbd5e1;
+}
+
+
+/* ============================================================
+   ÁRVORE DE BIBLIOTECAS
+   ============================================================ */
+
+.libraries-module .libraries-tree-root {
+    padding: 10px 10px 16px;
+}
+
+.libraries-module .libraries-tree-root-label {
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 0 10px;
+    margin-bottom: 4px;
+
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+}
+
+.libraries-module .libraries-tree-root-label svg {
+    color: #7c3aed;
+}
+
+.libraries-module .libraries-tree-content,
+.libraries-module .library-catalog-node,
+.libraries-module .library-catalog-children {
+    position: relative;
+    overflow: visible;
+}
+
+.libraries-module .library-catalog-row {
+    position: relative;
+
+    min-height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+
+    padding-top: 2px;
+    padding-right: 5px;
+    padding-bottom: 2px;
+
+    border: 1px solid transparent;
+    border-radius: 8px;
+
+    transition:
+        background-color 0.14s ease,
+        border-color 0.14s ease;
+}
+
+.libraries-module .library-catalog-row:hover {
+    border-color: #e6eaf0;
+    background: #ffffff;
+}
+
+.libraries-module .library-catalog-row-selected {
+    border-color: #ddd6fe;
+    background: #f7f5ff;
+}
+
+.libraries-module .library-catalog-main-button {
+    min-width: 0;
+    min-height: 34px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    flex: 1;
+
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+    color: #475569;
+
+    font-family: inherit;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.libraries-module .library-catalog-expand,
+.libraries-module .library-catalog-spacer {
+    width: 22px;
+    height: 24px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 6px;
+}
+
+.libraries-module .library-catalog-expand {
+    color: #94a3b8;
+}
+
+.libraries-module .library-catalog-expand:hover {
+    background: #eef2f7;
+    color: #475569;
+}
+
+.libraries-module .library-catalog-folder-icon {
+    flex-shrink: 0;
+    color: #64748b;
+}
+
+.libraries-module .library-catalog-library-icon {
+    flex-shrink: 0;
+    color: #7c3aed;
+}
+
+.libraries-module .library-catalog-name {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.libraries-module .library-catalog-row-selected .library-catalog-name {
+    color: #5b21b6;
+}
+
+.libraries-module .library-catalog-import {
+    min-width: 0;
+    max-width: 120px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    margin-left: auto;
+    padding: 3px 6px;
+
+    border: 1px solid #ede9fe;
+    border-radius: 6px;
+
+    background: #faf8ff;
+    color: #7c3aed;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+    font-size: 9px;
+}
+
+.libraries-module .library-catalog-child-count {
+    min-width: 22px;
+    height: 20px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-left: auto;
+
+    border-radius: 6px;
+
+    background: #f1f5f9;
+    color: #94a3b8;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.libraries-module .library-catalog-actions {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    flex-shrink: 0;
+}
+
+.libraries-module .library-catalog-menu-button {
+    width: 29px;
+    height: 29px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 1px solid transparent;
+    border-radius: 7px;
+
+    background: transparent;
+    color: #94a3b8;
+
+    cursor: pointer;
+}
+
+.libraries-module .library-catalog-menu-button:hover {
+    border-color: #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+}
+
+
+/* Menu suspenso com overflow liberado para não repetir o problema
+   de clipping dos menus antigos da árvore de Robôs. */
+.libraries-module .library-catalog-context-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 10000;
+
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    width: 205px;
+    padding: 5px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 16px 34px rgba(15, 23, 42, 0.13),
+        0 3px 9px rgba(15, 23, 42, 0.05);
+}
+
+.libraries-module .library-catalog-context-menu button {
+    min-height: 35px;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding: 7px 9px;
+
+    border: 0;
+    border-radius: 7px;
+
+    background: transparent;
+    color: #334155;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.libraries-module .library-catalog-context-menu button:hover {
+    background: #f5f7fa;
+    color: #1e293b;
+}
+
+.libraries-module .library-catalog-context-menu button svg {
+    flex-shrink: 0;
+    color: #64748b;
+}
+
+.libraries-module .library-catalog-context-menu button:hover svg {
+    color: #7c3aed;
+}
+
+.libraries-module .library-catalog-context-menu
+.library-catalog-context-danger {
+    color: #dc2626;
+}
+
+.libraries-module .library-catalog-context-menu
+.library-catalog-context-danger svg {
+    color: #dc2626;
+}
+
+.libraries-module .library-catalog-context-menu
+.library-catalog-context-danger:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.libraries-module .library-catalog-context-menu
+.library-catalog-context-danger:hover svg {
+    color: #b91c1c;
+}
+
+.libraries-module .libraries-tree-state {
+    padding: 26px 12px;
+
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: center;
+}
+
+.libraries-module .libraries-tree-empty {
+    min-height: 170px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px 16px;
+
+    color: #94a3b8;
+    text-align: center;
+}
+
+.libraries-module .libraries-tree-empty-icon {
+    width: 42px;
+    height: 42px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 11px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+
+    background: #ffffff;
+    color: #a78bfa;
+}
+
+.libraries-module .libraries-tree-empty strong {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.libraries-module .libraries-tree-empty span {
+    margin-top: 4px;
+
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   DETALHES DA PASTA / LIBRARY
+   ============================================================ */
+
+.libraries-module .libraries-details {
+    min-width: 0;
+    min-height: 500px;
+
+    background: #ffffff;
+}
+
+.libraries-module .libraries-details-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 22px 24px;
+
+    border-bottom: 1px solid #edf1f5;
+}
+
+.libraries-module .libraries-details-heading {
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.libraries-module .libraries-details-icon {
+    width: 38px;
+    height: 38px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.libraries-module .library-details-code-icon {
+    border-color: #ddd6fe;
+    background: #f7f5ff;
+    color: #7c3aed;
+}
+
+.libraries-module .library-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+
+    margin-bottom: 5px;
+
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.libraries-module .library-breadcrumb-part {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.libraries-module .libraries-details-heading h3 {
+    overflow: hidden;
+
+    margin: 0;
+
+    color: #0f172a;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .libraries-details-heading p {
+    margin: 4px 0 0;
+
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.libraries-module .libraries-details-heading code {
+    display: inline-flex;
+
+    margin-top: 5px;
+    padding: 3px 6px;
+
+    border: 1px solid #ede9fe;
+    border-radius: 6px;
+
+    background: #faf8ff;
+    color: #6d28d9;
+
+    font-size: 10px;
+}
+
+.libraries-module .libraries-details-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    flex-shrink: 0;
+}
+
+.libraries-module .library-detail-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.5fr);
+    gap: 16px;
+
+    padding: 20px 24px;
+
+    border-bottom: 1px solid #edf1f5;
+}
+
+.libraries-module .library-detail-description,
+.libraries-module .library-detail-location,
+.libraries-module .library-folder-overview-card {
+    min-width: 0;
+
+    padding: 14px;
+
+    border: 1px solid #e8edf3;
+    border-radius: 10px;
+
+    background: #fbfcfe;
+}
+
+.libraries-module .library-detail-label,
+.libraries-module .library-folder-overview-card span {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #94a3b8;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.libraries-module .library-detail-description p {
+    margin: 0;
+
+    color: #475569;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.libraries-module .library-detail-location strong,
+.libraries-module .library-folder-overview-card strong {
+    display: block;
+
+    overflow: hidden;
+
+    color: #334155;
+    font-size: 11px;
+    font-weight: 600;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-folder-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 160px;
+    gap: 14px;
+
+    padding: 20px 24px;
+}
+
+
+/* ============================================================
+   VERSÕES DA LIBRARY
+   ============================================================ */
+
+.libraries-module .library-versions-section {
+    padding: 20px 24px 24px;
+}
+
+.libraries-module .library-versions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    margin-bottom: 13px;
+}
+
+.libraries-module .library-versions-header h4 {
+    margin: 0;
+
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.libraries-module .library-versions-header p {
+    margin: 3px 0 0;
+
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+.libraries-module .library-versions-count {
+    min-width: 26px;
+    height: 24px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 7px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+
+    background: #f8fafc;
+    color: #64748b;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.libraries-module .library-versions-list {
+    display: grid;
+    gap: 8px;
+}
+
+.libraries-module .library-version-row {
+    min-height: 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 10px 12px;
+
+    border: 1px solid #e8edf3;
+    border-radius: 9px;
+
+    background: #ffffff;
+}
+
+.libraries-module .library-version-main {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.libraries-module .library-version-badge {
+    min-width: 58px;
+    height: 29px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 8px;
+
+    flex-shrink: 0;
+
+    border: 1px solid #ddd6fe;
+    border-radius: 8px;
+
+    background: #f7f5ff;
+    color: #6d28d9;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.libraries-module .library-version-main > div {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.libraries-module .library-version-main strong {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.libraries-module .library-version-main small {
+    overflow: hidden;
+
+    color: #94a3b8;
+    font-size: 10px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-version-status {
+    padding: 4px 7px;
+
+    flex-shrink: 0;
+
+    border: 1px solid;
+    border-radius: 999px;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.libraries-module .library-version-status-active {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.libraries-module .library-version-status-inactive {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #94a3b8;
+}
+
+.libraries-module .library-versions-state {
+    padding: 30px 16px;
+
+    color: #94a3b8;
+    font-size: 11px;
+    text-align: center;
+}
+
+.libraries-module .library-versions-empty {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    padding: 15px;
+
+    border: 1px dashed #dbe2ea;
+    border-radius: 10px;
+
+    background: #fbfcfe;
+    color: #94a3b8;
+}
+
+.libraries-module .library-versions-empty > svg {
+    flex-shrink: 0;
+    color: #a78bfa;
+}
+
+.libraries-module .library-versions-empty > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.libraries-module .library-versions-empty strong {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.libraries-module .library-versions-empty span {
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   ESTADO SEM SELEÇÃO
+   ============================================================ */
+
+.libraries-module .libraries-details-empty {
+    min-height: 500px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 42px 28px;
+
+    text-align: center;
+}
+
+.libraries-module .libraries-details-empty-icon {
+    width: 54px;
+    height: 54px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 15px;
+
+    border: 1px solid #ddd6fe;
+    border-radius: 14px;
+
+    background: #f7f5ff;
+    color: #7c3aed;
+}
+
+.libraries-module .libraries-details-empty h3 {
+    margin: 0;
+
+    color: #334155;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.libraries-module .libraries-details-empty p {
+    max-width: 420px;
+    margin: 7px 0 0;
+
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.libraries-module .libraries-details-empty-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 18px;
+}
+
+
+/* ============================================================
+   MODAIS DE BIBLIOTECAS
+   ============================================================ */
+
+.libraries-module .library-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px;
+
+    background: rgba(15, 23, 42, 0.38);
+    backdrop-filter: blur(3px);
+}
+
+.libraries-module .library-modal {
+    width: min(560px, 100%);
+    max-height: min(760px, calc(100vh - 48px));
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 15px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 24px 70px rgba(15, 23, 42, 0.2),
+        0 5px 18px rgba(15, 23, 42, 0.08);
+}
+
+.libraries-module .library-modal-large {
+    width: min(680px, 100%);
+}
+
+.libraries-module .library-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 20px 22px 17px;
+
+    border-bottom: 1px solid #edf1f5;
+}
+
+.libraries-module .library-modal-eyebrow {
+    margin-bottom: 4px;
+
+    color: #8b5cf6;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+}
+
+.libraries-module .library-modal-header h3 {
+    margin: 0;
+
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.libraries-module .library-modal-header p {
+    max-width: 530px;
+    margin: 5px 0 0;
+
+    color: #94a3b8;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.libraries-module .library-modal-close {
+    width: 31px;
+    height: 31px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: 1px solid transparent;
+    border-radius: 8px;
+
+    background: transparent;
+    color: #94a3b8;
+
+    cursor: pointer;
+}
+
+.libraries-module .library-modal-close:hover {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+}
+
+.libraries-module .library-modal-body {
+    display: grid;
+    gap: 17px;
+
+    padding: 20px 22px;
+
+    overflow-y: auto;
+}
+
+.libraries-module .library-modal-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.libraries-module .library-modal-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.libraries-module .library-modal-field > label,
+.libraries-module .library-modal-field-heading label {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.libraries-module .library-modal-field input,
+.libraries-module .library-modal-field textarea {
+    width: 100%;
+
+    border: 1px solid #dbe2ea;
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #334155;
+
+    font-family: inherit;
+    font-size: 12px;
+
+    outline: 0;
+
+    transition:
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.libraries-module .library-modal-field input {
+    height: 40px;
+    padding: 0 11px;
+}
+
+.libraries-module .library-modal-field textarea {
+    min-height: 92px;
+    padding: 10px 11px;
+
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.libraries-module .library-modal-field input:focus,
+.libraries-module .library-modal-field textarea:focus {
+    border-color: #c4b5fd;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.08);
+}
+
+.libraries-module .library-modal-field input:disabled,
+.libraries-module .library-modal-field textarea:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+}
+
+.libraries-module .library-modal-field > small {
+    margin-top: -2px;
+
+    color: #94a3b8;
+    font-size: 9px;
+}
+
+.libraries-module .library-modal-field-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.libraries-module .library-modal-field-heading span {
+    color: #94a3b8;
+    font-size: 9px;
+    text-align: right;
+}
+
+
+/* ============================================================
+   SELETOR PROFISSIONAL DE PASTAS
+   ============================================================ */
+
+.libraries-module .library-folder-picker {
+    max-height: 280px;
+
+    overflow-y: auto;
+
+    padding: 6px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+
+    background: #fbfcfe;
+}
+
+.libraries-module .library-folder-picker-node {
+    min-width: 0;
+}
+
+.libraries-module .library-folder-picker-row {
+    width: 100%;
+    min-height: 36px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 6px 10px;
+
+    border: 1px solid transparent;
+    border-radius: 7px;
+
+    background: transparent;
+    color: #475569;
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 550;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.libraries-module .library-folder-picker-row:hover:not(:disabled) {
+    border-color: #e2e8f0;
+    background: #ffffff;
+}
+
+.libraries-module .library-folder-picker-row-selected {
+    border-color: #ddd6fe !important;
+    background: #f5f3ff !important;
+    color: #5b21b6 !important;
+}
+
+.libraries-module .library-folder-picker-row svg {
+    flex-shrink: 0;
+    color: #7c3aed;
+}
+
+.libraries-module .library-folder-picker-row span {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-folder-picker-row small {
+    margin-left: auto;
+
+    color: #94a3b8;
+    font-size: 9px;
+}
+
+.libraries-module .library-folder-picker-row:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+.libraries-module .library-folder-picker-root {
+    margin-bottom: 3px;
+
+    border-bottom-color: #edf1f5;
+}
+
+.libraries-module .library-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+
+    padding: 14px 22px;
+
+    border-top: 1px solid #edf1f5;
+
+    background: #fbfcfe;
+}
+
+
+/* ============================================================
+   RESPONSIVIDADE DO CATÁLOGO
+   ============================================================ */
+
+@media (max-width: 1100px) {
+
+    .libraries-module .libraries-catalog-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .libraries-module .libraries-catalog-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .libraries-module .libraries-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .libraries-module .libraries-explorer {
+        border-right: 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .libraries-module .libraries-details,
+    .libraries-module .libraries-details-empty {
+        min-height: 360px;
+    }
+}
+
+@media (max-width: 720px) {
+
+    .libraries-module .libraries-catalog-header {
+        padding: 17px;
+    }
+
+    .libraries-module .libraries-catalog-title-group {
+        align-items: flex-start;
+    }
+
+    .libraries-module .libraries-catalog-header-actions {
+        display: grid;
+        grid-template-columns: 36px 1fr 1fr;
+    }
+
+    .libraries-module .libraries-catalog-header-actions .primary-button,
+    .libraries-module .libraries-catalog-header-actions .secondary-button {
+        justify-content: center;
+    }
+
+    .libraries-module .libraries-details-header {
+        flex-direction: column;
+        padding: 18px;
+    }
+
+    .libraries-module .libraries-details-actions {
+        width: 100%;
+    }
+
+    .libraries-module .libraries-details-actions button {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .libraries-module .library-detail-summary,
+    .libraries-module .library-folder-overview {
+        grid-template-columns: 1fr;
+        padding: 16px 18px;
+    }
+
+    .libraries-module .library-versions-section {
+        padding: 16px 18px 20px;
+    }
+
+    .libraries-module .library-modal-backdrop {
+        padding: 12px;
+    }
+
+    .libraries-module .library-modal {
+        max-height: calc(100vh - 24px);
+    }
+
+    .libraries-module .library-modal-fields-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .libraries-module .library-modal-header,
+    .libraries-module .library-modal-body,
+    .libraries-module .library-modal-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .libraries-module .library-modal-field-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .libraries-module .library-modal-field-heading span {
+        text-align: left;
+    }
+
+    .libraries-module .libraries-details-empty-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .libraries-module .libraries-details-empty-actions button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+
+/* ============================================================
+   BOTÕES PRÓPRIOS DO MÓDULO
+   ============================================================ */
+
+.libraries-module .library-button {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 13px;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.libraries-module .library-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.libraries-module .library-button-primary {
+    border: 1px solid #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.libraries-module .library-button-primary:hover:not(:disabled) {
+    border-color: #1d4ed8;
+    background: #1d4ed8;
+}
+
+.libraries-module .library-button-secondary {
+    border: 1px solid #dbe3ee;
+    background: #ffffff;
+    color: #334155;
+}
+
+.libraries-module .library-button-secondary:hover:not(:disabled) {
+    border-color: #bfdbfe;
+    background: #f8fbff;
+    color: #2563eb;
+}
+
+.libraries-module .library-button-danger {
+    border: 1px solid #fecaca;
+    background: #ffffff;
+    color: #dc2626;
+}
+
+.libraries-module .library-button-danger:hover:not(:disabled) {
+    border-color: #fca5a5;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+/* Mantém nome + import_name organizados em duas linhas na árvore. */
+.libraries-module .library-catalog-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+/* ============================================================
+   CARTÃO DE LOCAL UTILIZADO NOS FORMULÁRIOS
+   ============================================================ */
+
+.libraries-module .library-modal-location-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 15px;
+    border: 1px solid #dbeafe;
+    border-radius: 11px;
+    background: #f8fbff;
+}
+
+.libraries-module .library-modal-location-card > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.libraries-module .library-modal-location-card span {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.libraries-module .library-modal-location-card strong {
+    overflow: hidden;
+    color: #1e3a8a;
+    font-size: 12px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-modal-location-card small {
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+/* Compatibilidade com o nome de classe usado pelo formulário novo. */
+.libraries-module .library-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+/* ============================================================
+   SELETOR PROFISSIONAL DE PASTAS
+   ============================================================ */
+
+.libraries-module .library-picker-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 22000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(3px);
+}
+
+.libraries-module .library-picker-modal {
+    width: min(640px, 100%);
+    max-height: min(760px, calc(100vh - 48px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #dbe3ee;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow:
+        0 30px 70px rgba(15, 23, 42, 0.2),
+        0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.libraries-module .library-picker-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 20px 22px 18px;
+    border-bottom: 1px solid #e8edf3;
+}
+
+.libraries-module .library-picker-eyebrow {
+    margin-bottom: 5px;
+    color: #8b5cf6;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+}
+
+.libraries-module .library-picker-header h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.libraries-module .library-picker-header p {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.libraries-module .library-picker-close {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.libraries-module .library-picker-close:hover:not(:disabled) {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #334155;
+}
+
+.libraries-module .library-picker-body {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 22px;
+}
+
+.libraries-module .library-picker-current-path {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 11px 13px;
+    border: 1px solid #dbeafe;
+    border-radius: 10px;
+    background: #f8fbff;
+}
+
+.libraries-module .library-picker-current-path span {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.libraries-module .library-picker-current-path strong {
+    color: #1e40af;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.libraries-module .library-picker-search {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 11px;
+    border: 1px solid #dbe2ea;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.libraries-module .library-picker-search:focus-within {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.libraries-module .library-picker-search > svg {
+    flex-shrink: 0;
+    color: #94a3b8;
+}
+
+.libraries-module .library-picker-search input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #334155;
+    font: inherit;
+    font-size: 12px;
+}
+
+.libraries-module .library-picker-search button {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+}
+
+.libraries-module .library-picker-tree {
+    min-height: 220px;
+    max-height: 390px;
+    overflow: auto;
+    padding: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+    background: #fbfdff;
+}
+
+.libraries-module .library-picker-node,
+.libraries-module .library-picker-children {
+    width: 100%;
+}
+
+.libraries-module .library-picker-row {
+    min-height: 39px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding-right: 7px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+.libraries-module .library-picker-row:hover {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+}
+
+.libraries-module .library-picker-row-selected {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+}
+
+.libraries-module .library-picker-row-disabled {
+    opacity: 0.48;
+}
+
+.libraries-module .library-picker-expand,
+.libraries-module .library-picker-expand-placeholder {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.libraries-module .library-picker-expand {
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+}
+
+.libraries-module .library-picker-expand:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.libraries-module .library-picker-select {
+    min-width: 0;
+    min-height: 34px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    color: #475569;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 550;
+    text-align: left;
+    cursor: pointer;
+}
+
+.libraries-module .library-picker-select:disabled {
+    cursor: not-allowed;
+}
+
+.libraries-module .library-picker-select > span {
+    min-width: 0;
+    overflow: hidden;
+    flex: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-picker-select small {
+    color: #94a3b8;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.libraries-module .library-picker-check {
+    flex-shrink: 0;
+    color: #2563eb;
+}
+
+.libraries-module .library-picker-root-row {
+    padding-left: 12px;
+}
+
+.libraries-module .library-picker-empty {
+    padding: 28px 14px;
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: center;
+}
+
+.libraries-module .library-picker-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 15px 22px;
+    border-top: 1px solid #e8edf3;
+    background: #fbfcfe;
+}
+
+/* ============================================================
+   CONFIRMAÇÃO DE AÇÃO DESTRUTIVA
+   ============================================================ */
+
+.libraries-module .library-confirm-backdrop {
+    z-index: 23000;
+}
+
+.libraries-module .library-confirm-modal {
+    width: min(480px, 100%);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    padding: 22px;
+    border: 1px solid #fecaca;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow:
+        0 28px 70px rgba(15, 23, 42, 0.2),
+        0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.libraries-module .library-confirm-icon {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #fecaca;
+    border-radius: 11px;
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.libraries-module .library-confirm-content h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.libraries-module .library-confirm-content p {
+    margin: 7px 0 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.libraries-module .library-confirm-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding-top: 6px;
+}
+
+/* ============================================================
+   AJUSTES RESPONSIVOS DO COMPONENTE NOVO
+   ============================================================ */
+
+@media (max-width: 760px) {
+    .libraries-module .library-modal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .libraries-module .library-modal-location-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .libraries-module .library-picker-backdrop,
+    .libraries-module .library-modal-backdrop {
+        padding: 12px;
+    }
+
+    .libraries-module .library-picker-modal {
+        max-height: calc(100vh - 24px);
+    }
+}
+
+/* Alias utilizado pelos menus contextuais deste componente. */
+.libraries-module .library-context-danger {
+    color: #dc2626 !important;
+}
+
+.libraries-module .library-context-danger svg {
+    color: #dc2626 !important;
+}
+
+.libraries-module .library-context-danger:hover {
+    background: #fef2f2 !important;
+    color: #b91c1c !important;
+}
+
+/* ============================================================
+   ALINHAMENTO VISUAL COM A PÁGINA DE ROBÔS
+
+   IMPORTANTE:
+   - Somente aparência.
+   - Nenhuma regra de negócio, API, estado ou comportamento é alterado.
+   - Mantém o módulo Bibliotecas dentro da mesma linguagem visual dos
+     painéis já existentes na página Robots.
+   ============================================================ */
+
+/* Evita espaçamento duplicado entre o painel de Robôs e Bibliotecas. */
+.libraries-module {
+    margin-top: 20px;
+}
+
+.libraries-module .libraries-catalog-panel {
+    margin-top: 0;
+}
+
+/* ------------------------------------------------------------
+   CABEÇALHO — MESMA LINGUAGEM DOS CONTENT PANELS DE ROBÔS
+   ------------------------------------------------------------ */
+.libraries-module .libraries-catalog-header {
+    gap: 20px;
+    padding: 20px 24px;
+    background: var(--color-surface);
+}
+
+.libraries-module .libraries-catalog-title-group {
+    gap: 12px;
+}
+
+.libraries-module .libraries-catalog-title-icon {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #dbeafe;
+    border-radius: 9px;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+/* O painel de Robôs não usa eyebrow dentro dos cards.
+   Escondemos aqui para manter o mesmo ritmo visual. */
+.libraries-module .libraries-catalog-eyebrow {
+    display: none;
+}
+
+.libraries-module .libraries-catalog-title-group h2 {
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.libraries-module .libraries-catalog-title-group p {
+    margin-top: 5px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.libraries-module .library-toolbar-button {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+}
+
+/* ------------------------------------------------------------
+   WORKSPACE — MAIS COMPACTO E SEM “DESERTO BRANCO”
+   ------------------------------------------------------------ */
+.libraries-module .libraries-workspace {
+    grid-template-columns: minmax(310px, 350px) minmax(0, 1fr);
+    min-height: 330px;
+}
+
+.libraries-module .libraries-explorer {
+    background: #ffffff;
+}
+
+.libraries-module .libraries-explorer-toolbar {
+    padding: 14px 16px;
+    background: #fcfdff;
+}
+
+.libraries-module .libraries-search {
+    height: 38px;
+    border-color: #dbe2ea;
+    border-radius: 9px;
+}
+
+.libraries-module .libraries-search:focus-within {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.libraries-module .libraries-explorer-stats {
+    margin-top: 9px;
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
+/* ------------------------------------------------------------
+   ÁRVORE — MESMO AZUL E DENSIDADE DA ÁRVORE DE ROBÔS
+   ------------------------------------------------------------ */
+.libraries-module .libraries-tree-root {
+    padding: 10px 12px 14px;
+}
+
+.libraries-module .libraries-tree-root-label {
+    height: 34px;
+    padding: 0 8px;
+    margin-bottom: 3px;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.libraries-module .libraries-tree-root-label svg {
+    color: #2563eb;
+}
+
+.libraries-module .library-catalog-row {
+    min-height: 38px;
+    gap: 6px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    border-radius: 8px;
+}
+
+.libraries-module .library-catalog-row:hover {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+}
+
+.libraries-module .library-catalog-row-selected {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+}
+
+.libraries-module .library-catalog-main-button {
+    min-height: 32px;
+    gap: 8px;
+}
+
+.libraries-module .library-catalog-folder-icon,
+.libraries-module .library-catalog-library-icon {
+    color: #64748b;
+}
+
+.libraries-module .library-catalog-row-selected .library-catalog-folder-icon,
+.libraries-module .library-catalog-row-selected .library-catalog-library-icon {
+    color: #2563eb;
+}
+
+.libraries-module .library-catalog-name {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 550;
+}
+
+.libraries-module .library-catalog-row-selected .library-catalog-name {
+    color: #1d4ed8;
+}
+
+/* Nome e import_name na mesma linha, sem “tag roxa”. */
+.libraries-module .library-catalog-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.libraries-module .library-catalog-import {
+    max-width: 130px;
+    margin-left: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 9px;
+}
+
+.libraries-module .library-catalog-child-count {
+    width: auto;
+    min-width: 0;
+    height: auto;
+    margin-left: auto;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.libraries-module .library-catalog-expand:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.libraries-module .library-catalog-menu-button:hover {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+}
+
+.libraries-module .library-catalog-context-menu button:hover svg {
+    color: #2563eb;
+}
+
+/* ------------------------------------------------------------
+   DETALHES — MAIS ENXUTO, MESMA ESCALA DA PÁGINA
+   ------------------------------------------------------------ */
+.libraries-module .libraries-details {
+    min-height: 330px;
+}
+
+.libraries-module .libraries-details-header {
+    padding: 18px 20px;
+}
+
+.libraries-module .libraries-details-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+}
+
+.libraries-module .library-details-code-icon {
+    border-color: #dbeafe;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.libraries-module .libraries-details-heading h3 {
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.libraries-module .libraries-details-heading code {
+    margin-top: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    font-size: 10px;
+}
+
+.libraries-module .library-detail-summary {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.55fr);
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.libraries-module .library-detail-description,
+.libraries-module .library-detail-location,
+.libraries-module .library-folder-overview-card {
+    padding: 12px 13px;
+    border-color: #e5e7eb;
+    border-radius: 9px;
+    background: #fafbfc;
+}
+
+.libraries-module .library-folder-overview {
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+/* ------------------------------------------------------------
+   VERSÕES — AZUL DUET, SEM ELEMENTOS ROXOS
+   ------------------------------------------------------------ */
+.libraries-module .library-versions-section {
+    padding: 16px 20px 20px;
+}
+
+.libraries-module .library-version-row {
+    min-height: 52px;
+    border-color: #e5e7eb;
+    border-radius: 9px;
+}
+
+.libraries-module .library-version-badge {
+    min-width: 56px;
+    height: 27px;
+    border-color: #dbeafe;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.libraries-module .library-versions-empty > svg {
+    color: #64748b;
+}
+
+/* ------------------------------------------------------------
+   ESTADO SEM SELEÇÃO — COMPACTO E DISCRETO
+   ------------------------------------------------------------ */
+.libraries-module .libraries-details-empty {
+    min-height: 330px;
+    padding: 28px 24px;
+}
+
+.libraries-module .libraries-details-empty-icon {
+    width: 46px;
+    height: 46px;
+    margin-bottom: 12px;
+    border-color: #e5e7eb;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.libraries-module .libraries-details-empty h3 {
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.libraries-module .libraries-details-empty p {
+    max-width: 360px;
+    margin-top: 6px;
+    font-size: 11px;
+}
+
+/* As ações já existem no cabeçalho. Evita repetição visual no estado vazio. */
+.libraries-module .libraries-details-empty-actions {
+    display: none;
+}
+
+/* ------------------------------------------------------------
+   MODAIS / PICKER — MESMA PALETA AZUL DO CONTROL ROOM
+   ------------------------------------------------------------ */
+.libraries-module .library-modal-eyebrow {
+    color: #2563eb;
+}
+
+.libraries-module .library-modal-field input:focus,
+.libraries-module .library-modal-field textarea:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.libraries-module .library-folder-picker-row-selected {
+    border-color: #bfdbfe !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+
+.libraries-module .library-folder-picker-row svg {
+    color: #64748b;
+}
+
+.libraries-module .library-folder-picker-row-selected svg {
+    color: #2563eb;
+}
+
+.libraries-module .library-modal-location-card {
+    border-color: #dbeafe;
+    background: #f8fbff;
+}
+
+.libraries-module .library-modal-location-card strong {
+    color: #1e40af;
+}
+
+/* ------------------------------------------------------------
+   RESPONSIVIDADE — PRESERVA A EXPERIÊNCIA EM TELAS MENORES
+   ------------------------------------------------------------ */
+@media (max-width: 1100px) {
+    .libraries-module .libraries-workspace {
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+
+    .libraries-module .libraries-details,
+    .libraries-module .libraries-details-empty {
+        min-height: 280px;
+    }
+}
+
+/* ============================================================
+   LIBRARY — ROBOTS QUE UTILIZAM A BIBLIOTECA
+   ============================================================
+
+   Exibe a consulta inversa:
+
+       Library
+           ↓
+       Robots que utilizam essa Library
+
+   A seção segue a mesma linguagem visual compacta utilizada
+   nas versões publicadas do catálogo DUET.
+   ============================================================ */
+
+
+/* ============================================================
+   SEÇÃO PRINCIPAL
+   ============================================================ */
+
+.libraries-module .library-usage-section {
+    padding: 16px 20px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    background: #ffffff;
+}
+
+
+/* ============================================================
+   CABEÇALHO
+   ============================================================ */
+
+.libraries-module .library-usage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    margin-bottom: 13px;
+}
+
+
+.libraries-module .library-usage-header > div:first-child {
+    min-width: 0;
+}
+
+
+.libraries-module .library-usage-header h4 {
+    margin: 0;
+
+    color: #334155;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+.libraries-module .library-usage-header p {
+    margin: 3px 0 0;
+
+    color: #94a3b8;
+
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+
+/* ============================================================
+   METADADOS DO CABEÇALHO
+   ============================================================ */
+
+.libraries-module .library-usage-header-meta {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+}
+
+
+/*
+ * Identifica a versão atualmente marcada como Produção
+ * para a Library selecionada.
+ */
+.libraries-module .library-production-version {
+    min-height: 24px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 8px;
+
+    border: 1px solid #bfdbfe;
+    border-radius: 7px;
+
+    background: #eff6ff;
+    color: #2563eb;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   LISTA DE ROBOTS
+   ============================================================ */
+
+.libraries-module .library-usage-list {
+    display: grid;
+
+    gap: 7px;
+}
+
+
+/*
+ * Cada Robot ocupa uma linha compacta.
+ *
+ * Estrutura:
+ *
+ * Robot                versão da Library        status
+ */
+.libraries-module .library-usage-row {
+    min-height: 52px;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(180px, 1fr)
+        minmax(110px, 150px)
+        auto;
+
+    align-items: center;
+
+    gap: 16px;
+
+    padding: 9px 12px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+
+.libraries-module .library-usage-row:hover {
+    border-color: #cbd5e1;
+
+    background: #fbfdff;
+
+    box-shadow:
+        0 2px 7px rgba(15, 23, 42, 0.035);
+}
+
+
+/* ============================================================
+   IDENTIFICAÇÃO DO ROBOT
+   ============================================================ */
+
+.libraries-module .library-usage-robot {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+
+.libraries-module .library-usage-robot strong {
+    overflow: hidden;
+
+    color: #334155;
+
+    font-size: 11px;
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.libraries-module .library-usage-robot span {
+    color: #94a3b8;
+
+    font-size: 9px;
+    font-weight: 550;
+}
+
+
+/* ============================================================
+   VERSÃO DA LIBRARY UTILIZADA PELO ROBOT
+   ============================================================ */
+
+.libraries-module .library-usage-version {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 3px;
+}
+
+
+.libraries-module .library-usage-version span {
+    color: #94a3b8;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.05em;
+
+    text-transform: uppercase;
+}
+
+
+.libraries-module .library-usage-version strong {
+    min-width: 52px;
+    height: 25px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 7px;
+
+    border: 1px solid #dbeafe;
+    border-radius: 7px;
+
+    background: #eff6ff;
+    color: #2563eb;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   STATUS DA VERSÃO UTILIZADA
+   ============================================================ */
+
+.libraries-module .library-usage-status-current,
+.libraries-module .library-usage-status-previous {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 23px;
+
+    padding: 3px 7px;
+
+    border: 1px solid;
+    border-radius: 999px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* Robot usa a LibraryVersion atualmente vigente. */
+.libraries-module .library-usage-status-current {
+    border-color: #bbf7d0;
+
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+
+/* Robot continua vinculado a uma versão anterior. */
+.libraries-module .library-usage-status-previous {
+    border-color: #e2e8f0;
+
+    background: #f8fafc;
+    color: #64748b;
+}
+
+
+/* ============================================================
+   CARREGAMENTO
+   ============================================================ */
+
+.libraries-module .library-usage-state {
+    padding: 25px 14px;
+
+    color: #94a3b8;
+
+    font-size: 11px;
+
+    text-align: center;
+}
+
+
+/* ============================================================
+   NENHUM ROBOT UTILIZA A LIBRARY
+   ============================================================ */
+
+.libraries-module .library-usage-empty {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    padding: 14px;
+
+    border: 1px dashed #dbe2ea;
+    border-radius: 9px;
+
+    background: #fbfcfe;
+}
+
+
+.libraries-module .library-usage-empty strong {
+    color: #475569;
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.libraries-module .library-usage-empty span {
+    color: #94a3b8;
+
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+
+/* ============================================================
+   RESPONSIVIDADE
+   ============================================================ */
+
+@media (max-width: 760px) {
+
+    .libraries-module .library-usage-section {
+        padding: 16px 18px;
+    }
+
+
+    .libraries-module .library-usage-header {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 9px;
+    }
+
+
+    .libraries-module .library-usage-header-meta {
+        width: 100%;
+    }
+
+
+    .libraries-module .library-usage-row {
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto;
+
+        grid-template-areas:
+            "robot status"
+            "version version";
+
+        gap: 8px 12px;
+    }
+
+
+    .libraries-module .library-usage-robot {
+        grid-area: robot;
+    }
+
+
+    .libraries-module .library-usage-version {
+        grid-area: version;
+    }
+
+
+    .libraries-module .library-usage-status-current,
+    .libraries-module .library-usage-status-previous {
+        grid-area: status;
+    }
+}

@@ -1,142 +1,86 @@
-import { useEffect, useState } from "react";
-import api from "../services/api";
+// ============================================================
+// DUET CORE - DASHBOARD PAGE
+// ============================================================
+//
+// Página principal do Dashboard do Control Room.
+//
+// Responsabilidade:
+// - coordenar o carregamento dos dados do Dashboard;
+// - apresentar os estados globais de loading e erro;
+// - compor os módulos visuais do Dashboard.
+//
+// Arquitetura:
+//
+// Dashboard
+//   │
+//   ├── useDashboardData
+//   │     ├── GET /dashboard/stats
+//   │     └── GET /executions
+//   │
+//   ├── DashboardSummaryCards
+//   ├── DashboardExecutionsPanel
+//   ├── DashboardOperationalStatus
+//   └── DashboardPlatformSummary
+//
+// Esta página NÃO:
+// - executa chamadas HTTP diretamente;
+// - formata datas;
+// - renderiza linhas da tabela diretamente;
+// - mantém regras visuais dos cards;
+// - realiza polling.
+//
+// O objetivo é manter Dashboard.tsx como camada fina de
+// composição, preservando o comportamento existente.
+// ============================================================
 
-/**
- * ============================================================
- * TIPOS
- * ============================================================
- *
- * Representa os dados retornados pelo endpoint:
- *
- * GET /dashboard/stats
- */
-interface DashboardStats {
-    total_agents: number;
-    agents_online: number;
-    total_robots: number;
-}
+import DashboardSummaryCards
+    from "../components/dashboard/DashboardSummaryCards";
+
+import DashboardExecutionsPanel
+    from "../components/dashboard/DashboardExecutionsPanel";
+
+import DashboardOperationalStatus
+    from "../components/dashboard/DashboardOperationalStatus";
+
+import DashboardPlatformSummary
+    from "../components/dashboard/DashboardPlatformSummary";
+
+import {
+    useDashboardData,
+} from "../hooks/dashboard/useDashboardData";
 
 
-/**
- * Representa uma execução retornada pelo endpoint:
- *
- * GET /executions
- */
-interface Execution {
-    id: number;
-    robot_id: number;
-    robot_name: string;
-    filename: string;
-    agent_id: string;
-    agent_name: string;
-    status: string;
-    started_at: string | null;
-    finished_at: string | null;
-    error_message: string | null;
-}
+// ============================================================
+// DASHBOARD
+// ============================================================
 
-
-/**
- * ============================================================
- * DASHBOARD
- * ============================================================
- */
 function Dashboard() {
 
-    /**
-     * Estatísticas gerais do Control Room.
-     */
-    const [stats, setStats] = useState<DashboardStats | null>(null);
+    // ========================================================
+    // DADOS
+    // ========================================================
+    //
+    // Toda a comunicação com a API permanece encapsulada no
+    // hook especializado do Dashboard.
+    // ========================================================
 
-    /**
-     * Lista de execuções atualmente em andamento.
-     */
-    const [executions, setExecutions] = useState<Execution[]>([]);
-
-    /**
-     * Controle de carregamento inicial.
-     */
-    const [loading, setLoading] = useState(true);
-
-    /**
-     * Mensagem de erro da API.
-     */
-    const [error, setError] = useState("");
+    const {
+        stats,
+        executions,
+        loading,
+        error,
+    } = useDashboardData();
 
 
-    /**
-     * ========================================================
-     * CARREGAR ESTATÍSTICAS
-     * ========================================================
-     *
-     * Busca:
-     *
-     * - Total de Agents
-     * - Agents online
-     * - Total de Robôs
-     */
-    useEffect(() => {
+    // ========================================================
+    // ESTADO DE CARREGAMENTO
+    // ========================================================
+    //
+    // Preserva exatamente o comportamento da página original:
+    // enquanto as estatísticas estão sendo carregadas, nenhum
+    // outro módulo do Dashboard é apresentado.
+    // ========================================================
 
-        api.get("/dashboard/stats")
-            .then((response) => {
-
-                setStats(response.data);
-
-            })
-            .catch((err) => {
-
-                console.error(
-                    "Erro ao buscar estatísticas do Dashboard:",
-                    err
-                );
-
-                setError(
-                    "Não foi possível carregar as estatísticas do Dashboard."
-                );
-
-            })
-            .finally(() => {
-
-                setLoading(false);
-
-            });
-
-    }, []);
-
-
-    /**
-     * ========================================================
-     * CARREGAR EXECUÇÕES
-     * ========================================================
-     *
-     * O endpoint /executions atualmente retorna as execuções
-     * que estão em andamento.
-     */
-    useEffect(() => {
-
-        api.get("/executions")
-            .then((response) => {
-
-                setExecutions(response.data.executions);
-
-            })
-            .catch((err) => {
-
-                console.error(
-                    "Erro ao buscar execuções:",
-                    err
-                );
-
-            });
-
-    }, []);
-
-
-    /**
-     * ========================================================
-     * ESTADO DE CARREGAMENTO
-     * ========================================================
-     */
     if (loading) {
 
         return (
@@ -159,11 +103,14 @@ function Dashboard() {
     }
 
 
-    /**
-     * ========================================================
-     * ESTADO DE ERRO
-     * ========================================================
-     */
+    // ========================================================
+    // ESTADO DE ERRO
+    // ========================================================
+    //
+    // A mensagem de erro global continua relacionada somente
+    // ao carregamento das estatísticas do Dashboard.
+    // ========================================================
+
     if (error) {
 
         return (
@@ -186,255 +133,53 @@ function Dashboard() {
     }
 
 
+    // ========================================================
+    // INTERFACE
+    // ========================================================
+
     return (
         <div>
-
-            {/* ==================================================
-                CABEÇALHO
-                ================================================== */}
-
-            <div className="panel-header">
-
-                <div>
-
-                    <h2>
-                        Dashboard
-                    </h2>
-
-                    <p>
-                        Visão geral do RPA Control Room
-                    </p>
-
-                </div>
-
-            </div>
-
 
             {/* ==================================================
                 CARDS DE RESUMO
                 ================================================== */}
 
-            <section className="cards">
-
-                {/* ----------------------------------------------
-                    TOTAL DE AGENTS
-                    ---------------------------------------------- */}
-
-                <div className="card">
-
-                    <div className="card-title">
-                        Agents
-                    </div>
-
-                    <div className="card-value">
-                        {stats?.total_agents ?? 0}
-                    </div>
-
-                    <div className="card-info">
-                        Agents cadastrados
-                    </div>
-
-                </div>
-
-
-                {/* ----------------------------------------------
-                    AGENTS ONLINE
-                    ---------------------------------------------- */}
-
-                <div className="card">
-
-                    <div className="card-title">
-                        Agents Online
-                    </div>
-
-                    <div className="card-value">
-                        {stats?.agents_online ?? 0}
-                    </div>
-
-                    <div className="card-info">
-                        Agents disponíveis
-                    </div>
-
-                </div>
-
-
-                {/* ----------------------------------------------
-                    TOTAL DE ROBÔS
-                    ---------------------------------------------- */}
-
-                <div className="card">
-
-                    <div className="card-title">
-                        Robôs
-                    </div>
-
-                    <div className="card-value">
-                        {stats?.total_robots ?? 0}
-                    </div>
-
-                    <div className="card-info">
-                        Robôs cadastrados
-                    </div>
-
-                </div>
-
-
-                {/* ----------------------------------------------
-                    EXECUÇÕES
-                    ---------------------------------------------- */}
-
-                <div className="card">
-
-                    <div className="card-title">
-                        Execuções
-                    </div>
-
-                    <div className="card-value">
-                        {executions.length}
-                    </div>
-
-                    <div className="card-info">
-                        Execuções em andamento
-                    </div>
-
-                </div>
-
-            </section>
+            <DashboardSummaryCards
+                stats={stats}
+                activeExecutions={
+                    executions.length
+                }
+            />
 
 
             {/* ==================================================
-                PAINEL DE EXECUÇÕES
+                EXECUÇÕES EM ANDAMENTO
                 ================================================== */}
 
-            <section className="panel">
-
-                <div className="panel-header">
-
-                    <div>
-
-                        <h2>
-                            Execuções em andamento
-                        </h2>
-
-                        <p>
-                            Execuções atualmente processadas pelos Agents
-                        </p>
-
-                    </div>
-
-                </div>
+            <DashboardExecutionsPanel
+                executions={
+                    executions
+                }
+            />
 
 
-                {/* =================================================
-                    NENHUMA EXECUÇÃO
-                    ================================================= */}
+            {/* ==================================================
+                RESUMO OPERACIONAL
+                ================================================== */}
 
-                {executions.length === 0 ? (
+            <section className="dashboard-lower-grid">
 
-                    <div className="empty-state">
-
-                        <div className="empty-icon">
-                            ▶️
-                        </div>
-
-                        <h3>
-                            Nenhuma execução em andamento
-                        </h3>
-
-                        <p>
-                            Não existem robôs sendo executados neste momento.
-                        </p>
-
-                    </div>
-
-                ) : (
-
-                    /* ==============================================
-                       TABELA DE EXECUÇÕES
-                       ============================================== */
-
-                    <div className="table-container">
-
-                        <table>
-
-                            <thead>
-
-                                <tr>
-
-                                    <th>
-                                        ID
-                                    </th>
-
-                                    <th>
-                                        Robô
-                                    </th>
-
-                                    <th>
-                                        Agent
-                                    </th>
-
-                                    <th>
-                                        Início
-                                    </th>
-
-                                    <th>
-                                        Status
-                                    </th>
-
-                                </tr>
-
-                            </thead>
+                <DashboardOperationalStatus
+                    stats={stats}
+                    activeExecutions={
+                        executions.length
+                    }
+                />
 
 
-                            <tbody>
-
-                                {executions.map((execution) => (
-
-                                    <tr key={execution.id}>
-
-                                        <td>
-                                            {execution.id}
-                                        </td>
-
-                                        <td>
-                                            {execution.robot_name}
-                                        </td>
-
-                                        <td>
-
-                                            <div className="agent-name">
-
-                                                <strong>
-                                                    {execution.agent_name}
-                                                </strong>
-
-                                                <small>
-                                                    {execution.agent_id}
-                                                </small>
-
-                                            </div>
-
-                                        </td>
-
-                                        <td>
-                                            {formatarData(execution.started_at)}
-                                        </td>
-
-                                        <td>
-                                            {execution.status}
-                                        </td>
-
-                                    </tr>
-
-                                ))}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                )}
+                <DashboardPlatformSummary
+                    stats={stats}
+                />
 
             </section>
 
@@ -443,28 +188,8 @@ function Dashboard() {
 }
 
 
-/**
- * ============================================================
- * FORMATAR DATA
- * ============================================================
- *
- * Converte a data retornada pela API para o formato
- * utilizado normalmente no Control Room.
- */
-function formatarData(data: string | null): string {
-
-    if (!data) {
-        return "-";
-    }
-
-    const dataObj = new Date(data);
-
-    if (Number.isNaN(dataObj.getTime())) {
-        return "-";
-    }
-
-    return dataObj.toLocaleString("pt-BR");
-}
-
+// ============================================================
+// EXPORTAÇÃO
+// ============================================================
 
 export default Dashboard;

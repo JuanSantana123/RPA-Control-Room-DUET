@@ -1,27 +1,86 @@
 # ============================================================
 # ROUTER DO DASHBOARD
 # ============================================================
+#
+# Camada HTTP do Dashboard do Control Room.
+#
+# Responsabilidades:
+#
+# - registrar os endpoints do Dashboard;
+# - aplicar autenticação;
+# - receber as requisições HTTP;
+# - delegar regras de negócio aos services.
+#
+# As consultas e regras dos indicadores estão em:
+#
+#     dashboard/service.py
+#
+# ============================================================
 
-from fastapi import APIRouter
-from database import SessionLocal
-from models import Agent, Robot
+from fastapi import APIRouter, Depends
 
-
-router = APIRouter(
-    tags=["Dashboard"]
+from auth.dependencies import get_usuario_atual
+# Dependência responsável pela autorização RBAC.
+# A autenticação identifica o usuário; esta dependência valida
+# se ele possui acesso à visão funcional do Dashboard.
+from auth.permissions import require_permission
+from dashboard.service import (
+    consultar_dashboard_stats_service,
 )
 
 
 # ============================================================
-# HEALTH DO CONTROL ROOM
+# ROUTER
+# ============================================================
+#
+# Todas as rotas deste router exigem autenticação através
+# da sessão/cookie existente do Control Room.
+#
+# Mantemos esta dependência exatamente como no router original.
 # ============================================================
 
-@router.get("/health")
-def health():
+router = APIRouter(
+    tags=["Dashboard"],
+    dependencies=[
+        Depends(get_usuario_atual)
+    ]
+)
+
+
+# ============================================================
+# HEALTH CHECK DO CONTROL ROOM
+# ============================================================
+#
+# Este endpoint permanece diretamente no router porque não
+# possui regra de negócio ou acesso ao banco para extrair.
+#
+# Ele somente confirma que o Control Room está respondendo.
+# ============================================================
+
+@router.get(
+    "/health",
+    summary="Verificar saúde do Control Room",
+    description=(
+        "Verifica se o Control Room está online e respondendo. "
+        "Quando a requisição é processada com sucesso, retorna "
+        "o status 'online'. "
+        "O endpoint utiliza a autenticação padrão do Control Room "
+        "através da sessão/cookie."
+    )
+)
+def health(
+    usuario=Depends(get_usuario_atual)
+):
+    """
+    Verifica se o Control Room está online.
+
+    A dependência get_usuario_atual também permanece na função
+    para preservar exatamente a estrutura de autenticação
+    existente antes da modularização.
+    """
 
     return {
-        "status": "online",
-        "service": "RPA Control Room"
+        "status": "online"
     }
 
 
@@ -29,70 +88,38 @@ def health():
 # API ESTATÍSTICAS DO DASHBOARD
 # ============================================================
 #
-# Esta API fornece os principais indicadores do Dashboard
-# para o frontend React.
+# A camada HTTP somente recebe a requisição autenticada.
 #
-# Indicadores retornados:
+# A consulta dos indicadores foi movida para:
 #
-# - total_agents   → quantidade total de Agents cadastrados
-# - agents_online  → quantidade de Agents online
-# - total_robots   → quantidade total de robôs cadastrados
+#     dashboard/service.py
 #
 # ============================================================
 
-@router.get("/dashboard/stats")
-def dashboard_stats():
+@router.get(
+    "/dashboard/stats",
+    summary="Consultar estatísticas do Dashboard",
+    description=(
+        "Retorna os principais indicadores utilizados pelo Dashboard "
+        "do Control Room. "
+        "São retornados o total de Agents cadastrados, a quantidade "
+        "de Agents online e o total de robôs cadastrados."
+    )
+)
+def dashboard_stats(
+    # Além de estar autenticado, o usuário precisa possuir
+    # acesso explícito à visão funcional do Dashboard.
+    usuario=Depends(
+        require_permission("Dashboard", "view")
+    )
+):
+    """
+    Retorna as principais estatísticas do Dashboard.
 
-    # Abre uma sessão com o banco de dados.
-    db = SessionLocal()
+    O usuário autenticado continua sendo resolvido nesta camada,
+    preservando a dependência HTTP existente.
 
-    try:
+    A consulta ao banco é delegada ao service.
+    """
 
-        # ========================================================
-        # TOTAL DE AGENTS
-        # ========================================================
-
-        total_agents = db.query(Agent).count()
-
-        # ========================================================
-        # AGENTS ONLINE
-        # ========================================================
-
-        agents_online = db.query(Agent).filter(
-            Agent.status == "online"
-        ).count()
-
-        # ========================================================
-        # TOTAL DE ROBÔS
-        # ========================================================
-
-        total_robots = db.query(Robot).count()
-
-        # ========================================================
-        # RETORNO
-        # ========================================================
-
-        return {
-            "status": "success",
-            "total_agents": total_agents,
-            "agents_online": agents_online,
-            "total_robots": total_robots
-        }
-
-    except Exception as error:
-
-        # ========================================================
-        # TRATAMENTO DE ERRO
-        # ========================================================
-
-        return {
-            "status": "error",
-            "message": "Não foi possível carregar as estatísticas do Dashboard",
-            "error": str(error)
-        }
-
-    finally:
-
-        # Fecha a conexão com o banco independentemente
-        # de a consulta ter funcionado ou apresentado erro.
-        db.close()
+    return consultar_dashboard_stats_service()
