@@ -69,7 +69,23 @@ from executions.logging_context import (
 # Recupera a credencial original do Agent somente em memória
 # durante as chamadas Control Room -> Agent.
 from agents.token_security import descriptografar_agent_token
+# ============================================================
+# GARANTIA DA SESSÃO WINDOWS DO AGENT
+# ============================================================
+#
+# Centraliza:
+#
+# - validação da identidade Windows configurada;
+# - consulta da sessão atual;
+# - autenticação quando necessária;
+# - revalidação da identidade após autenticação.
+#
+# O service de execução não manipula diretamente a senha.
+# ============================================================
 
+from executions.windows_session_service import (
+    garantir_sessao_windows_agent,
+)
 # Logger compartilhado com o restante do Control Room.
 logger = logging.getLogger("control_room")
 
@@ -607,6 +623,23 @@ def _executar_robot(
                 "message": "Agent não encontrado",
                 "agent_id": agent_id
             }
+
+
+        # ========================================================
+        # CREDENCIAL WINDOWS DE EXECUÇÃO DO AGENT
+        # ========================================================
+        #
+        # Guardamos somente o ID antes de fechar a sessão SQLAlchemy.
+        #
+        # A senha NÃO é carregada aqui.
+        #
+        # Posteriormente windows_session_service decidirá se precisa
+        # ou não resolver o segredo.
+        # ========================================================
+
+        execution_credential_id = (
+            agent.execution_credential_id
+        )
 
         # ========================================================
         # 3. RESOLVE A ORIGEM DA EXECUÇÃO
@@ -1351,175 +1384,168 @@ def _executar_robot(
 
 
     # ========================================================
-    # 5.5 VALIDA SESSÃO WINDOWS EM TEMPO REAL
     # ========================================================
-
-    session_url = (
-        f"http://{agent.host}:{agent.port}"
-        "/session/status"
-    )
+    # 5.5 GARANTE A SESSÃO WINDOWS DE EXECUÇÃO
+    # ========================================================
+    #
+    # O fluxo de sessão agora fica centralizado em:
+    #
+    #     executions/windows_session_service.py
+    #
+    # Esse serviço:
+    #
+    # 1. identifica a conta Windows configurada no Vault;
+    # 2. consulta a sessão atual do Agent;
+    # 3. se a sessão já estiver correta, NÃO abre a senha;
+    # 4. caso necessário, resolve a senha somente em memória;
+    # 5. chama /session/authenticate;
+    # 6. revalida a identidade Windows observada.
+    #
+    # O antigo bypass de sessão "disconnected" deixa de existir.
+    # A execução somente continua se a identidade correta estiver
+    # efetivamente pronta.
+    # ========================================================
 
     try:
 
-        session_response = requests.get(
-            session_url,
-            headers={
-                # Utiliza o token que já foi descriptografado em memória
-                # antes da primeira comunicação HTTP com o Agent.
-                "Authorization": f"Bearer {agent_token}"
-            },
-            timeout=5
-)
+        windows_session_result = (
+            garantir_sessao_windows_agent(
+                agent_host=agent.host,
+                agent_port=agent.port,
+                agent_token=agent_token,
+                execution_credential_id=(
+                    execution_credential_id
+                ),
+                execution_id=execution_id,
+            )
+        )
 
-    except requests.RequestException as error:
+    except Exception as error:
+
+        # ====================================================
+        # FALHA INESPERADA NA CAMADA DE SESSÃO
+        # ====================================================
+        #
+        # Não registramos conteúdo de credencial ou password.
+        # ====================================================
 
         contexto_log = obter_contexto_execucao_log(
             execution_id=execution_id,
             robot_id=robot_id,
             agent_id=agent_id,
-            user_id=request.user_id
+            user_id=request.user_id,
         )
 
-        logger.error(
-            "Não foi possível consultar status de execução do Agent",
+        logger.exception(
+            "Falha inesperada ao preparar sessão Windows do Agent",
             extra={
-                "event": "execution_status_request_failed",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
+                "event": (
+                    "windows_session_preparation_failed"
+                ),
+                **contexto_log,
                 "status": "error",
                 "error_type": type(error).__name__,
-                "error_message": str(error)
-            }
+            },
         )
 
         return {
             "status": "error",
-            "message": "Não foi possível validar a sessão Windows do Agent",
-            "agent_id": agent_id
-        }
-
-
-    # ========================================================
-    # VALIDA RESPOSTA DA SESSÃO
-    # ========================================================
-
-    if session_response.status_code != 200:
-
-        contexto_log = obter_contexto_execucao_log(
-            execution_id=execution_id,
-            robot_id=robot_id,
-            agent_id=agent_id,
-            user_id=request.user_id
-        )
-
-        logger.error(
-            "Agent respondeu com erro ao consultar sessão Windows",
-            extra={
-                "event": "windows_session_http_error",
-                **contexto_log,
-                "status": "error",
-                "http_status": session_response.status_code
-            }
-        )
-
-        return {
-            "status": "error",
-            "message": "Agent respondeu com erro ao consultar sessão Windows",
+            "message": (
+                "Não foi possível preparar a sessão "
+                "Windows do Agent."
+            ),
             "agent_id": agent_id,
-            "http_status": session_response.status_code
         }
 
 
-    try:
+    # ========================================================
+    # VALIDA RESULTADO DA PREPARAÇÃO
+    # ========================================================
 
-        session_data = session_response.json()
-
-    except ValueError:
+    if not windows_session_result.get(
+        "success"
+    ):
 
         contexto_log = obter_contexto_execucao_log(
             execution_id=execution_id,
             robot_id=robot_id,
             agent_id=agent_id,
-            user_id=request.user_id
-        )
-
-        logger.error(
-            "Agent retornou JSON inválido ao consultar sessão Windows",
-            extra={
-                "event": "windows_session_invalid_json",
-                **contexto_log,
-                "status": "error"
-            }
-        )
-
-        return {
-            "status": "error",
-            "message": "Agent retornou JSON inválido ao consultar sessão Windows",
-            "agent_id": agent_id
-        }
-
-
-    session_status = session_data.get("status")
-    username = session_data.get("username")
-
-
-    # ========================================================
-    # VALIDA SESSÃO PRONTA
-    # ========================================================
-
-    if session_status != "ready" or not username:
-
-        contexto_log = obter_contexto_execucao_log(
-            execution_id=execution_id,
-            robot_id=robot_id,
-            agent_id=agent_id,
-            user_id=request.user_id
+            user_id=request.user_id,
         )
 
         logger.error(
             (
-                "Sessão Windows não está pronta para execução | "
-                f"Session: {session_status} | "
-                f"Windows User: {username or '-'}"
+                "Sessão Windows não disponível para execução | "
+                f"Status: "
+                f"{windows_session_result.get('status')}"
             ),
             extra={
                 "event": "windows_session_not_ready",
                 **contexto_log,
-                "status": "blocked"
-            }
+                "status": "blocked",
+                "session_status": (
+                    windows_session_result.get(
+                        "status"
+                    )
+                ),
+            },
         )
 
         return {
             "status": "error",
-            "message": "Sessão Windows do Agent não está pronta para execução",
+            "message": (
+                windows_session_result.get(
+                    "message"
+                )
+                or
+                "Sessão Windows do Agent não está "
+                "pronta para execução."
+            ),
             "agent_id": agent_id,
-            "session_status": session_status,
-            "username": username
+            "session_status": (
+                windows_session_result.get(
+                    "status"
+                )
+            ),
         }
 
 
     # ========================================================
-    # SESSÃO VALIDADA
+    # SESSÃO WINDOWS VALIDADA
     # ========================================================
+
+    username = windows_session_result.get(
+        "username"
+    )
+
+    domain = windows_session_result.get(
+        "domain"
+    )
+
+    session_action = windows_session_result.get(
+        "action"
+    )
 
     contexto_log = obter_contexto_execucao_log(
         execution_id=execution_id,
         robot_id=robot_id,
         agent_id=agent_id,
-        user_id=request.user_id
+        user_id=request.user_id,
     )
 
     logger.info(
-        f"Sessão Windows validada | Windows User: {username}",
+        (
+            "Sessão Windows validada | "
+            f"Windows User: "
+            f"{domain or '-'}\\{username or '-'} | "
+            f"Action: {session_action or '-'}"
+        ),
         extra={
             "event": "windows_session_validated",
-            **contexto_log
-        }
+            **contexto_log,
+            "session_action": session_action,
+        },
     )
-
     # ========================================================
     # 5.5 AGORA CONSULTA STATUS DE EXECUÇÃO
     # ========================================================
@@ -2436,11 +2462,37 @@ def _executar_robot(
             }
         )
 
+        # ========================================================
+        # DEVOLVE AO FRONTEND A CAUSA REAL INFORMADA PELO AGENT
+        # ========================================================
+        #
+        # O Agent já devolve em "message" a causa específica da
+        # falha ocorrida antes da criação do processo do Robot.
+        #
+        # Antes, o Control Room descartava essa informação neste
+        # retorno e sempre enviava a mensagem genérica:
+        #
+        #     "Agent recusou a execução do Robot"
+        #
+        # Isso escondia erros importantes, como falha de sessão,
+        # token Windows, runtime Python ou CreateProcessAsUser.
+        #
+        # Mantemos uma mensagem fallback apenas para o caso de
+        # algum Agent antigo não fornecer o campo "message".
+        # ========================================================
+
+        mensagem_erro_agent = execution_response.get(
+            "message",
+            "Agent recusou a execução do Robot"
+        )
+
         return {
 
             "status": "error",
 
-            "message": "Agent recusou a execução do Robot",
+            # Propaga para o frontend a causa real devolvida
+            # pelo Agent.
+            "message": mensagem_erro_agent,
 
             "agent_id": agent_id,
 
@@ -2454,6 +2506,8 @@ def _executar_robot(
 
             "deploy": deploy_response,
 
+            # Preserva também a resposta completa do Agent
+            # para diagnóstico e compatibilidade.
             "execution": execution_response
 
         }
@@ -2577,6 +2631,21 @@ def reconciliar_execucao_running(
         agent_port = agent.port
         agent_token_encrypted = agent.agent_token_encrypted
 
+        # ====================================================
+        # PID REGISTRADO PELO CONTROL ROOM
+        # ====================================================
+        #
+        # Guardamos o PID antes de fechar a sessão do banco.
+        #
+        # Esse PID será utilizado somente se o Agent informar
+        # que atualmente conhece outra execution_id.
+        #
+        # Nesse cenário, consultaremos o próprio Agent para
+        # descobrir se o processo antigo ainda existe na VM.
+        # ====================================================
+
+        execution_pid = execucao.pid
+
     finally:
 
         db.close()
@@ -2667,9 +2736,223 @@ def reconciliar_execucao_running(
     # finalizar esta.
     if str(agent_execution_id) != str(execution_id):
 
+        # ====================================================
+        # EXECUÇÃO NÃO É MAIS A CONHECIDA PELO AGENT
+        # ====================================================
+        #
+        # Isso NÃO significa automaticamente que a execução
+        # antiga terminou.
+        #
+        # Exemplo:
+        #
+        # Control Room:
+        #     Execution 372 = running
+        #     PID = 11868
+        #
+        # Agent:
+        #     já conhece outra execution_id
+        #
+        # Antes, o Control Room simplesmente retornava
+        # "different_agent_execution" e a Execution 372 podia
+        # permanecer eternamente como "running".
+        #
+        # Agora consultamos o próprio Agent para descobrir se
+        # o PID registrado para a execução antiga ainda existe
+        # na máquina.
+        # ====================================================
+
+        if execution_pid is None:
+
+            # Sem PID não temos evidência suficiente para
+            # afirmar que o processo desapareceu.
+            #
+            # Portanto, preservamos o comportamento seguro:
+            # a execução continua aguardando reconciliação.
+            return {
+                "status": "waiting",
+                "reason": "different_agent_execution_without_pid",
+            }
+
+        try:
+
+            # ------------------------------------------------
+            # CONSULTA O PID NA PRÓPRIA MÁQUINA DO AGENT
+            # ------------------------------------------------
+            #
+            # O endpoint /execution/process/{pid} apenas
+            # verifica a existência do processo.
+            #
+            # Ele NÃO encerra nem modifica o processo.
+            # ------------------------------------------------
+
+            process_response = requests.get(
+                (
+                    f"http://{agent_host}:"
+                    f"{agent_port}/execution/process/"
+                    f"{execution_pid}"
+                ),
+                headers={
+                    "Authorization": (
+                        f"Bearer {agent_token}"
+                    )
+                },
+                timeout=5,
+            )
+
+            # Se o Agent não conseguiu responder corretamente,
+            # não alteramos o status da Execution.
+            if process_response.status_code != 200:
+
+                return {
+                    "status": "waiting",
+                    "reason": "process_check_http_error",
+                }
+
+            try:
+
+                process_state = process_response.json()
+
+            except ValueError:
+
+                return {
+                    "status": "waiting",
+                    "reason": "process_check_invalid_json",
+                }
+
+        except requests.RequestException:
+
+            # Falha de rede não prova que o processo morreu.
+            return {
+                "status": "waiting",
+                "reason": "process_check_unreachable",
+            }
+
+        except Exception:
+
+            # Qualquer falha inesperada durante a consulta
+            # também mantém a Execution intacta.
+            return {
+                "status": "waiting",
+                "reason": "process_check_unavailable",
+            }
+
+        processo_existe = process_state.get(
+            "exists"
+        )
+
+        # ====================================================
+        # PID AINDA EXISTE
+        # ====================================================
+        #
+        # Mesmo que o Agent já esteja apontando para outra
+        # execution_id, não vamos finalizar automaticamente
+        # uma Execution cujo PID ainda está presente.
+        # ====================================================
+
+        if processo_existe is True:
+
+            return {
+                "status": "waiting",
+                "reason": "different_agent_execution_process_exists",
+            }
+
+        # ====================================================
+        # AGENT NÃO CONSEGUIU DETERMINAR
+        # ====================================================
+        #
+        # exists=None significa que o próprio Agent não teve
+        # evidência suficiente para dizer se o PID existe.
+        #
+        # Portanto, também não alteramos o banco.
+        # ====================================================
+
+        if processo_existe is not False:
+
+            return {
+                "status": "waiting",
+                "reason": "process_existence_unknown",
+            }
+
+        # ====================================================
+        # PROCESSO NÃO EXISTE MAIS
+        # ====================================================
+        #
+        # Agora temos as duas evidências:
+        #
+        # 1. o Agent já não reconhece esta execution_id como
+        #    sua execução atual/última;
+        #
+        # 2. o PID registrado pelo Control Room não existe
+        #    mais na máquina do Agent.
+        #
+        # Não sabemos se o Robot terminou com success, error
+        # ou stopped. Portanto o estado correto é "unknown".
+        # ====================================================
+
+        db = SessionLocal()
+
+        try:
+
+            # ------------------------------------------------
+            # ATUALIZAÇÃO CONDICIONAL
+            # ------------------------------------------------
+            #
+            # Revalidamos que a Execution continua "running".
+            #
+            # Isso evita sobrescrever um callback final que
+            # possa ter chegado enquanto consultávamos o Agent.
+            # ------------------------------------------------
+
+            execucao = (
+                db.query(Execution)
+                .filter(
+                    Execution.id == execution_id,
+                    Execution.agent_id == agent_id,
+                    Execution.status == "running",
+                )
+                .first()
+            )
+
+            if not execucao:
+
+                return {
+                    "status": "ignored",
+                    "reason": "execution_already_finalized",
+                }
+
+            execucao.status = "unknown"
+            execucao.finished_at = datetime.now()
+            execucao.error_message = (
+                "Estado final desconhecido. "
+                "O processo não está mais presente no Agent."
+            )
+
+            db.commit()
+
+        except Exception:
+
+            db.rollback()
+            raise
+
+        finally:
+
+            db.close()
+
+        logger.warning(
+            "Execution órfã reconciliada como unknown",
+            extra={
+                "event": "execution_reconciled_unknown",
+                "execution_id": execution_id,
+                "agent_id": agent_id,
+                "pid": execution_pid,
+            }
+        )
+
         return {
-            "status": "waiting",
-            "reason": "different_agent_execution",
+            "status": "reconciled",
+            "execution_id": execution_id,
+            "execution_status": "unknown",
+            "reason": "process_no_longer_exists",
         }
 
     # Ainda está realmente rodando.

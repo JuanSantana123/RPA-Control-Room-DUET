@@ -43,8 +43,21 @@ function buildTerminalWebSocketUrl(
    * Esta configuração acompanha o endereço atualmente usado
    * pelo cliente Axios em services/api.ts.
    */
+    /*
+   * Usa o mesmo host/IP pelo qual o DUET foi aberto.
+   *
+   * Exemplos:
+   * - http://localhost:5173
+   *     -> Control Room em http://localhost:9000
+   *
+   * - http://172.25.32.1:5173
+   *     -> Control Room em http://172.25.32.1:9000
+   *
+   * Isso evita deixar localhost ou o IP de uma máquina
+   * específicos fixados no código.
+   */
   const controlRoomUrl =
-    "http://localhost:9000";
+    `${window.location.protocol}//${window.location.hostname}:9000`;
 
   /*
    * Converte o protocolo HTTP da API para o protocolo

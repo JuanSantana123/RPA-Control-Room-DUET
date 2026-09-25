@@ -61,6 +61,50 @@ export interface Agent {
 
     // Usuário atualmente conectado na sessão Windows.
     username: string | null;
+
+
+    // ========================================================
+    // DISPLAY DESEJADO
+    // ========================================================
+    //
+    // Configuração administrada pelo Control Room.
+    // O Agent deverá aplicar essa configuração fisicamente
+    // na sessão Windows.
+    // ========================================================
+
+    display_width: number;
+    display_height: number;
+    display_scale: number;
+
+
+    // ========================================================
+    // DISPLAY ATUAL
+    // ========================================================
+    //
+    // Última resolução realmente detectada pelo RPA-Agent.
+    // Pode ser null enquanto nenhum heartbeat com telemetria
+    // de display tiver sido recebido.
+    // ========================================================
+
+    display_current: {
+        width: number;
+        height: number;
+    } | null;
+
+
+    // ========================================================
+    // RESOLUÇÕES SUPORTADAS
+    // ========================================================
+    //
+    // Capacidades reportadas pelo próprio Windows/driver
+    // daquele Device.
+    // ========================================================
+
+    display_supported: Array<{
+        width: number;
+        height: number;
+    }>;
+
 }
 
 

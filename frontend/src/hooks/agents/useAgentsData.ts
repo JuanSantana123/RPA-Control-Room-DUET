@@ -359,6 +359,96 @@ export function useAgentsData() {
                 );
             }
         };
+
+
+
+    
+    // ========================================================
+    // ALTERAR DISPLAY DO AGENT
+    // ========================================================
+    //
+    // PATCH /agents/{agent_id}/display
+    //
+    // Persiste no Control Room a configuração de display
+    // desejada para este Device.
+    //
+    // A aplicação física da resolução pelo RPA-Agent será
+    // integrada posteriormente.
+    // ========================================================
+
+    const alterarDisplayAgent =
+        async (
+            agentId: string,
+            width: number,
+            height: number,
+            scale: number
+        ) => {
+
+            try {
+
+                setError("");
+
+
+                const response =
+                    await api.patch(
+                        `/agents/${agentId}/display`,
+                        {
+                            width,
+                            height,
+                            scale,
+                        }
+                    );
+
+
+                if (
+                    response.data.status !==
+                    "success"
+                ) {
+
+                    setError(
+                        response.data.message ||
+                        "Não foi possível alterar o display do Device."
+                    );
+
+                    return;
+                }
+
+
+                // Atualiza somente o Device modificado.
+                //
+                // Mantemos a telemetria atual intacta porque
+                // display_current representa o estado REAL da
+                // máquina, e não o valor que acabamos de desejar.
+                setAgents(
+                    (agentsAtuais) =>
+                        agentsAtuais.map(
+                            (agent) =>
+                                agent.agent_id === agentId
+                                    ? {
+                                        ...agent,
+                                        display_width: width,
+                                        display_height: height,
+                                        display_scale: scale,
+                                    }
+                                    : agent
+                        )
+                );
+
+            } catch (err: any) {
+
+                console.error(
+                    "Erro ao alterar display do Agent:",
+                    err
+                );
+
+
+                setError(
+                    err.response?.data?.detail ||
+                    err.response?.data?.message ||
+                    "Não foi possível alterar o display do Device."
+                );
+            }
+        };
     // ========================================================
     // EXCLUIR AGENT
     // ========================================================
@@ -547,6 +637,7 @@ export function useAgentsData() {
 
         creatingAgent,
         alterarAmbienteAgent,
+        alterarDisplayAgent,
         cadastrarAgent,
         excluirAgent,
         baixarAgent,

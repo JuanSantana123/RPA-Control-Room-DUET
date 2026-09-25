@@ -77,6 +77,19 @@ PERMISSOES_INICIAIS = [
     ("Executions", "execute"),
     ("Executions", "stop"),
     ("Executions", "cancel"),
+
+    # ========================================================
+    # HISTORY
+    # ========================================================
+    #
+    # Controla o acesso à visão de Histórico do Control Room.
+    #
+    # O Histórico representa uma visão funcional independente
+    # das execuções atuais e, por isso, possui sua própria
+    # permissão de visualização.
+    # ========================================================
+
+    ("History", "view"),
     # ========================================================
     # ROBOTS
     # ========================================================

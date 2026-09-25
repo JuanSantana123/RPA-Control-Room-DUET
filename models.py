@@ -12,6 +12,10 @@ from sqlalchemy import (
     Boolean,
     UniqueConstraint
 )
+# JSONB é utilizado para armazenar estruturas dinâmicas
+# específicas do PostgreSQL, como as resoluções suportadas
+# reportadas pelo RPA-Agent.
+from sqlalchemy.dialects.postgresql import JSONB
 
 # Importa a classe Base usada pelo SQLAlchemy
 # para registrar os modelos do banco.
@@ -141,6 +145,143 @@ class Agent(Base):
     String,
     nullable=True
     )
+
+    # ========================================================
+    # USUÁRIO WINDOWS DE EXECUÇÃO
+    # ========================================================
+    #
+    # Define qual conta Windows deve ser utilizada para
+    # executar automações Desktop neste Agent.
+    #
+    # Estes campos representam CONFIGURAÇÃO administrativa.
+    #
+    # Eles são diferentes de "username", que representa somente
+    # o usuário atualmente detectado na sessão Windows através
+    # da telemetria enviada pelo RPA-Agent.
+    #
+    # Exemplo:
+    #
+    # execution_domain   = "RPA"
+    # execution_username = "duet_rpa"
+    #
+    # A senha NÃO é armazenada nestes campos.
+    # A credencial de autenticação será tratada separadamente
+    # através do Vault do DUET.
+    #
+    # nullable=True é mantido nesta etapa para preservar
+    # compatibilidade com Agents já cadastrados antes desta
+    # funcionalidade.
+    # ========================================================
+
+    execution_username = Column(
+        String,
+        nullable=True,
+    )
+
+    execution_domain = Column(
+        String,
+        nullable=True,
+    )
+
+    # ========================================================
+    # CREDENCIAL WINDOWS DE EXECUÇÃO
+    # ========================================================
+    #
+    # Referencia a credencial do Vault utilizada para criar
+    # ou desbloquear a sessão Windows deste Agent.
+    #
+    # IMPORTANTE:
+    #
+    # - o Agent NÃO armazena senha;
+    # - a senha permanece protegida no Vault;
+    # - este campo guarda somente o ID da credencial;
+    # - execution_username / execution_domain permanecem
+    #   temporariamente por compatibilidade com o fluxo atual.
+    #
+    # ondelete="SET NULL":
+    #     se futuramente uma credencial for removida, o Agent
+    #     permanece cadastrado, porém sem identidade de execução.
+    # ========================================================
+
+    execution_credential_id = Column(
+        Integer,
+        ForeignKey(
+            "vault_credentials.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+    # ========================================================
+    # CONFIGURAÇÃO DE DISPLAY
+    # ========================================================
+    #
+    # Configuração desejada para a sessão Windows deste Agent.
+    #
+    # O Control Room persiste a configuração.
+    # O Agent será responsável por aplicá-la fisicamente
+    # antes da execução de um Robot.
+    # ========================================================
+
+    display_width = Column(
+        Integer,
+        nullable=False,
+        default=1920,
+    )
+
+    display_height = Column(
+        Integer,
+        nullable=False,
+        default=1080,
+    )
+
+    display_scale = Column(
+        Integer,
+        nullable=False,
+        default=100,
+    )
+
+
+    # ========================================================
+    # TELEMETRIA DE DISPLAY
+    # ========================================================
+    #
+    # Diferentemente de display_width/display_height, estes
+    # campos NÃO representam configuração desejada.
+    #
+    # Eles representam o último estado real informado pelo
+    # RPA-Agent através do heartbeat.
+    #
+    # display_current_width / display_current_height:
+    #     resolução efetivamente detectada no Windows.
+    #
+    # display_supported:
+    #     resoluções que o Windows/driver informou como
+    #     disponíveis naquela máquina.
+    #
+    # Esses dados permitem que o Control Room continue exibindo
+    # a última capacidade conhecida mesmo entre heartbeats ou
+    # após reiniciar o servidor.
+    # ========================================================
+
+    display_current_width = Column(
+        Integer,
+        nullable=True,
+    )
+
+    display_current_height = Column(
+        Integer,
+        nullable=True,
+    )
+
+    display_supported = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+
+
+    # Indica se o Agent continua cadastrado e disponível
 
     # Indica se o Agent continua cadastrado e disponível
     # para utilização pelo Control Room.
@@ -2682,11 +2823,74 @@ class VaultCredential(Base):
         nullable=False
     )
 
-    # Pasta onde esta credencial está armazenada.
+
+    # ========================================================
+    # ESCOPO DA CREDENCIAL
+    # ========================================================
+    #
+    # automation:
+    #     credencial tradicional utilizada por Robots.
+    #
+    # device:
+    #     identidade utilizada por um Agent para autenticação
+    #     ou desbloqueio de sessão Windows.
+    #
+    # As credenciais já existentes serão consideradas
+    # automaticamente como "automation".
+    # ========================================================
+
+    scope = Column(
+        String,
+        nullable=False,
+        default="automation",
+        index=True,
+    )
+
+
+    # ========================================================
+    # TIPO DA CREDENCIAL
+    # ========================================================
+    #
+    # generic:
+    #     credenciais livres existentes hoje no Vault.
+    #
+    # windows:
+    #     identidade Windows utilizada pelos Devices.
+    #
+    # Futuramente poderemos acrescentar outros tipos sem criar
+    # uma nova tabela de credenciais.
+    # ========================================================
+
+    credential_type = Column(
+        String,
+        nullable=False,
+        default="generic",
+        index=True,
+    )
+
+    # ========================================================
+    # PASTA DA CREDENCIAL
+    # ========================================================
+    #
+    # Credenciais de Automação continuam pertencendo a uma pasta.
+    #
+    # Credenciais de Device não precisam participar da árvore
+    # organizacional utilizada atualmente pelo Vault:
+    #
+    #     scope = "automation" -> folder_id preenchido
+    #     scope = "device"     -> folder_id pode ser NULL
+    #
+    # A validação dessa regra será feita também no service.
+    # ========================================================
+
     folder_id = Column(
         Integer,
-        ForeignKey("vault_folders.id"),
-        nullable=False
+        ForeignKey(
+            "vault_folders.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
     )
 
     created_at = Column(

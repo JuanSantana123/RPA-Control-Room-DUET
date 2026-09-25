@@ -75,6 +75,129 @@ class AgentCreateRequest(BaseModel):
     )
 
 
+    # ========================================================
+    # USUÁRIO WINDOWS DE EXECUÇÃO
+    # ========================================================
+    #
+    # Identifica a conta Windows que deverá executar
+    # automações Desktop neste Agent.
+    #
+    # Estes campos não armazenam senha.
+    # A senha será tratada separadamente pelo Vault.
+    #
+    # Mantemos ambos opcionais nesta etapa para preservar
+    # compatibilidade com fluxos existentes de criação.
+    # ========================================================
+
+    execution_username: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "Usuário Windows configurado para executar "
+            "automações Desktop neste Agent."
+        ),
+    )
+
+    execution_domain: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "Domínio Windows ou nome da máquina associado "
+            "ao usuário de execução."
+        ),
+    )
+
+
+# ============================================================
+# ============================================================
+# ALTERAÇÃO DO USUÁRIO WINDOWS DE EXECUÇÃO
+# ============================================================
+
+class AgentExecutionUserUpdateRequest(BaseModel):
+    """
+    Configura a identidade Windows utilizada para executar
+    automações Desktop em determinado Agent.
+
+    A senha não faz parte deste contrato.
+    A credencial será obtida posteriormente através do Vault.
+    """
+
+    execution_username: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Usuário Windows que deverá executar "
+            "automações Desktop."
+        ),
+    )
+
+    execution_domain: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Domínio Windows ou nome da máquina ao qual "
+            "pertence o usuário de execução."
+        ),
+    )
+
+
+# ============================================================
+# ALTERAÇÃO DA CREDENCIAL WINDOWS DE EXECUÇÃO
+# ============================================================
+
+class AgentExecutionCredentialUpdateRequest(BaseModel):
+    """
+    Associa ao Agent uma Credencial de Dispositivo existente
+    no Vault do DUET.
+
+    O Agent não recebe nem armazena senha nesta configuração.
+
+    Apenas o identificador da credencial é persistido:
+
+        execution_credential_id
+
+    A validação de que a credencial pertence ao escopo
+    "device" e ao tipo "windows" é responsabilidade da
+    camada de serviço, não deste schema.
+    """
+
+    credential_id: int = Field(
+        ...,
+        gt=0,
+        description=(
+            "ID da Credencial de Dispositivo Windows que será "
+            "utilizada para autenticar a sessão de execução."
+        ),
+    )
+    # ============================================================
+    # ALTERAÇÃO DA CREDENCIAL WINDOWS DE EXECUÇÃO
+    # ============================================================
+
+    class AgentExecutionCredentialUpdateRequest(BaseModel):
+        """
+        Associa ao Agent uma Credencial de Dispositivo existente
+        no Vault do DUET.
+
+        O Agent não recebe nem armazena senha nesta configuração.
+
+        Apenas o identificador da credencial é persistido:
+
+            execution_credential_id
+
+        A validação de que a credencial pertence ao escopo
+        "device" e ao tipo "windows" é responsabilidade da
+        camada de serviço, não deste schema.
+        """
+
+        credential_id: int = Field(
+            ...,
+            gt=0,
+            description=(
+                "ID da Credencial de Dispositivo Windows que será "
+                "utilizada para autenticar a sessão de execução."
+            ),
+        )
+
 # ============================================================
 # ALTERAÇÃO DE AMBIENTE DO AGENT
 # ============================================================
@@ -94,4 +217,43 @@ class AgentEnvironmentUpdateRequest(BaseModel):
             "Novo ambiente operacional do Agent: "
             "'development' ou 'production'."
         ),
+    )
+
+
+# ============================================================
+# ALTERAÇÃO DE DISPLAY DO AGENT
+# ============================================================
+
+# ============================================================
+# ALTERAÇÃO DE DISPLAY DO AGENT
+# ============================================================
+
+class AgentDisplayUpdateRequest(BaseModel):
+    """
+    Configuração de display desejada para um Agent.
+
+    O Control Room persiste a resolução escolhida pelo usuário.
+
+    IMPORTANTE:
+    A validação definitiva de suporte da resolução pertence
+    ao próprio Agent, pois somente ele conhece os modos de
+    vídeo disponibilizados pelo Windows/driver da máquina.
+    """
+
+    width: int = Field(
+        ...,
+        gt=0,
+        description="Largura desejada da área de trabalho em pixels.",
+    )
+
+    height: int = Field(
+        ...,
+        gt=0,
+        description="Altura desejada da área de trabalho em pixels.",
+    )
+
+    scale: int = Field(
+        default=100,
+        gt=0,
+        description="Escala de exibição desejada em percentual.",
     )

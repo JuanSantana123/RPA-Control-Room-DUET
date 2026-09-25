@@ -96,6 +96,14 @@ def _montar_bootstrap(agent):
         "control_room_url": CONTROL_ROOM_URL,
         "port": agent.port,
         "rpa_directory": agent.rpa_directory,
+
+        # Identidade Windows configurada no Control Room
+        # para execução de automações Desktop.
+        #
+        # A senha NÃO faz parte do bootstrap.
+        # Somente usuário e domínio são distribuídos ao Agent.
+        "execution_username": agent.execution_username,
+        "execution_domain": agent.execution_domain,
     }
 
 

@@ -27,7 +27,15 @@ from auth.permissions import require_permission
 from database import SessionLocal
 from schemas.agents import (
     AgentCreateRequest,
+    AgentDisplayUpdateRequest,
     AgentEnvironmentUpdateRequest,
+
+    # Contrato utilizado para configurar o usuário Windows
+    # responsável pelas automações Desktop deste Agent.
+    AgentExecutionUserUpdateRequest,
+    # Contrato utilizado para associar uma Credencial de
+    # Dispositivo Windows ao Agent.
+    AgentExecutionCredentialUpdateRequest,
     AgentRegisterRequest,
 )
 
@@ -38,6 +46,12 @@ from agents.bootstrap_service import (
 
 from agents.catalog_service import (
     alterar_ambiente_agent_service,
+    alterar_display_agent_service,
+
+    # Configura a identidade Windows utilizada para
+    # execução de automações Desktop neste Agent.
+    alterar_usuario_execucao_agent_service,
+
     consultar_agent_service,
     criar_agent_service,
     excluir_agent_service,
@@ -57,7 +71,17 @@ from agents.monitoring_service import (
 from agents.registration_service import (
     registrar_agent_service,
 )
+# ============================================================
+# CREDENCIAL WINDOWS DE EXECUÇÃO
+# ============================================================
+#
+# Regra de negócio responsável por validar e associar uma
+# Credencial de Dispositivo Windows ao Agent.
+# ============================================================
 
+from agents.execution_credential_service import (
+    associar_credencial_execucao_agent_service,
+)
 
 # ============================================================
 # BANCO DE DADOS
@@ -441,6 +465,159 @@ def update_agent_environment(
         agent_id,
         request.environment,
         db,
+    )
+
+# ============================================================
+# ALTERAR DISPLAY DO AGENT
+# ============================================================
+
+@router.patch(
+    "/agents/{agent_id}/display",
+    summary="Alterar configuração de display do Agent",
+    description=(
+        "Altera a resolução e a escala desejadas para a "
+        "sessão Windows do Agent. "
+        "Requer a permissão 'Agents:edit'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Agents",
+                "edit",
+            )
+        ),
+    ],
+)
+def update_agent_display(
+    agent_id: str,
+    request: AgentDisplayUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Persiste a configuração de display desejada.
+
+    A aplicação física dessa configuração será realizada
+    posteriormente pelo próprio RPA-Agent.
+
+    Permissão:
+        Agents:edit
+    """
+
+    return alterar_display_agent_service(
+        agent_id=agent_id,
+        width=request.width,
+        height=request.height,
+        scale=request.scale,
+        db=db,
+    )
+
+
+
+# ============================================================
+# ALTERAR USUÁRIO WINDOWS DE EXECUÇÃO
+# ============================================================
+
+@router.patch(
+    "/agents/{agent_id}/execution-user",
+    summary="Alterar usuário Windows de execução do Agent",
+    description=(
+        "Configura a identidade Windows que deverá executar "
+        "automações Desktop neste Agent. "
+        "Este endpoint armazena somente usuário e domínio. "
+        "Nenhuma senha é recebida ou persistida aqui. "
+        "Requer a permissão 'Agents:edit'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Agents",
+                "edit",
+            )
+        ),
+    ],
+)
+def update_agent_execution_user(
+    agent_id: str,
+    request: AgentExecutionUserUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Configura o usuário Windows de execução Desktop do Agent.
+
+    A identidade é composta por:
+
+        execution_domain\\execution_username
+
+    Exemplo:
+
+        RPA\\duet_rpa
+
+    A senha não pertence a este endpoint.
+    O material de autenticação será tratado posteriormente
+    através do Vault do DUET.
+
+    Permissão:
+        Agents:edit
+    """
+
+    return alterar_usuario_execucao_agent_service(
+        agent_id=agent_id,
+        execution_username=request.execution_username,
+        execution_domain=request.execution_domain,
+        db=db,
+    )
+
+
+
+# ============================================================
+# ALTERAR CREDENCIAL WINDOWS DE EXECUÇÃO
+# ============================================================
+
+@router.patch(
+    "/agents/{agent_id}/execution-credential",
+    summary="Associar credencial Windows de execução ao Agent",
+    description=(
+        "Associa uma Credencial de Dispositivo Windows existente "
+        "no Vault ao Agent. "
+        "Nenhuma senha é recebida ou retornada por este endpoint. "
+        "Requer a permissão 'Agents:edit'."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Agents",
+                "edit",
+            )
+        ),
+    ],
+)
+def update_agent_execution_credential(
+    agent_id: str,
+    request: AgentExecutionCredentialUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Associa ao Agent a credencial Windows que será utilizada
+    posteriormente no fluxo de autenticação da sessão.
+
+    A API recebe somente:
+
+        credential_id
+
+    A validação de:
+
+        scope == "device"
+        credential_type == "windows"
+
+    pertence ao execution_credential_service.
+
+    Nenhum segredo é acessado nesta camada HTTP.
+    """
+
+    return associar_credencial_execucao_agent_service(
+        agent_id=agent_id,
+        credential_id=request.credential_id,
+        db=db,
     )
 # ============================================================
 # EXCLUIR AGENT

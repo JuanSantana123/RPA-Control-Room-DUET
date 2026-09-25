@@ -208,7 +208,36 @@ def processar_agent_heartbeat_service(
 
         agent.username = request.username
 
+        # ====================================================
+        # TELEMETRIA DE DISPLAY
+        # ====================================================
+        #
+        # O heartbeat informa o estado REAL observado pelo
+        # RPA-Agent.
+        #
+        # Isso é diferente de:
+        #
+        #     agent.display_width
+        #     agent.display_height
+        #     agent.display_scale
+        #
+        # que representam a configuração DESEJADA definida
+        # administrativamente no Control Room.
+        # ====================================================
 
+        if request.display_current is not None:
+
+            agent.display_current_width = (
+                request.display_current.get("width")
+            )
+
+            agent.display_current_height = (
+                request.display_current.get("height")
+            )
+
+        # Substituímos a capacidade conhecida pela relação mais
+        # recente enviada pelo Agent.
+        agent.display_supported = request.display_supported
         # ====================================================
         # STATUS DE COMUNICAÇÃO
         # ====================================================
@@ -244,6 +273,14 @@ def processar_agent_heartbeat_service(
         # ====================================================
         # RETORNO
         # ====================================================
+        #
+        # Além da confirmação do heartbeat, o Control Room
+        # devolve ao Agent a configuração de display DESEJADA.
+        #
+        # A configuração desejada é administrativa e fica no
+        # Control Room. O estado real continua sendo informado
+        # pelo Agent através do próximo heartbeat.
+        # ====================================================
 
         return {
             "status": "success",
@@ -254,6 +291,7 @@ def processar_agent_heartbeat_service(
             ),
             "created": False,
             "ip_changed": ip_mudou,
+
             "agent": {
                 "agent_id": agent.agent_id,
                 "name": agent.name,
@@ -261,6 +299,13 @@ def processar_agent_heartbeat_service(
                 "port": agent.port,
                 "rpa_directory": agent.rpa_directory,
                 "status": agent.status,
+            },
+
+            # Configuração que o Agent deve manter na máquina.
+            "display": {
+                "width": agent.display_width,
+                "height": agent.display_height,
+                "scale": agent.display_scale,
             },
         }
 

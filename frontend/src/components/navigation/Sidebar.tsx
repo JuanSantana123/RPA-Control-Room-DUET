@@ -32,7 +32,14 @@ import {
 */
 
 function Sidebar() {
-    const { logout } = useAuth();
+    // Recupera autenticação e autorização centralizadas.
+    //
+    // `can` consulta as permissões efetivas que o Backend
+    // devolveu para o usuário autenticado.
+    const {
+        logout,
+        can,
+    } = useAuth();
 
     const location = useLocation();
 
@@ -74,212 +81,278 @@ function Sidebar() {
 
             <nav className="sidebar-nav">
 
-                {/* Dashboard */}
+                {/* Dashboard
+                    O item somente é apresentado quando o usuário possui
+                    permissão de visualização do Dashboard.
+                */}
 
-                <Link
-                    to="/"
-                    className={`nav-item ${isActive("/") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <LayoutDashboard
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
+                {can("Dashboard:view") && (
+                    <Link
+                        to="/"
+                        className={`nav-item ${isActive("/") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <LayoutDashboard
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
 
-                    <span>
-                        Dashboard
-                    </span>
-                </Link>
+                        <span>
+                            Dashboard
+                        </span>
+                    </Link>
+                )}
+
+                {/* Devices
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Agents/Devices.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Agents:view") && (
+                    <Link
+                        to="/agents"
+                        className={`nav-item ${isActive("/agents") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <Monitor
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Devices
+                        </span>
+                    </Link>
+                )}
+                
+                {/* Desenvolvimento
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Desenvolvimento.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Development:view") && (
+                    <Link
+                        to="/development"
+                        className={`nav-item ${isActive("/development") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <Code2
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Desenvolvimento
+                        </span>
+                    </Link>
+                )}
+
+                {/* Robôs
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Robôs.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Robots:view") && (
+                    <Link
+                        to="/robots"
+                        className={`nav-item ${isActive("/robots") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <Bot
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Robôs
+                        </span>
+                    </Link>
+                )}
+
+                {/* Execuções
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Execuções.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Executions:view") && (
+                    <Link
+                        to="/executions"
+                        className={`nav-item ${isActive("/executions") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <PlayCircle
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Execuções
+                        </span>
+                    </Link>
+                )}
+
+                {/* Histórico
+                    O item somente é apresentado quando o usuário possui
+                    a permissão History:view.
+                */}
+
+                {can("History:view") && (
+                    <Link
+                        to="/history"
+                        className={`nav-item ${isActive("/history") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <History
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Histórico
+                        </span>
+                    </Link>
+                )}
+
+                {/* Agendamentos
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Agendamentos.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Schedules:view") && (
+                    <Link
+                        to="/schedules"
+                        className={`nav-item ${isActive("/schedules") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <CalendarClock
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Agendamentos
+                        </span>
+                    </Link>
+                )}
+
+                {/* Credenciais / Vault
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Credenciais/Vault.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Vault:view") && (
+                    <Link
+                        to="/vault"
+                        className={`nav-item ${isActive("/vault") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <KeyRound
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Credenciais
+                        </span>
+                    </Link>
+                )}
+
+                {/* Roles
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Roles.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Roles:view") && (
+                    <Link
+                        to="/roles"
+                        className={`nav-item ${isActive("/roles") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <ShieldCheck
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Roles
+                        </span>
+                    </Link>
+                )}
+                
+                {/* Usuários
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Usuários.
+
+                    A segurança real continua sendo validada pelo Backend.
+                */}
+
+                {can("Users:view") && (
+                    <Link
+                        to="/users"
+                        className={`nav-item ${isActive("/users") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <Users
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
+
+                        <span>
+                            Usuários
+                        </span>
+                    </Link>
+                )}
 
 
-                {/* Agents */}
 
-                <Link
-                    to="/agents"
-                    className={`nav-item ${isActive("/agents") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <Monitor
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
+                {/* Logs
+                    O item somente é apresentado quando o usuário possui
+                    permissão para visualizar a área de Logs.
 
-                    <span>
-                        Devices
-                    </span>
-                </Link>
+                    A segurança real continua sendo validada pelo Backend.
+                */}
 
-                {/* Desenvolvimento */}
+                {can("Logs:view") && (
+                    <Link
+                        to="/logs"
+                        className={`nav-item ${isActive("/logs") ? "active" : ""}`}
+                    >
+                        <span className="nav-icon">
+                            <FileText
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </span>
 
-                <Link
-                    to="/development"
-                    className={`nav-item ${isActive("/development") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <Code2
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Desenvolvimento
-                    </span>
-                </Link>
-
-
-                {/* Robôs */}
-
-                <Link
-                    to="/robots"
-                    className={`nav-item ${isActive("/robots") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <Bot
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Robôs
-                    </span>
-                </Link>
-
-
-                {/* Execuções */}
-
-                <Link
-                    to="/executions"
-                    className={`nav-item ${isActive("/executions") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <PlayCircle
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Execuções
-                    </span>
-                </Link>
-
-
-                {/* Histórico */}
-
-                <Link
-                    to="/history"
-                    className={`nav-item ${isActive("/history") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <History
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Histórico
-                    </span>
-                </Link>
-
-
-                {/* Agendamentos */}
-
-                <Link
-                    to="/schedules"
-                    className={`nav-item ${isActive("/schedules") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <CalendarClock
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Agendamentos
-                    </span>
-                </Link>
-
-
-                {/* Credenciais / Vault */}
-
-                <Link
-                    to="/vault"
-                    className={`nav-item ${isActive("/vault") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <KeyRound
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Credenciais
-                    </span>
-                </Link>
-
-
-                {/* Roles */}
-
-                <Link
-                    to="/roles"
-                    className={`nav-item ${isActive("/roles") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <ShieldCheck
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Roles
-                    </span>
-                </Link>
-
-
-                {/* Usuários */}
-
-                <Link
-                    to="/users"
-                    className={`nav-item ${isActive("/users") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <Users
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Usuários
-                    </span>
-                </Link>
-
-
-                {/* Logs */}
-
-                <Link
-                    to="/logs"
-                    className={`nav-item ${isActive("/logs") ? "active" : ""}`}
-                >
-                    <span className="nav-icon">
-                        <FileText
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                    </span>
-
-                    <span>
-                        Logs
-                    </span>
-                </Link>
+                        <span>
+                            Logs
+                        </span>
+                    </Link>
+                )}
 
             </nav>
 

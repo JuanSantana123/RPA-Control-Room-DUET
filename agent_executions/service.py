@@ -30,7 +30,26 @@ import logging
 
 from database import SessionLocal
 from models import Execution
+# ============================================================
+# BLOQUEIO AUTOMÁTICO DA SESSÃO QUANDO O AGENT FICA OCIOSO
+# ============================================================
+#
+# O processamento do resultado final apenas dispara a janela
+# de idle.
+#
+# Toda a decisão de:
+#
+# - aguardar 30 segundos;
+# - verificar queued/running;
+# - confirmar o estado local do Agent;
+# - solicitar /session/lock;
+#
+# permanece isolada em agents.idle_session_service.
+# ============================================================
 
+from agents.idle_session_service import (
+    agendar_verificacao_bloqueio_idle,
+)
 from schemas.agent_executions import (
     ExecutionResultRequest,
 )
@@ -586,7 +605,53 @@ def receber_resultado_execucao_service(
 
 
         # ====================================================
-        # 9. RETORNO
+        # 9. AGENDA VERIFICAÇÃO DE OCIOSIDADE DO AGENT
+        # ====================================================
+        #
+        # Neste ponto:
+        #
+        #     running -> success/error/stopped
+        #
+        # já foi persistido através de db.commit().
+        #
+        # Somente uma transição terminal NOVA chega aqui.
+        # Callbacks duplicados retornam anteriormente e,
+        # portanto, não criam timers adicionais.
+        #
+        # IMPORTANTE:
+        #
+        # O agendamento de idle é housekeeping.
+        #
+        # Uma eventual falha ao criar o Timer NÃO pode alterar
+        # o resultado da execução que já foi concluída e
+        # persistida no banco.
+        # ====================================================
+
+        try:
+
+            agendar_verificacao_bloqueio_idle(
+                agent_id=request.agent_id,
+            )
+
+        except Exception as idle_error:
+
+            logger.exception(
+                "Não foi possível agendar verificação de idle "
+                "após a execução",
+                extra={
+                    "event": "agent_idle_schedule_failed",
+                    "execution_id": execution_id,
+                    "agent_id": request.agent_id,
+                    "error_type": (
+                        type(idle_error).__name__
+                    ),
+                    "error_message": str(
+                        idle_error
+                    ),
+                },
+            )
+        # ====================================================
+        # 10. RETORNO
         # ====================================================
 
         return {

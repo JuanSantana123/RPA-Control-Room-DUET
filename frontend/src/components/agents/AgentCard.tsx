@@ -20,12 +20,20 @@
 // - determina regras de disponibilidade.
 // ============================================================
 
+// Estado local utilizado pelo editor de configuração do display.
+import {
+    useState,
+} from "react";
+
+
+// Ícones utilizados visualmente pelo card do Device.
 import {
     Bot,
     Download,
     FolderOpen,
     Monitor,
     Network,
+    Settings2,
     Trash2,
     UserRound,
 } from "lucide-react";
@@ -48,6 +56,14 @@ interface AgentCardProps {
             environment: AgentEnvironment
         ) => void | Promise<void>;
 
+
+    onDisplayChange:
+        (
+            agentId: string,
+            width: number,
+            height: number,
+            scale: number
+        ) => void | Promise<void>;
     onDownload:
         (
             agentId: string
@@ -67,6 +83,7 @@ interface AgentCardProps {
 function AgentCard({
     agent,
     onEnvironmentChange,
+    onDisplayChange,
     onDownload,
     onDelete,
 }: AgentCardProps) {
@@ -82,6 +99,52 @@ function AgentCard({
         agent.environment === "production"
             ? "Produção"
             : "Desenvolvimento / Homologação";
+
+    // ========================================================
+    // CONFIGURAÇÃO LOCAL DO DISPLAY
+    // ========================================================
+    //
+    // O editor permanece fechado por padrão.
+    //
+    // Os valores iniciais sempre refletem a configuração
+    // desejada atualmente persistida no Control Room.
+    // ========================================================
+
+    const [
+        editingDisplay,
+        setEditingDisplay,
+    ] = useState(false);
+
+
+    const [
+        selectedResolution,
+        setSelectedResolution,
+    ] = useState(
+        `${agent.display_width}x${agent.display_height}`
+    );
+
+
+    const [
+        selectedScale,
+        setSelectedScale,
+    ] = useState(
+        agent.display_scale
+    );
+
+
+    // Resolução realmente detectada no último heartbeat.
+    const currentResolution =
+        agent.display_current
+            ? (
+                `${agent.display_current.width}x` +
+                `${agent.display_current.height}`
+            )
+            : "Não informada";
+
+
+    // Configuração desejada atualmente persistida.
+    const configuredResolution =
+        `${agent.display_width}x${agent.display_height}`;
 
     return (
         <article className="agent-card">
@@ -239,8 +302,194 @@ function AgentCard({
 
                 </div>
 
-            </div>
 
+                {/* ==================================================
+                    DISPLAY
+                    ================================================== */}
+
+                <div className="agent-detail">
+
+                    <Monitor
+                        size={15}
+                        strokeWidth={1.8}
+                    />
+
+                    <div>
+
+                        <span>
+                            Resolução atual
+                        </span>
+
+                        <strong>
+                            {currentResolution}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div className="agent-detail">
+
+                    <Settings2
+                        size={15}
+                        strokeWidth={1.8}
+                    />
+
+                    <div>
+
+                        <span>
+                            Display configurado
+                        </span>
+
+                        <strong>
+                            {configuredResolution}
+                            {" · "}
+                            {agent.display_scale}%
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+            
+
+
+            {/* ==================================================
+                EDITOR DE DISPLAY
+                ================================================== */}
+
+            {editingDisplay && (
+
+                <div className="agent-display-editor">
+
+                    <div className="agent-display-field">
+
+                        <label>
+                            Resolução
+                        </label>
+
+                        <select
+                            value={selectedResolution}
+                            onChange={(event) => {
+                                setSelectedResolution(
+                                    event.target.value
+                                );
+                            }}
+                        >
+
+                            {agent.display_supported.map(
+                                (resolution) => {
+
+                                    const value =
+                                        `${resolution.width}x${resolution.height}`;
+
+                                    return (
+                                        <option
+                                            key={value}
+                                            value={value}
+                                        >
+                                            {value}
+                                        </option>
+                                    );
+                                }
+                            )}
+
+                        </select>
+
+                    </div>
+
+
+                    <div className="agent-display-field">
+
+                        <label>
+                            Escala
+                        </label>
+
+                        <select
+                            value={selectedScale}
+                            onChange={(event) => {
+                                setSelectedScale(
+                                    Number(
+                                        event.target.value
+                                    )
+                                );
+                            }}
+                        >
+                            <option value={100}>
+                                100%
+                            </option>
+
+                            <option value={125}>
+                                125%
+                            </option>
+
+                            <option value={150}>
+                                150%
+                            </option>
+
+                            <option value={175}>
+                                175%
+                            </option>
+
+                            <option value={200}>
+                                200%
+                            </option>
+                        </select>
+
+                    </div>
+
+
+                    <div className="agent-display-editor-actions">
+
+                        <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => {
+                                setEditingDisplay(false);
+                            }}
+                        >
+                            Cancelar
+                        </button>
+
+
+                        <button
+                            type="button"
+                            className="primary-button"
+                            disabled={
+                                !selectedResolution
+                            }
+                            onClick={async () => {
+
+                                const [
+                                    width,
+                                    height,
+                                ] =
+                                    selectedResolution
+                                        .split("x")
+                                        .map(Number);
+
+
+                                await onDisplayChange(
+                                    agent.agent_id,
+                                    width,
+                                    height,
+                                    selectedScale
+                                );
+
+
+                                setEditingDisplay(false);
+                            }}
+                        >
+                            Salvar display
+                        </button>
+
+                    </div>
+
+                </div>
+
+            )}
 
             {/* ==================================================
                 RODAPÉ / AÇÕES
@@ -308,7 +557,42 @@ function AgentCard({
                     >
                         Alterar ambiente
                     </button>
+                    
 
+
+                    {/* ==================================================
+                        ALTERAR DISPLAY
+                        ================================================== */}
+
+                    <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => {
+
+                            // Sempre reabre o editor usando os valores
+                            // atualmente persistidos no Control Room.
+                            setSelectedResolution(
+                                `${agent.display_width}x${agent.display_height}`
+                            );
+
+                            setSelectedScale(
+                                agent.display_scale
+                            );
+
+                            setEditingDisplay(
+                                (atual) => !atual
+                            );
+                        }}
+                    >
+
+                        <Settings2
+                            size={15}
+                            strokeWidth={1.8}
+                        />
+
+                        Alterar display
+
+                    </button>
 
                     {/* ==================================================
                         DOWNLOAD

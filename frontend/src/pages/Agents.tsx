@@ -81,6 +81,7 @@ function Agents() {
 
         cadastrarAgent,
         alterarAmbienteAgent,
+        alterarDisplayAgent,
         excluirAgent,
         baixarAgent,
     } = useAgentsData();
@@ -150,9 +151,14 @@ function Agents() {
                 onEnvironmentChange={
                     alterarAmbienteAgent
                 }
+                onDisplayChange={
+                    alterarDisplayAgent
+                }
                 onDownload={
                     baixarAgent
                 }
+
+
                 onDelete={
                     excluirAgent
                 }

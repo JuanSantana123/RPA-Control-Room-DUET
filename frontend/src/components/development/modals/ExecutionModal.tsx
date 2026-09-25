@@ -158,18 +158,30 @@ function ExecutionModal({
         return null;
     }
 
-
     // ========================================================
     // DISPONIBILIDADE DOS AGENTS
     // ========================================================
+    //
+    // Para iniciar uma execução, o Agent precisa estar ONLINE.
+    //
+    // A sessão Windows não precisa estar previamente "ready":
+    //
+    // - ready:
+    //      a execução pode seguir diretamente;
+    //
+    // - not_ready:
+    //      o backend tentará preparar/desbloquear a sessão
+    //      automaticamente usando a credencial Windows vinculada
+    //      ao dispositivo.
+    //
+    // Portanto, o frontend não deve impedir a seleção de um
+    // Agent apenas porque a sessão Windows está bloqueada.
+    // ========================================================
 
-    // Determina se existe pelo menos um Agent realmente pronto
-    // para receber a execução.
-    const hasReadyAgent =
+    const hasOnlineAgent =
         agents.some(
             (agent) =>
-                agent.status === "online" &&
-                agent.session_status === "ready"
+                agent.status === "online"
         );
 
 
@@ -410,8 +422,27 @@ function ExecutionModal({
                         {agents.map(
                             (agent) => {
 
+                                // ====================================================
+                                // ESTADO DO AGENT PARA SELEÇÃO
+                                // ====================================================
+                                //
+                                // ONLINE:
+                                //     pode ser escolhido para execução.
+                                //
+                                // READY:
+                                //     já possui sessão Windows utilizável.
+                                //
+                                // ONLINE + NOT_READY:
+                                //     continua selecionável porque o Control Room
+                                //     realizará a autenticação automática antes de
+                                //     iniciar o robô.
+                                // ====================================================
+
+                                const online =
+                                    agent.status === "online";
+
                                 const ready =
-                                    agent.status === "online" &&
+                                    online &&
                                     agent.session_status === "ready";
 
 
@@ -426,8 +457,10 @@ function ExecutionModal({
                                             agent.agent_id
                                         }
 
+                                        // Somente Agents realmente offline ficam
+                                        // indisponíveis no seletor.
                                         disabled={
-                                            !ready
+                                            !online
                                         }
                                     >
 
@@ -437,7 +470,9 @@ function ExecutionModal({
 
                                         {ready
                                             ? " — pronto"
-                                            : ` — ${agent.status}/${agent.session_status || "sem sessão"}`}
+                                            : online
+                                                ? " — sessão será preparada automaticamente"
+                                                : ` — ${agent.status}`}
 
                                     </option>
                                 );
@@ -455,7 +490,7 @@ function ExecutionModal({
 
                 {!loadingAgents &&
                     agents.length > 0 &&
-                    !hasReadyAgent && (
+                    !hasOnlineAgent && (
 
                     <div
                         className="alert alert-error"
@@ -468,7 +503,7 @@ function ExecutionModal({
                                 0,
                         }}
                     >
-                        Nenhum Agent está online com sessão Windows pronta.
+                        Nenhum Agent está online.
                     </div>
                 )}
 

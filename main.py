@@ -100,6 +100,17 @@ from api.vault_credentials import (
     router as vault_credentials_router,
     master_key_router
 )
+
+# Importa o router responsável exclusivamente pelas
+# credenciais Windows utilizadas pelos Devices/Agents.
+#
+# As regras de negócio permanecem isoladas em:
+#     vault/device_credentials_service.py
+#
+# Este router contém somente HTTP, autenticação e RBAC.
+from api.vault_device_credentials import (
+    router as vault_device_credentials_router,
+)
 # Importa o router técnico utilizado pelo Agent
 # para solicitar credenciais ao Control Room.
 #
@@ -187,7 +198,19 @@ app.include_router(vault_router)
 # Registra as APIs responsáveis pelas credenciais
 # armazenadas dentro do Vault.
 app.include_router(vault_credentials_router)
-
+# Registra as APIs responsáveis pelas credenciais
+# Windows utilizadas pelos Devices/Agents.
+#
+# Rotas disponibilizadas:
+#
+# POST   /vault/device-credentials
+# GET    /vault/device-credentials
+# GET    /vault/device-credentials/{credential_id}
+# PUT    /vault/device-credentials/{credential_id}
+# DELETE /vault/device-credentials/{credential_id}
+app.include_router(
+    vault_device_credentials_router
+)
 
 # Registra as APIs responsáveis pela administração
 # da Master Key do Vault.

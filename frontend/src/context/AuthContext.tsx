@@ -24,6 +24,15 @@ interface User {
     username: string;
     name: string;
     is_active: number;
+
+    // Permissões efetivas calculadas pelo Backend através
+    // das Roles atribuídas ao usuário.
+    //
+    // Exemplos:
+    // "Dashboard:view"
+    // "Users:view"
+    // "Roles:edit"
+    permissions: string[];
 }
 
 // ============================================================
@@ -37,6 +46,17 @@ interface AuthContextType {
     // Indica se o Frontend ainda está verificando
     // a sessão existente.
     loading: boolean;
+
+    // Verifica se o usuário autenticado possui uma
+    // determinada permissão efetiva do RBAC.
+    //
+    // Exemplo:
+    // can("Dashboard:view")
+    //
+    // Importante:
+    // esta verificação controla apenas a interface.
+    // O Backend continua sendo a autoridade de segurança.
+    can: (permission: string) => boolean;
 
     // Realiza o login e atualiza o usuário
     // dentro do AuthContext.
@@ -176,6 +196,35 @@ export function AuthProvider({
         }
     };
 
+
+    // ========================================================
+    // VERIFICAÇÃO DE PERMISSÃO
+    // ========================================================
+    //
+    // Centraliza a consulta das permissões efetivas recebidas
+    // do Backend.
+    //
+    // O Frontend utiliza essa função para decidir se elementos
+    // visuais devem ou não ser apresentados.
+    //
+    // A segurança real continua sendo validada pelo Backend.
+    // ========================================================
+
+    const can = (
+        permission: string
+    ): boolean => {
+
+        if (!user) {
+            return false;
+        }
+
+        return (
+            user.permissions ?? []
+        ).includes(
+            permission
+        );
+    };
+
     // ========================================================
     // DISPONIBILIZAÇÃO DO CONTEXTO
     // ========================================================
@@ -187,7 +236,9 @@ export function AuthProvider({
                 loading,
                 login,
                 logout,
+                can,
             }}
+
         >
             {children}
         </AuthContext.Provider>

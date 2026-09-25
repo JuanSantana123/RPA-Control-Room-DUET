@@ -269,33 +269,39 @@ function useDevelopmentExecution({
             setExecutionAgents(
                 agents
             );
-
-
             // ====================================================
             // PRÉ-SELEÇÃO SEGURA
             // ====================================================
             //
-            // Quando existe exatamente um Agent online e com
-            // sessão pronta, ele é automaticamente selecionado.
+            // Quando existe exatamente um Agent ONLINE, ele pode
+            // ser automaticamente selecionado.
             //
-            // Havendo múltiplas máquinas possíveis, nenhuma
-            // escolha é feita silenciosamente.
+            // A sessão Windows não precisa estar previamente
+            // "ready", pois o backend é responsável por:
+            //
+            //     - verificar a sessão;
+            //     - utilizar a credencial Windows vinculada;
+            //     - desbloquear/preparar a sessão quando necessário;
+            //     - revalidar a identidade;
+            //     - somente então iniciar a execução.
+            //
+            // Havendo múltiplos Agents online, nenhuma escolha é
+            // feita silenciosamente.
             // ====================================================
 
-            const readyAgents =
+            const onlineAgents =
                 agents.filter(
                     (agent) =>
-                        agent.status === "online" &&
-                        agent.session_status === "ready"
+                        agent.status === "online"
                 );
 
 
             if (
-                readyAgents.length === 1
+                onlineAgents.length === 1
             ) {
 
                 setSelectedExecutionAgentId(
-                    readyAgents[0].agent_id
+                    onlineAgents[0].agent_id
                 );
             }
 

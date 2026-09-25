@@ -161,8 +161,28 @@ def criar_credencial_service(
 
         agora = datetime.now()
 
+        # ----------------------------------------------------
+        # CLASSIFICAÇÃO DA CREDENCIAL
+        # ----------------------------------------------------
+        #
+        # Este service pertence exclusivamente ao fluxo antigo
+        # de Credenciais de Automação.
+        #
+        # Mesmo que o banco possua defaults, definimos os valores
+        # explicitamente aqui para manter a responsabilidade clara
+        # na camada de negócio.
+        # ----------------------------------------------------
+
         credencial = VaultCredential(
             name=request.name,
+
+            # Credencial utilizada por automações, integrações,
+            # APIs, bancos, SAP etc.
+            scope="automation",
+
+            # Tipo padrão das credenciais de Automação.
+            credential_type="generic",
+
             folder_id=request.folder_id,
             created_at=agora,
             updated_at=agora,
@@ -352,8 +372,23 @@ def listar_credenciais_service(
         # 1. MONTA QUERY
         # ====================================================
 
-        query = db.query(
-            VaultCredential
+        # ====================================================
+        # ISOLAMENTO DE ESCOPO
+        # ====================================================
+        #
+        # Este service pertence ao Vault de Automação.
+        #
+        # Credenciais de Device possuem fluxo, API e service
+        # próprios e não devem aparecer nesta listagem.
+        # ====================================================
+
+        query = (
+            db.query(
+                VaultCredential
+            )
+            .filter(
+                VaultCredential.scope == "automation"
+            )
         )
 
 
@@ -501,7 +536,10 @@ def editar_credencial_service(
         credencial = (
             db.query(VaultCredential)
             .filter(
-                VaultCredential.id == credential_id
+                # A rota antiga pode editar somente credenciais
+                # pertencentes ao escopo de Automação.
+                VaultCredential.id == credential_id,
+                VaultCredential.scope == "automation",
             )
             .first()
         )
@@ -801,7 +839,10 @@ def excluir_credencial_service(
         credencial = (
             db.query(VaultCredential)
             .filter(
-                VaultCredential.id == credential_id
+                # A exclusão deste service é exclusiva das
+                # Credenciais de Automação.
+                VaultCredential.id == credential_id,
+                VaultCredential.scope == "automation",
             )
             .first()
         )

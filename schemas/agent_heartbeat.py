@@ -89,3 +89,38 @@ class AgentHeartbeatRequest(BaseModel):
 
     # Usuário atualmente associado à sessão Windows.
     username: str | None = None
+
+    # ========================================================
+    # DISPLAY ATUAL
+    # ========================================================
+    #
+    # Resolução efetivamente detectada pelo Agent no Windows
+    # no momento deste heartbeat.
+    #
+    # Exemplo:
+    # {
+    #     "width": 1920,
+    #     "height": 1080
+    # }
+    #
+    # Este campo representa ESTADO REAL da máquina e não a
+    # configuração desejada cadastrada no Control Room.
+    # ========================================================
+
+    display_current: dict[str, int] | None = None
+
+
+    # ========================================================
+    # RESOLUÇÕES SUPORTADAS
+    # ========================================================
+    #
+    # Relação de resoluções anunciadas pelo Windows/driver
+    # desta máquina.
+    #
+    # Não existe catálogo global de resoluções no DUET:
+    # cada Agent informa suas próprias capacidades.
+    # ========================================================
+
+    display_supported: list[dict[str, int]] = Field(
+        default_factory=list
+    )

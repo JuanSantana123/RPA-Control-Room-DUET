@@ -21,6 +21,12 @@ from schemas.agents import AgentCreateRequest
 
 from agents.repository import (
     atualizar_ambiente_agent,
+    atualizar_display_agent,
+
+    # Atualiza a identidade Windows configurada para
+    # execução de automações Desktop.
+    atualizar_usuario_execucao_agent,
+
     buscar_agent_por_id,
     criar_agent,
     desativar_agent,
@@ -170,6 +176,14 @@ def criar_agent_service(
 
             port=request.port,
             rpa_directory=request.rpa_directory,
+
+            # Identidade Windows configurada para execução
+            # de automações Desktop neste Agent.
+            #
+            # Pode permanecer None para preservar Agents
+            # criados antes desta funcionalidade.
+            execution_username=request.execution_username,
+            execution_domain=request.execution_domain,
         )
 
         db.commit()
@@ -370,6 +384,239 @@ def alterar_ambiente_agent_service(
             "status": "error",
             "message": (
                 "Não foi possível alterar o ambiente do Agent."
+            ),
+            "agent_id": agent_id,
+        }
+
+
+# ============================================================
+# ALTERAR DISPLAY DO AGENT
+# ============================================================
+
+def alterar_display_agent_service(
+    agent_id: str,
+    width: int,
+    height: int,
+    scale: int,
+    db: Session,
+):
+    """
+    Persiste a configuração de display desejada para o Agent.
+
+    Nesta camada não alteramos fisicamente a resolução do Windows.
+    Essa responsabilidade pertence ao RPA-Agent.
+    """
+
+    try:
+
+        agent = buscar_agent_por_id(
+            db,
+            agent_id,
+        )
+
+        if not agent or agent.is_active != 1:
+
+            return {
+                "status": "error",
+                "message": "Agent não encontrado.",
+                "agent_id": agent_id,
+            }
+
+        atualizar_display_agent(
+            agent,
+            width=width,
+            height=height,
+            scale=scale,
+        )
+
+        db.commit()
+        db.refresh(agent)
+
+        logger.info(
+            "Configuração de display do Agent alterada",
+            extra={
+                "event": "agent_display_updated",
+                "agent_id": agent.agent_id,
+                "display_width": agent.display_width,
+                "display_height": agent.display_height,
+                "display_scale": agent.display_scale,
+            },
+        )
+
+        return {
+            "status": "success",
+            "message": (
+                "Configuração de display do Agent "
+                "alterada com sucesso."
+            ),
+            "agent": serializar_agent_consulta(agent),
+        }
+
+    except Exception as error:
+
+        db.rollback()
+
+        logger.exception(
+            "Erro ao alterar configuração de display do Agent",
+            extra={
+                "event": "agent_display_update_failed",
+                "agent_id": agent_id,
+                "error_type": type(error).__name__,
+            },
+        )
+
+        return {
+            "status": "error",
+            "message": (
+                "Não foi possível alterar a configuração "
+                "de display do Agent."
+            ),
+            "agent_id": agent_id,
+        }
+
+
+# ============================================================
+# ALTERAR USUÁRIO WINDOWS DE EXECUÇÃO
+# ============================================================
+
+def alterar_usuario_execucao_agent_service(
+    agent_id: str,
+    execution_username: str,
+    execution_domain: str,
+    db: Session,
+):
+    """
+    Configura a identidade Windows utilizada para executar
+    automações Desktop em determinado Agent.
+
+    Parameters
+    ----------
+    agent_id:
+        Identificador do Agent que será configurado.
+
+    execution_username:
+        Nome da conta Windows utilizada para execução.
+
+    execution_domain:
+        Domínio Windows ou nome da máquina associado à conta.
+
+    db:
+        Sessão SQLAlchemy fornecida pela camada HTTP.
+
+    IMPORTANTE
+    ----------
+    A senha NÃO pertence a esta configuração.
+
+    Usuário e domínio identificam a conta.
+    A credencial de autenticação será tratada posteriormente
+    através do Vault.
+    """
+
+    try:
+
+        agent = buscar_agent_por_id(
+            db,
+            agent_id,
+        )
+
+        # ----------------------------------------------------
+        # VALIDA AGENT
+        # ----------------------------------------------------
+
+        if not agent or agent.is_active != 1:
+
+            return {
+                "status": "error",
+                "message": "Agent não encontrado.",
+                "agent_id": agent_id,
+            }
+
+        # ----------------------------------------------------
+        # NORMALIZA A IDENTIDADE WINDOWS
+        # ----------------------------------------------------
+        #
+        # Remove espaços acidentais nas extremidades.
+        #
+        # Não alteramos maiúsculas/minúsculas porque queremos
+        # preservar a forma administrativa informada pelo
+        # usuário no Control Room.
+        # ----------------------------------------------------
+
+        username_normalizado = execution_username.strip()
+        domain_normalizado = execution_domain.strip()
+
+        if not username_normalizado:
+
+            return {
+                "status": "error",
+                "message": (
+                    "Usuário Windows de execução não pode "
+                    "ser vazio."
+                ),
+                "agent_id": agent_id,
+            }
+
+        if not domain_normalizado:
+
+            return {
+                "status": "error",
+                "message": (
+                    "Domínio Windows de execução não pode "
+                    "ser vazio."
+                ),
+                "agent_id": agent_id,
+            }
+
+        # ----------------------------------------------------
+        # PERSISTE CONFIGURAÇÃO
+        # ----------------------------------------------------
+
+        atualizar_usuario_execucao_agent(
+            agent,
+            execution_username=username_normalizado,
+            execution_domain=domain_normalizado,
+        )
+
+        db.commit()
+        db.refresh(agent)
+
+        logger.info(
+            "Usuário Windows de execução do Agent alterado",
+            extra={
+                "event": "agent_execution_user_updated",
+                "agent_id": agent.agent_id,
+                "execution_username": agent.execution_username,
+                "execution_domain": agent.execution_domain,
+            },
+        )
+
+        return {
+            "status": "success",
+            "message": (
+                "Usuário Windows de execução configurado "
+                "com sucesso."
+            ),
+            "agent": serializar_agent_consulta(agent),
+        }
+
+    except Exception as error:
+
+        db.rollback()
+
+        logger.exception(
+            "Erro ao alterar usuário Windows de execução do Agent",
+            extra={
+                "event": "agent_execution_user_update_failed",
+                "agent_id": agent_id,
+                "error_type": type(error).__name__,
+            },
+        )
+
+        return {
+            "status": "error",
+            "message": (
+                "Não foi possível alterar o usuário Windows "
+                "de execução do Agent."
             ),
             "agent_id": agent_id,
         }

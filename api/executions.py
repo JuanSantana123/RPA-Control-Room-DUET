@@ -1130,10 +1130,12 @@ def montar_caminho_pasta(db, folder_id):
 # Esta API retorna as execuções que já foram finalizadas,
 # incluindo execuções concluídas, com erro ou canceladas.
 #
-# Como estamos apenas consultando informações,
-# a permissão necessária é:
+# O Histórico possui uma visão funcional própria no
+# Control Room.
 #
-#     Executions:view
+# A permissão necessária é:
+#
+#     History:view
 #
 # A validação RBAC acontece antes da função ser executada.
 # ============================================================
@@ -1152,10 +1154,11 @@ def montar_caminho_pasta(db, folder_id):
     )
 )
 def list_execution_history(
-    # O histórico pertence à mesma visão funcional de
-    # Executions e utiliza a permissão de leitura.
+    # O Histórico possui uma visão funcional própria no
+    # Control Room e, por isso, utiliza sua permissão
+    # específica de visualização.
     usuario: User = Depends(
-        require_permission("Executions", "view")
+        require_permission("History", "view")
     ),
 ):
     """

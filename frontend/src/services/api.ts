@@ -18,7 +18,11 @@ import axios from "axios";
  */
 const api = axios.create({
     // Endereço da API do Control Room.
-    baseURL: "http://localhost:9000",
+    // Usa automaticamente o mesmo host/IP pelo qual o frontend foi acessado.
+    // Ex.:
+    // - localhost:5173       -> localhost:9000
+    // - 172.25.32.1:5173     -> 172.25.32.1:9000
+    baseURL: `${window.location.protocol}//${window.location.hostname}:9000`,
 
     // Permite que o navegador envie os cookies
     // de sessão nas requisições para a API.

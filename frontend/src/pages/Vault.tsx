@@ -69,6 +69,21 @@ import VaultFoldersPanel
 import VaultCredentialsPanel
     from "../components/vault/VaultCredentialsPanel";
 
+import VaultCredentialTabs, {
+    type VaultCredentialSection,
+} from "../components/vault/VaultCredentialTabs";
+// ============================================================
+// CREDENCIAIS DE DISPOSITIVO
+// ============================================================
+//
+// Painel operacional separado do fluxo de Automação.
+//
+// O Vault continua responsável apenas por composição.
+// CRUD, formulário e HTTP permanecem nos módulos específicos.
+// ============================================================
+
+import DeviceCredentialsPanel
+    from "../components/vault/device/DeviceCredentialsPanel";
 import {
     useVaultFolders,
 } from "../hooks/vault/useVaultFolders";
@@ -114,6 +129,29 @@ function Vault() {
         successMessage,
         setSuccessMessage,
     ] = useState("");
+
+
+    // ========================================================
+    // SEÇÃO ATIVA DO VAULT
+    // ========================================================
+    //
+    // A página continua sendo apenas a camada de composição.
+    //
+    // "automation":
+    //     fluxo atual de pastas + credenciais.
+    //
+    // "device":
+    //     fluxo separado de identidades Windows.
+    //
+    // Nenhum segredo é manipulado neste estado.
+    // ========================================================
+
+    const [
+        activeSection,
+        setActiveSection,
+    ] = useState<VaultCredentialSection>(
+        "automation"
+    );
 
 
     // ========================================================
@@ -276,6 +314,86 @@ function Vault() {
 
 
     // ========================================================
+    // CALLBACK - TROCA DE SEÇÃO
+    // ========================================================
+    //
+    // Ao sair do contexto de Automação:
+    //
+    // - fecha criação de pasta;
+    // - fecha criação de credencial;
+    // - fecha eventual edição de credencial;
+    // - limpa mensagens transitórias.
+    //
+    // Não removemos a pasta selecionada nem descarregamos os
+    // dados atuais. Assim, ao retornar para Automação, o estado
+    // de navegação continua preservado.
+    // ========================================================
+
+    const handleCredentialSectionChange =
+        (
+            section: VaultCredentialSection
+        ) => {
+
+            if (
+                section === activeSection
+            ) {
+                return;
+            }
+
+
+            setError("");
+            setSuccessMessage("");
+
+
+            if (
+                section === "device"
+            ) {
+
+                cancelarNovaPasta();
+                fecharNovaCredencial();
+                cancelarEdicaoCredencial();
+            }
+
+
+            setActiveSection(
+                section
+            );
+        };
+
+
+    // ========================================================
+    // CALLBACK - AÇÃO DO CABEÇALHO
+    // ========================================================
+    //
+    // O VaultHeader atual possui a ação "Nova pasta".
+    //
+    // Como pastas pertencem exclusivamente às credenciais de
+    // Automação, caso a ação seja utilizada enquanto a aba de
+    // Device estiver selecionada, retornamos primeiro para a
+    // seção correta e só então abrimos o formulário.
+    //
+    // Dessa forma não alteramos a responsabilidade do Header
+    // nesta etapa e também não criamos pasta dentro de Device.
+    // ========================================================
+
+    const handleHeaderNewFolder =
+        () => {
+
+            if (
+                activeSection !== "automation"
+            ) {
+
+                setActiveSection(
+                    "automation"
+                );
+            }
+
+
+            abrirNovaPasta();
+        };
+
+
+    // ========================================================
     // CRIAR CREDENCIAL
     // ========================================================
     //
@@ -339,7 +457,21 @@ function Vault() {
 
             <VaultHeader
                 onNewFolder={
-                    abrirNovaPasta
+                    handleHeaderNewFolder
+                }
+            />
+
+
+            {/* ==================================================
+                NAVEGAÇÃO ENTRE TIPOS DE CREDENCIAL
+                ================================================== */}
+
+            <VaultCredentialTabs
+                activeSection={
+                    activeSection
+                }
+                onChange={
+                    handleCredentialSectionChange
                 }
             />
 
@@ -348,7 +480,11 @@ function Vault() {
                 NOVA PASTA
                 ================================================== */}
 
-            {showNewFolderForm && (
+            {(
+                activeSection === "automation"
+                &&
+                showNewFolderForm
+            ) && (
 
                 <VaultFolderCreatePanel
                     folders={
@@ -410,7 +546,15 @@ function Vault() {
                 CONTEÚDO
                 ================================================== */}
 
-            <div className="vault-layout">
+            {activeSection === "automation" ? (
+
+                <div
+                    id="vault-panel-automation"
+                    role="tabpanel"
+                    aria-labelledby="vault-tab-automation"
+                >
+
+                    <div className="vault-layout">
 
                 {/* ==================================================
                     ÁRVORE DE PASTAS
@@ -532,7 +676,42 @@ function Vault() {
                     }
                 />
 
-            </div>
+                    </div>
+
+                </div>
+
+            ) : (
+
+                <div
+                    id="vault-panel-device"
+                    role="tabpanel"
+                    aria-labelledby="vault-tab-device"
+                    className="vault-credentials-panel"
+                >
+
+                    {/* ==================================================
+                        CREDENCIAIS DE DISPOSITIVO
+                        ==================================================
+
+                        Toda a lógica operacional permanece isolada no
+                        módulo Device Credentials.
+
+                        Esta página fornece apenas os setters das mensagens
+                        globais compartilhadas pelo Vault.
+                        ================================================== */}
+
+                    <DeviceCredentialsPanel
+                        setError={
+                            setError
+                        }
+                        setSuccessMessage={
+                            setSuccessMessage
+                        }
+                    />
+
+                </div>
+
+            )}
 
         </div>
     );

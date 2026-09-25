@@ -42,12 +42,21 @@ interface AgentsListProps {
     agents: Agent[];
     loading: boolean;
     error: string;
-        onEnvironmentChange:
+    onEnvironmentChange:
         (
             agentId: string,
             environment:
                 "development" |
                 "production"
+        ) => void | Promise<void>;
+
+
+    onDisplayChange:
+        (
+            agentId: string,
+            width: number,
+            height: number,
+            scale: number
         ) => void | Promise<void>;
 
     onDownload:
@@ -72,6 +81,7 @@ function AgentsList({
     loading,
     error,
     onEnvironmentChange,
+    onDisplayChange,
     onDownload,
     onDelete,
 }: AgentsListProps) {
@@ -183,6 +193,9 @@ function AgentsList({
 
                                     onEnvironmentChange={
                                         onEnvironmentChange
+                                    }
+                                    onDisplayChange={
+                                        onDisplayChange
                                     }
                                     onDownload={
                                         onDownload
