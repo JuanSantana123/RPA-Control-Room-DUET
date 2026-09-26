@@ -504,9 +504,11 @@
 }
 
 .execution-modal {
-    width: min(720px, 100%);
+    display: flex;
+    width: min(780px, 100%);
     max-height: calc(100vh - 48px);
-    overflow-y: auto;
+    overflow: hidden;
+    flex-direction: column;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 14px;
@@ -523,14 +525,121 @@
 }
 
 .execution-modal-header h2 {
-    margin: 8px 0 0;
+    margin: 0;
     color: var(--color-text-primary);
     font-size: 19px;
     font-weight: 700;
 }
 
+.execution-modal-heading {
+    min-width: 0;
+}
+
+.execution-modal-heading .page-eyebrow {
+    margin-bottom: 8px;
+}
+
+.execution-modal-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.execution-modal-header p {
+    margin: 7px 0 0;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .execution-modal-body {
+    min-height: 0;
+    overflow-y: auto;
     padding: 23px 25px 26px;
+}
+
+.execution-timeline {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0;
+    margin: 0 0 22px;
+    list-style: none;
+}
+
+.execution-timeline__step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 9px;
+    min-width: 0;
+    padding-right: 14px;
+}
+
+.execution-timeline__step:not(:last-child)::after {
+    position: absolute;
+    top: 14px;
+    right: 6px;
+    left: 36px;
+    height: 1px;
+    content: "";
+    background: var(--color-border);
+}
+
+.execution-timeline__marker {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+}
+
+.execution-timeline__step--complete .execution-timeline__marker {
+    color: var(--color-success);
+    background: var(--color-success-soft);
+    border-color: color-mix(in srgb, var(--color-success) 30%, var(--color-border));
+}
+
+.execution-timeline__step--active .execution-timeline__marker {
+    color: var(--color-info);
+    background: var(--color-info-soft);
+    border-color: color-mix(in srgb, var(--color-info) 34%, var(--color-border));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-info) 9%, transparent);
+}
+
+.execution-timeline__step--error .execution-timeline__marker {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+}
+
+.execution-timeline__step strong,
+.execution-timeline__step span {
+    display: block;
+}
+
+.execution-timeline__step strong {
+    padding-top: 1px;
+    color: var(--color-text-primary);
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.execution-timeline__step div > span {
+    margin-top: 3px;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .execution-detail-grid {
@@ -577,6 +686,68 @@
     font-size: 12px;
     line-height: 1.55;
     overflow-wrap: anywhere;
+}
+
+.execution-detail-label {
+    display: block;
+    margin-bottom: 9px;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.45px;
+    text-transform: uppercase;
+}
+
+.execution-identifiers {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.execution-identifiers > div {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+}
+
+.execution-identifiers dt {
+    color: var(--color-text-muted);
+    font-size: 11px;
+}
+
+.execution-identifiers dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.execution-detail-section--error {
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 24%, var(--color-border));
+}
+
+.execution-error-box {
+    color: var(--color-danger);
+}
+
+.execution-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px 25px;
+    background: color-mix(in srgb, var(--color-surface-muted) 62%, var(--color-surface));
+    border-top: 1px solid var(--color-border-light);
+}
+
+.execution-modal-actions > div {
+    display: flex;
+    align-items: center;
+    gap: 9px;
 }
 
 /* ============================================================
@@ -640,6 +811,40 @@
 
     .execution-modal-body {
         padding: 16px;
+    }
+
+    .execution-modal-header {
+        padding: 18px 16px 15px;
+    }
+
+    .execution-timeline {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .execution-timeline__step {
+        padding-right: 0;
+    }
+
+    .execution-timeline__step:not(:last-child)::after {
+        top: 30px;
+        right: auto;
+        bottom: -15px;
+        left: 14px;
+        width: 1px;
+        height: auto;
+    }
+
+    .execution-modal-actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+        padding: 13px 16px max(13px, env(safe-area-inset-bottom));
+    }
+
+    .execution-modal-actions > .ui-button,
+    .execution-modal-actions > div,
+    .execution-modal-actions > div > .ui-button {
+        width: 100%;
     }
 }
 /* Célula que exibe o caminho da pasta do robô. */

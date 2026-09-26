@@ -64,6 +64,7 @@ from auth.permissions import require_permission
 from schemas.executions import (
     ExecutionRequest,
     DevelopmentExecutionRequest,
+    ExecutionListResponse,
 )
 
 from executions.logging_context import (
@@ -890,6 +891,7 @@ def cancel_execution(
 # ============================================================
 @router.get(
     "/executions",
+    response_model=ExecutionListResponse,
     summary="Listar execuções em andamento",
     description=(
         "Retorna as execuções que estão atualmente aguardando "
@@ -985,8 +987,14 @@ def list_executions(
                 # ID da execução.
                 "id": execution.id,
 
+                "source_type": execution.source_type,
+
                 # ID do robô relacionado.
                 "robot_id": execution.robot_id,
+
+                "robot_version": execution.robot_version,
+
+                "project_id": execution.project_id,
 
                 # Nome do robô.
                 "robot_name": (
@@ -1049,6 +1057,10 @@ def list_executions(
                     if agent
                     else "Agent excluído"
                 ),
+
+                "schedule_id": execution.schedule_id,
+
+                "schedule_run_id": execution.schedule_run_id,
 
                 # PID real do processo no Agent.
                 "pid": execution.pid,

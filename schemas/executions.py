@@ -11,7 +11,9 @@
 # api/executions.py atual.
 # ============================================================
 
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class ExecutionRequest(BaseModel):
@@ -48,3 +50,32 @@ class DevelopmentExecutionRequest(BaseModel):
     # Agent escolhido para executar o snapshot temporário
     # do AutomationProject.
     agent_id: str
+
+
+class ExecutionListItem(BaseModel):
+    id: int = Field(..., gt=0)
+    source_type: str
+    robot_id: int | None
+    robot_version: int | None
+    project_id: int | None
+    robot_name: str
+    filename: str
+    folder_name: str | None
+    user_id: int | None
+    username: str | None
+    user_name: str | None
+    agent_id: str
+    agent_name: str
+    schedule_id: int | None
+    schedule_run_id: str | None
+    pid: int | None
+    status: str
+    started_at: str | None
+    finished_at: str | None
+    error_message: str | None
+
+
+class ExecutionListResponse(BaseModel):
+    status: Literal["success"]
+    total: int = Field(..., ge=0)
+    executions: list[ExecutionListItem]

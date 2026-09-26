@@ -1,376 +1,131 @@
-// ============================================================
-// DUET CORE - EXECUTIONS - DETAILS MODAL
-// ============================================================
-//
-// Modal visual responsável por apresentar os detalhes
-// completos de uma execução.
-//
-// Responsabilidade:
-// - apresentar informações do Robot;
-// - apresentar pasta e usuário;
-// - apresentar Agent e Agent ID;
-// - apresentar status, PID e datas;
-// - apresentar duração;
-// - apresentar arquivo executado;
-// - apresentar mensagem de erro;
-// - permitir o fechamento do modal.
-//
-// Origem dos dados:
-// - recebe a execução selecionada através de props.
-//
-// Dependências:
-// - executionFormatters para datas, duração e status;
-// - lucide-react para o ícone de fechamento.
-//
-// Este componente NÃO:
-// - consulta API;
-// - altera uma execução;
-// - controla polling;
-// - executa Stop ou Cancel;
-// - mantém a seleção da execução.
-//
-// A seleção continua pertencendo à página Executions.tsx.
-// ============================================================
+import { CircleStop, Copy, X } from "lucide-react";
 
-import {
-    X,
-} from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { IconButton } from "../ui/Button";
-
-import type {
-    Execution,
-} from "../../types/executions";
-
-import {
-    calcularDuracao,
-    formatarData,
-    formatarStatus,
-} from "../../utils/executionFormatters";
-
-
-// ============================================================
-// PROPS
-// ============================================================
+import { useInteraction } from "../../context/useInteraction";
+import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
+import type { Execution } from "../../types/executions";
+import { calcularDuracao, formatarData } from "../../utils/executionFormatters";
+import { Button, IconButton } from "../ui/Button";
+import ExecutionStatusBadge from "./ExecutionStatusBadge";
+import ExecutionTimeline from "./ExecutionTimeline";
 
 interface ExecutionDetailsModalProps {
-
-    // Execução atualmente selecionada.
-    execution: Execution;
-
-    // Solicita o fechamento do modal.
-    onClose: () => void;
+  execution: Execution;
+  stopping: boolean;
+  cancelling: boolean;
+  onClose: () => void;
+  onStopExecution: (executionId: number, agentId: string) => void | Promise<void>;
+  onCancelExecution: (executionId: number) => void | Promise<void>;
 }
 
-
-// ============================================================
-// DETAIL
-// ============================================================
-//
-// Pequeno componente visual utilizado exclusivamente dentro
-// do modal para os campos apresentados em formato de card.
-// ============================================================
-
-interface DetailProps {
-    label: string;
-    value: string;
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="execution-detail-card">
+      <span>{label}</span>
+      <strong title={value}>{value || "-"}</strong>
+    </div>
+  );
 }
 
-
-function Detail({
-    label,
-    value,
-}: DetailProps) {
-
-    return (
-        <div className="execution-detail-card">
-
-            <span>
-                {label}
-            </span>
-
-            <strong>
-                {value || "-"}
-            </strong>
-
-        </div>
-    );
-}
-
-
-// ============================================================
-// COMPONENTE PRINCIPAL
-// ============================================================
-
-function ExecutionDetailsModal({
-    execution,
-    onClose,
+export default function ExecutionDetailsModal({
+  execution,
+  stopping,
+  cancelling,
+  onClose,
+  onStopExecution,
+  onCancelExecution,
 }: ExecutionDetailsModalProps) {
-
-    const dialogRef = useRef<HTMLDivElement>(null);
-    const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-    useEffect(() => {
-        const previouslyFocused = document.activeElement instanceof HTMLElement
-            ? document.activeElement
-            : null;
-
-        closeButtonRef.current?.focus();
-
-        return () => {
-            previouslyFocused?.focus();
-        };
-    }, []);
-
-    const handleDialogKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            onClose();
-            return;
-        }
-
-        if (event.key !== "Tab") return;
-
-        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-            'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-        );
-
-        if (!focusable?.length) {
-            event.preventDefault();
-            dialogRef.current?.focus();
-            return;
-        }
-
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (!first || !last) return;
-
-        if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-        }
-    };
-
-    return (
-        <div
-            className="execution-modal-overlay"
-            role="presentation"
-            onClick={onClose}
-        >
-
-            <div
-                ref={dialogRef}
-                className="execution-modal"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="execution-details-title"
-                tabIndex={-1}
-                onKeyDown={handleDialogKeyDown}
-                onClick={(event) =>
-                    event.stopPropagation()
-                }
-            >
-
-                {/* =============================================
-                    HEADER
-                ============================================= */}
-
-                <div className="execution-modal-header">
-
-                    <div>
-
-                        <span className="page-eyebrow">
-                            DETALHES DA EXECUÇÃO
-                        </span>
-
-                        <h2 id="execution-details-title">
-                            Execução #{execution.id}
-                        </h2>
-
-                    </div>
-
-
-                    <IconButton
-                        ref={closeButtonRef}
-                        label="Fechar detalhes da execução"
-                        icon={<X size={18} aria-hidden="true" />}
-                        onClick={onClose}
-                    />
-
-                </div>
-
-
-                {/* =============================================
-                    BODY
-                ============================================= */}
-
-                <div className="execution-modal-body">
-
-                    {/* =========================================
-                        DADOS PRINCIPAIS
-                    ========================================= */}
-
-                    <div className="execution-detail-grid">
-
-                        <Detail
-                            label="Robô"
-                            value={
-                                execution.robot_name
-                            }
-                        />
-
-
-                        <Detail
-                            label="Pasta"
-                            value={
-                                execution.folder_name ||
-                                "Pasta raiz"
-                            }
-                        />
-
-
-                        <Detail
-                            label="Usuário"
-                            value={
-                                execution.user_name ||
-                                execution.username ||
-                                "Usuário desconhecido"
-                            }
-                        />
-
-
-                        <Detail
-                            label="Dispositivo"
-                            value={
-                                execution.agent_name
-                            }
-                        />
-
-
-                        <Detail
-                            label="Situação"
-                            value={
-                                formatarStatus(
-                                    execution.status
-                                )
-                            }
-                        />
-
-
-                        <Detail
-                            label="PID"
-                            value={
-                                String(
-                                    execution.pid ?? "-"
-                                )
-                            }
-                        />
-
-
-                        <Detail
-                            label="Início"
-                            value={
-                                formatarData(
-                                    execution.started_at
-                                )
-                            }
-                        />
-
-
-                        <Detail
-                            label="Fim"
-                            value={
-                                formatarData(
-                                    execution.finished_at
-                                )
-                            }
-                        />
-
-
-                        <Detail
-                            label="Duração"
-                            value={
-                                calcularDuracao(
-                                    execution.started_at,
-                                    execution.finished_at
-                                )
-                            }
-                        />
-
-
-                        <Detail
-                            label="ID do robô"
-                            value={
-                                String(
-                                    execution.robot_id
-                                )
-                            }
-                        />
-
-                    </div>
-
-
-                    {/* =========================================
-                        AGENT ID
-                    ========================================= */}
-
-                    <div className="execution-detail-section">
-
-                        <span className="execution-detail-label">
-                            ID do dispositivo
-                        </span>
-
-                        <strong className="execution-detail-value break-word">
-                            {execution.agent_id}
-                        </strong>
-
-                    </div>
-
-
-                    {/* =========================================
-                        ARQUIVO
-                    ========================================= */}
-
-                    <div className="execution-detail-section">
-
-                        <span className="execution-detail-label">
-                            Arquivo
-                        </span>
-
-                        <strong className="execution-detail-value break-word">
-                            {execution.filename}
-                        </strong>
-
-                    </div>
-
-
-                    {/* =========================================
-                        ERRO
-                    ========================================= */}
-
-                    <div className="execution-detail-section">
-
-                        <span className="execution-detail-label">
-                            Mensagem de erro
-                        </span>
-
-                        <div className="execution-error-box">
-                            {execution.error_message ||
-                                "Nenhum erro registrado."}
-                        </div>
-
-                    </div>
-
-                </div>
-
+  const { notify } = useInteraction();
+  const busy = stopping || cancelling;
+  const dialogRef = useDialogFocus<HTMLDivElement>({ open: true, onClose, closeOnEscape: !busy });
+
+  const copyDiagnostics = async () => {
+    const summary = [
+      `Execução: #${execution.id}`,
+      `Status: ${execution.status}`,
+      `Robô: ${execution.robot_name}`,
+      `Dispositivo: ${execution.agent_name} (${execution.agent_id})`,
+      `PID: ${execution.pid ?? "não informado"}`,
+      `Início: ${execution.started_at ?? "não iniciado"}`,
+      `Fim: ${execution.finished_at ?? "não concluído"}`,
+      execution.schedule_run_id ? `Ocorrência: ${execution.schedule_run_id}` : "",
+    ].filter(Boolean).join("\n");
+
+    try {
+      await navigator.clipboard.writeText(summary);
+      notify({ tone: "success", title: "Resumo copiado", message: "Os identificadores operacionais estão prontos para compartilhar com o suporte." });
+    } catch {
+      notify({ tone: "danger", title: "Não foi possível copiar", message: "Seu navegador bloqueou o acesso à área de transferência." });
+    }
+  };
+
+  return (
+    <div className="execution-modal-overlay" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget && !busy) onClose();
+    }}>
+      <div ref={dialogRef} className="execution-modal" role="dialog" aria-modal="true"
+        aria-labelledby="execution-details-title" aria-describedby="execution-details-description" tabIndex={-1}>
+        <header className="execution-modal-header">
+          <div className="execution-modal-heading">
+            <span className="page-eyebrow">CENTRAL DA EXECUÇÃO</span>
+            <div className="execution-modal-title-row">
+              <h2 id="execution-details-title">Execução #{execution.id}</h2>
+              <ExecutionStatusBadge status={execution.status} />
             </div>
+            <p id="execution-details-description">{execution.robot_name} em {execution.agent_name}</p>
+          </div>
+          <IconButton data-autofocus label="Fechar detalhes da execução" icon={<X size={18} aria-hidden="true" />}
+            disabled={busy} onClick={onClose} />
+        </header>
 
+        <div className="execution-modal-body">
+          <ExecutionTimeline execution={execution} />
+
+          <div className="execution-detail-grid">
+            <Detail label="Origem" value={execution.source_type === "development" ? "Desenvolvimento" : execution.schedule_id ? `Agendamento #${execution.schedule_id}` : "Execução manual"} />
+            <Detail label="Versão do robô" value={execution.robot_version ? `v${execution.robot_version}` : "Não informada"} />
+            <Detail label="Usuário" value={execution.user_name || execution.username || "Usuário desconhecido"} />
+            <Detail label="PID" value={String(execution.pid ?? "Não iniciado")} />
+            <Detail label="Início" value={formatarData(execution.started_at)} />
+            <Detail label="Duração" value={calcularDuracao(execution.started_at, execution.finished_at)} />
+          </div>
+
+          <section className="execution-detail-section" aria-labelledby="execution-identifiers-title">
+            <span className="execution-detail-label" id="execution-identifiers-title">Identificadores operacionais</span>
+            <dl className="execution-identifiers">
+              <div><dt>Dispositivo</dt><dd>{execution.agent_id}</dd></div>
+              <div><dt>Pacote</dt><dd>{execution.filename}</dd></div>
+              {execution.folder_name && <div><dt>Pasta</dt><dd>{execution.folder_name}</dd></div>}
+              {execution.schedule_run_id && <div><dt>Ocorrência</dt><dd>{execution.schedule_run_id}</dd></div>}
+            </dl>
+          </section>
+
+          {execution.error_message && (
+            <section className="execution-detail-section execution-detail-section--error">
+              <span className="execution-detail-label">Falha registrada</span>
+              <div className="execution-error-box">{execution.error_message}</div>
+            </section>
+          )}
         </div>
-    );
+
+        <footer className="execution-modal-actions">
+          <Button variant="ghost" size="sm" onClick={() => void copyDiagnostics()}>
+            <Copy size={15} aria-hidden="true" /> Copiar resumo
+          </Button>
+          <div>
+            <Button variant="secondary" onClick={onClose} disabled={busy}>Fechar</Button>
+            {execution.status === "queued" && (
+              <Button variant="danger" busy={cancelling} loadingLabel="Cancelando execução"
+                onClick={() => void onCancelExecution(execution.id)}>Cancelar da fila</Button>
+            )}
+            {execution.status === "running" && (
+              <Button variant="danger" busy={stopping} loadingLabel="Parando execução"
+                onClick={() => void onStopExecution(execution.id, execution.agent_id)}>
+                <CircleStop size={15} aria-hidden="true" /> Parar execução
+              </Button>
+            )}
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
 }
-
-
-export default ExecutionDetailsModal;

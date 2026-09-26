@@ -22,6 +22,8 @@ const allCases = [
   { name: "development-1440-light", route: "/development", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "executions-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "executions-filter-navigation-768-dark", route: "/executions", width: 768, height: 900, colorScheme: "dark", authenticated: true, interaction: "execution-filters" },
+  { name: "executions-details-390-dark", route: "/executions", width: 390, height: 844, colorScheme: "dark", authenticated: true, interaction: "execution-details" },
+  { name: "executions-details-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true, interaction: "execution-details" },
   { name: "executions-empty-1440-light", route: "/executions", width: 1440, height: 900, colorScheme: "light", authenticated: true, forceEmpty: true },
   { name: "history-1440-dark", route: "/history", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "history-1440-light", route: "/history", width: 1440, height: 900, colorScheme: "light", authenticated: true },
@@ -103,7 +105,7 @@ try {
             : pathname === "/roles" || pathname === "/roles/permissions" || pathname === "/auth/users"
               ? []
             : pathname === "/executions"
-              ? { executions: testCase.forceEmpty ? [] : [{ id: 142, robot_id: 9, robot_name: "Conciliação financeira", filename: "conciliacao.zip", agent_id: "runner-03", agent_name: "Financeiro 03", status: "running", started_at: "2026-09-26T14:45:00Z", finished_at: null, error_message: null }] }
+              ? { status: "success", total: testCase.forceEmpty ? 0 : 1, executions: testCase.forceEmpty ? [] : [{ id: 142, source_type: "robot", robot_id: 9, robot_version: 3, project_id: null, robot_name: "Conciliação financeira", filename: "conciliacao.zip", folder_name: "Financeiro / Fechamento", user_id: 1, username: "operador", user_name: "Operador DUET", agent_id: "runner-03", agent_name: "Financeiro 03", schedule_id: null, schedule_run_id: null, pid: 4872, status: "running", started_at: "2026-09-26T14:45:00Z", finished_at: null, error_message: null }] }
               : pathname === "/logs"
                 ? { status: "success", total: 3, truncated: false, logs: [
                     { timestamp: "2026-09-26T18:42:03Z", level: "ERROR", message: "Falha controlada ao consultar o Device.", event: "agent_health_failed", request_id: "req-9001", service: "control-room" },
@@ -167,6 +169,16 @@ try {
       await page.waitForFunction(() => document.querySelector('#filtro-robo')?.textContent?.includes("Todos os robôs"));
       await page.waitForFunction(() => document.querySelector('button') && [...document.querySelectorAll('button')].find((button) => button.textContent?.includes("Limpar filtros"))?.disabled);
       filterNavigationWorks = true;
+    }
+    let executionDetailsWorks = null;
+    if (testCase.interaction === "execution-details") {
+      await page.getByRole("button", { name: "Ver detalhes da execução 142" }).click();
+      const dialog = page.getByRole("dialog", { name: "Execução #142" });
+      await dialog.waitFor();
+      executionDetailsWorks = await dialog.locator(".execution-timeline__step").count() === 3
+        && await dialog.getByRole("button", { name: "Parar execução" }).isVisible()
+        && await dialog.getByText("Financeiro / Fechamento").isVisible();
+      await page.waitForTimeout(180);
     }
     let logsExplorerWorks = null;
     if (testCase.interaction === "logs-filter") {
@@ -244,13 +256,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, mobileNavigation, filterNavigationWorks, logsExplorerWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, mobileNavigation, filterNavigationWorks, executionDetailsWorks, logsExplorerWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.filterNavigationWorks === false || result.logsExplorerWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.logsExplorerWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

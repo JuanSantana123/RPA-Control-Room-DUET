@@ -111,11 +111,15 @@ function Executions() {
     // ========================================================
 
     const [
-        execucaoSelecionada,
-        setExecucaoSelecionada,
-    ] = useState<Execution | null>(
+        execucaoSelecionadaId,
+        setExecucaoSelecionadaId,
+    ] = useState<number | null>(
         null
     );
+
+    const execucaoSelecionada = executions.find(
+        (execution) => execution.id === execucaoSelecionadaId
+    ) ?? null;
 
 
     // ========================================================
@@ -242,7 +246,7 @@ function Executions() {
                     cancelandoExecucao
                 }
                 onViewDetails={
-                    setExecucaoSelecionada
+                    (execution: Execution) => setExecucaoSelecionadaId(execution.id)
                 }
                 onStopExecution={
                     pararExecucao
@@ -264,10 +268,14 @@ function Executions() {
                         execucaoSelecionada
                     }
                     onClose={() =>
-                        setExecucaoSelecionada(
+                        setExecucaoSelecionadaId(
                             null
                         )
                     }
+                    stopping={parandoExecucao === execucaoSelecionada.id}
+                    cancelling={cancelandoExecucao === execucaoSelecionada.id}
+                    onStopExecution={pararExecucao}
+                    onCancelExecution={cancelarExecucao}
                 />
             )}
 

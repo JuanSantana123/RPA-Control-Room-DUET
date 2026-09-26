@@ -36,7 +36,10 @@ export interface Execution {
     // ========================================================
 
     // Identificação permanente do Robot.
-    robot_id: number;
+    robot_id: number | null;
+    robot_version: number | null;
+    project_id: number | null;
+    source_type: string;
 
     // Nome do Robot.
     robot_name: string;
@@ -54,6 +57,9 @@ export interface Execution {
 
     // Nome apresentado para o Agent.
     agent_name: string;
+
+    schedule_id: number | null;
+    schedule_run_id: string | null;
 
 
     // ========================================================
