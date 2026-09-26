@@ -38,6 +38,7 @@ import {
 import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     User,
@@ -50,6 +51,8 @@ import type {
 // ============================================================
 
 export function useUsersData() {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // USUÁRIOS / PERMISSÕES
@@ -417,10 +420,12 @@ export function useUsersData() {
             ) => void
         ) => {
 
-            const confirmar =
-                window.confirm(
-                    "Tem certeza que deseja excluir este usuário?"
-                );
+            const confirmar = await confirm({
+                title: "Excluir usuário?",
+                description: "O acesso será removido, mas registros históricos devem continuar identificando o autor das operações.",
+                confirmLabel: "Excluir usuário",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {
@@ -482,16 +487,14 @@ export function useUsersData() {
                 user.is_active !== 1;
 
 
-            const acao =
-                novoStatus
-                    ? "ativar"
-                    : "desativar";
-
-
-            const confirmar =
-                window.confirm(
-                    `Tem certeza que deseja ${acao} o usuário "${user.name}"?`
-                );
+            const confirmar = await confirm({
+                title: `${novoStatus ? "Ativar" : "Desativar"} “${user.name}”?`,
+                description: novoStatus
+                    ? "O usuário poderá voltar a iniciar sessão conforme seus perfis de acesso."
+                    : "As sessões e novos acessos deste usuário serão restringidos conforme a política do Control Room.",
+                confirmLabel: novoStatus ? "Ativar usuário" : "Desativar usuário",
+                tone: novoStatus ? "default" : "danger",
+            });
 
 
             if (!confirmar) {

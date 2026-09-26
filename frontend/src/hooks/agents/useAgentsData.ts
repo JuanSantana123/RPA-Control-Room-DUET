@@ -41,6 +41,7 @@ import type {
     NewAgentForm,
 } from "../../types/agents";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 
 // ============================================================
@@ -48,6 +49,8 @@ import { getApiErrorMessage } from "../../utils/apiErrors";
 // ============================================================
 
 export function useAgentsData() {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // AGENTS
@@ -469,10 +472,13 @@ export function useAgentsData() {
         ) => {
 
             // Mantém exatamente a confirmação existente.
-            const confirmar =
-                window.confirm(
-                    `Deseja realmente excluir o Agent "${agentName}"?`
-                );
+            const confirmar = await confirm({
+                title: `Excluir o Device “${agentName}”?`,
+                description: "O Device deixará de receber novas automações e será removido do gerenciamento do Control Room.",
+                detail: "Confirme que não existem execuções em andamento nem agendamentos dependentes deste Device.",
+                confirmLabel: "Excluir Device",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {

@@ -60,6 +60,15 @@ try {
       return style.outlineStyle !== "none" || style.boxShadow !== "none";
     });
 
+    const confirmationTrigger = page.getByRole("button", { name: "Abrir confirmação" });
+    await confirmationTrigger.click();
+    const confirmationDialog = page.getByRole("alertdialog", { name: "Publicar automação?" });
+    await confirmationDialog.waitFor();
+    const dialogFocused = await confirmationDialog.evaluate((dialog) => dialog.contains(document.activeElement));
+    await page.keyboard.press("Escape");
+    await confirmationDialog.waitFor({ state: "hidden" });
+    const focusReturned = await confirmationTrigger.evaluate((trigger) => trigger === document.activeElement);
+
     const metrics = await page.evaluate(() => {
       const visible = (element) => {
         const style = getComputedStyle(element);
@@ -87,13 +96,13 @@ try {
     });
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, focusVisible, consoleErrors });
+    results.push({ ...testCase, ...metrics, focusVisible, dialogFocused, focusReturned, consoleErrors });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.horizontalOverflow || result.unnamedButtons || result.unlabelledFields || result.undersizedButtons.length || !result.focusVisible || !result.reducedMotionSafe || result.consoleErrors.length);
+const failures = results.filter((result) => result.horizontalOverflow || result.unnamedButtons || result.unlabelledFields || result.undersizedButtons.length || !result.focusVisible || !result.dialogFocused || !result.focusReturned || !result.reducedMotionSafe || result.consoleErrors.length);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

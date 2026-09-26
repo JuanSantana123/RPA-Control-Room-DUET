@@ -56,6 +56,7 @@ import api
 import {
     getApiErrorMessage,
 } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 
 import type {
@@ -136,6 +137,8 @@ function useDevelopmentProjectActions({
     onError,
 }: UseDevelopmentProjectActionsParams): UseDevelopmentProjectActionsResult {
 
+    const { confirm } = useInteraction();
+
     // ========================================================
     // ESTADO OPERACIONAL
     // ========================================================
@@ -197,11 +200,12 @@ function useDevelopmentProjectActions({
         // atualmente pelo Development.tsx.
         // ----------------------------------------------------
 
-        const confirmed =
-            window.confirm(
-                `Excluir o projeto "${project.name}"?\n\n` +
-                "O projeto será removido da área de Desenvolvimento."
-            );
+        const confirmed = await confirm({
+            title: `Mover “${project.name}” para a Lixeira?`,
+            description: "O projeto deixará a área ativa de Desenvolvimento, mas poderá ser restaurado posteriormente.",
+            confirmLabel: "Mover para a Lixeira",
+            tone: "danger",
+        });
 
 
         if (!confirmed) {

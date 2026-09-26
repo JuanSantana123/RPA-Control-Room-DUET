@@ -35,6 +35,7 @@ import {
 import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     VaultFolder,
@@ -70,6 +71,8 @@ export function useVaultFolders({
     onFolderSelected,
     onSelectedFolderDeleted,
 }: UseVaultFoldersProps) {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // ÁRVORE / SELEÇÃO
@@ -351,10 +354,13 @@ export function useVaultFolders({
             folder: VaultFolder
         ) => {
 
-            const confirmar =
-                window.confirm(
-                    `Deseja realmente excluir a pasta "${folder.name}"?`
-                );
+            const confirmar = await confirm({
+                title: `Excluir a pasta “${folder.name}”?`,
+                description: "A pasta será removida da organização do Vault.",
+                detail: "Credenciais ou subpastas existentes podem bloquear esta operação para proteger dados sensíveis.",
+                confirmLabel: "Excluir pasta",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {

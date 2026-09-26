@@ -50,6 +50,7 @@ import {
 import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 
 import type {
@@ -152,6 +153,8 @@ function useDevelopmentTrash({
     onProjectRestored,
     onError,
 }: UseDevelopmentTrashParams): UseDevelopmentTrashResult {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // ESTADOS
@@ -390,17 +393,20 @@ function useDevelopmentTrash({
         // antes da exclusão irreversível.
         // ====================================================
 
-        const confirmation =
-            window.prompt(
-                `Esta ação é irreversível.\n\n` +
-                `Para excluir permanentemente "${project.name}", ` +
-                "digite exatamente o nome do projeto:"
-            );
+        const confirmed = await confirm({
+            title: `Excluir “${project.name}” permanentemente?`,
+            description: "Esta ação é irreversível e removerá o workspace associado ao projeto.",
+            detail: "O histórico operacional preservado pelo Control Room não deve ser confundido com os arquivos editáveis deste projeto.",
+            confirmLabel: "Excluir permanentemente",
+            tone: "danger",
+            requireText: {
+                expected: project.name,
+                label: `Digite “${project.name}” para confirmar`,
+            },
+        });
 
 
-        if (
-            confirmation !== project.name
-        ) {
+        if (!confirmed) {
             return;
         }
 

@@ -34,6 +34,7 @@ import {
 } from "react";
 
 import api from "../../services/api";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     Schedule,
@@ -45,6 +46,8 @@ import type {
 // ============================================================
 
 export function useSchedulesData() {
+
+    const { confirm, notify } = useInteraction();
 
     // ========================================================
     // LISTA DE AGENDAMENTOS
@@ -215,10 +218,12 @@ export function useSchedulesData() {
         ) => {
 
             // Mantém exatamente a confirmação existente.
-            const confirmar =
-                window.confirm(
-                    "Tem certeza que deseja excluir este agendamento?"
-                );
+            const confirmar = await confirm({
+                title: "Excluir agendamento?",
+                description: "As ocorrências futuras deixarão de ser criadas. Execuções já registradas permanecerão no histórico.",
+                confirmLabel: "Excluir agendamento",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {
@@ -243,10 +248,7 @@ export function useSchedulesData() {
                     data.status !== "success"
                 ) {
 
-                    window.alert(
-                        data.message ||
-                        "Não foi possível excluir o agendamento."
-                    );
+                    notify({ tone: "danger", title: "Agendamento não excluído", message: data.message || "O Control Room recusou a exclusão." });
 
 
                     return;
@@ -255,6 +257,7 @@ export function useSchedulesData() {
 
                 // Atualiza a lista após exclusão.
                 await carregarAgendamentos();
+                notify({ tone: "success", title: "Agendamento excluído", message: "As próximas ocorrências não serão mais criadas." });
 
             } catch (err) {
 
@@ -264,9 +267,7 @@ export function useSchedulesData() {
                 );
 
 
-                window.alert(
-                    "Erro ao comunicar com o Control Room."
-                );
+                notify({ tone: "danger", title: "Falha de comunicação", message: "Não foi possível excluir o agendamento no Control Room." });
             }
         };
 
@@ -304,10 +305,7 @@ export function useSchedulesData() {
                     data.status !== "success"
                 ) {
 
-                    window.alert(
-                        data.message ||
-                        "Não foi possível alterar o status."
-                    );
+                    notify({ tone: "danger", title: "Status não alterado", message: data.message || "O Control Room recusou a alteração." });
 
 
                     return;
@@ -316,6 +314,7 @@ export function useSchedulesData() {
 
                 // Atualiza a tabela após a alteração.
                 await carregarAgendamentos();
+                notify({ tone: "success", title: ativo ? "Agendamento ativado" : "Agendamento pausado" });
 
             } catch (err) {
 
@@ -325,9 +324,7 @@ export function useSchedulesData() {
                 );
 
 
-                window.alert(
-                    "Erro ao comunicar com o Control Room."
-                );
+                notify({ tone: "danger", title: "Falha de comunicação", message: "Não foi possível alterar o agendamento no Control Room." });
             }
         };
 

@@ -9,8 +9,10 @@ import { Switch } from "../components/ui/Switch";
 import { TextAreaField } from "../components/ui/TextAreaField";
 import CardCommentsSection from "../components/development/kanban/CardCommentsSection";
 import EmptyState from "../components/ui/EmptyState";
+import { useInteraction } from "../context/useInteraction";
 
 export default function ComponentLab() {
+  const { confirm, notify } = useInteraction();
   const [selectValue, setSelectValue] = useState("development");
   const [query, setQuery] = useState("");
   const [comment, setComment] = useState("");
@@ -111,6 +113,50 @@ export default function ComponentLab() {
         <div className="component-lab__skeletons">
           <CardGridSkeleton count={2} />
           <TableSkeleton columns={3} rows={3} />
+        </div>
+      </section>
+
+      <section className="component-lab__section" aria-labelledby="lab-interactions">
+        <div className="component-lab__heading">
+          <div><small>Compostos</small><h2 id="lab-interactions">Confirmações e notificações</h2></div>
+          <span>foco contido, teclado, contexto e retorno à ação de origem</span>
+        </div>
+        <div className="component-lab__matrix">
+          <Button
+            onClick={() => void confirm({
+              title: "Publicar automação?",
+              description: "A versão validada ficará disponível para novas execuções.",
+              detail: "Execuções já iniciadas continuam usando a versão anterior.",
+              confirmLabel: "Publicar versão",
+            })}
+          >
+            Abrir confirmação
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => void confirm({
+              title: "Excluir projeto permanentemente?",
+              description: "Arquivos, comentários e histórico de desenvolvimento serão removidos.",
+              detail: "Digite o nome do projeto para confirmar.",
+              confirmLabel: "Excluir projeto",
+              tone: "danger",
+              requireText: {
+                expected: "Conciliação Financeira",
+              },
+            })}
+          >
+            Confirmação crítica
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => notify({
+              title: "Sincronização concluída",
+              message: "Os dados mais recentes já estão disponíveis.",
+              tone: "success",
+            })}
+          >
+            Exibir notificação
+          </Button>
         </div>
       </section>
     </div>

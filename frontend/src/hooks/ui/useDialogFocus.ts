@@ -38,8 +38,9 @@ export function useDialogFocus<T extends HTMLElement>({
 
     const focusInitialControl = window.requestAnimationFrame(() => {
       const dialog = dialogRef.current;
+      const preferredControl = dialog?.querySelector<HTMLElement>("[data-autofocus]");
       const firstControl = dialog?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-      (firstControl ?? dialog)?.focus();
+      (preferredControl ?? firstControl ?? dialog)?.focus();
     });
 
     const handleKeyDown = (event: KeyboardEvent) => {

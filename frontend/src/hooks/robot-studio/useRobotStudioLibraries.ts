@@ -47,6 +47,7 @@ import {
     pathBelongsToNode,
     preserveLoadedFileContents,
 } from "../../utils/robotStudioTree";
+import { useInteraction } from "../../context/useInteraction";
 
 
 interface UseRobotStudioLibrariesParams {
@@ -193,6 +194,8 @@ export function useRobotStudioLibraries({
     openFile,
     carregarCheckout,
 }: UseRobotStudioLibrariesParams) {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // MODAL PRINCIPAL
@@ -1008,10 +1011,13 @@ export function useRobotStudioLibraries({
                 }
 
 
-                const confirmed =
-                    window.confirm(
-                        `Remover a biblioteca ${importName} deste projeto?`
-                    );
+                const confirmed = await confirm({
+                    title: "Remover biblioteca do projeto?",
+                    description: `A dependência “${importName}” será removida deste projeto.`,
+                    detail: "Referências existentes no código poderão deixar de funcionar.",
+                    confirmLabel: "Remover biblioteca",
+                    tone: "danger",
+                });
 
 
                 if (!confirmed) {

@@ -18,7 +18,7 @@
 //
 // - renderiza componentes;
 // - abre modal;
-// - pede confirmação com window.confirm;
+// - pede confirmação ao usuário;
 // - conhece árvore de pastas;
 // - conhece credenciais de Automação;
 // - conhece Agents;

@@ -54,6 +54,7 @@ import type {
 import {
     obterMensagemErro,
 } from "../../utils/robotErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 
 interface UseRobotsDataParams {
@@ -96,6 +97,8 @@ export function useRobotsData({
     setError,
     setSuccess,
 }: UseRobotsDataParams) {
+
+    const { confirm } = useInteraction();
 
     const navigate =
         useNavigate();
@@ -420,10 +423,13 @@ export function useRobotsData({
         robot: Robot
     ) => {
 
-        const confirmar =
-            window.confirm(
-                `Deseja realmente excluir o robô "${robot.name}"?`
-            );
+        const confirmar = await confirm({
+            title: `Excluir o robô “${robot.name}”?`,
+            description: "A automação deixará de ficar disponível para novas execuções.",
+            detail: "O histórico existente deve permanecer preservado, mas versões e dependências ativas podem impedir a exclusão.",
+            confirmLabel: "Excluir robô",
+            tone: "danger",
+        });
 
 
         if (!confirmar) {

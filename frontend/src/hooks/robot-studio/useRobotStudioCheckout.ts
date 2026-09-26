@@ -32,6 +32,7 @@ import {
 
 import api from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     ProjectCheckoutState,
@@ -70,6 +71,8 @@ export function useRobotStudioCheckout({
     canForceCheckoutRelease,
     dirtyFilesCount,
 }: UseRobotStudioCheckoutParams) {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // OUTPUT
@@ -524,11 +527,13 @@ export function useRobotStudioCheckout({
                 "outro usuário";
 
 
-            const confirmed =
-                window.confirm(
-                    `Forçar a liberação do Checkout de ${checkoutOwner}?\n\n` +
-                    "O usuário perderá o bloqueio de edição deste projeto."
-                );
+            const confirmed = await confirm({
+                title: "Forçar liberação do checkout?",
+                description: `${checkoutOwner} perderá o bloqueio de edição deste projeto.`,
+                detail: "Alterações ainda não salvas pelo usuário podem ser perdidas.",
+                confirmLabel: "Forçar liberação",
+                tone: "danger",
+            });
 
 
             if (!confirmed) {

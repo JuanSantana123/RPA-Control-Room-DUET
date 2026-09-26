@@ -30,6 +30,7 @@ import {
 } from "react";
 
 import api from "../../services/api";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     Execution,
@@ -37,6 +38,8 @@ import type {
 
 
 export function useExecutionsData() {
+
+    const { confirm, notify } = useInteraction();
 
     // ========================================================
     // ESTADOS PRINCIPAIS
@@ -168,10 +171,13 @@ export function useExecutionsData() {
             agentId: string
         ) => {
 
-            const confirmar =
-                window.confirm(
-                    `Deseja realmente parar a execução #${executionId}?`
-                );
+            const confirmar = await confirm({
+                title: `Parar execução #${executionId}?`,
+                description: "O Device receberá um comando para interromper o processo em andamento.",
+                detail: "A interrupção pode deixar alterações externas incompletas. Confirme somente após avaliar o impacto operacional.",
+                confirmLabel: "Parar execução",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {
@@ -220,11 +226,11 @@ export function useExecutionsData() {
                     data.status !== "success"
                 ) {
 
-                    window.alert(
-                        data.message ||
-                        data.error ||
-                        "Não foi possível parar a execução."
-                    );
+                    notify({
+                        tone: "danger",
+                        title: "A execução não foi interrompida",
+                        message: data.message || data.error || "O Control Room recusou o comando de parada.",
+                    });
 
 
                     return;
@@ -232,6 +238,7 @@ export function useExecutionsData() {
 
 
                 await carregarExecucoes();
+                notify({ tone: "success", title: "Comando de parada enviado", message: `A execução #${executionId} está sendo interrompida.` });
 
             } catch (err) {
 
@@ -241,9 +248,7 @@ export function useExecutionsData() {
                 );
 
 
-                window.alert(
-                    "Não foi possível comunicar com o Control Room."
-                );
+                notify({ tone: "danger", title: "Falha de comunicação", message: "Não foi possível enviar o comando de parada ao Control Room." });
 
             } finally {
 
@@ -263,10 +268,12 @@ export function useExecutionsData() {
             executionId: number
         ) => {
 
-            const confirmar =
-                window.confirm(
-                    `Deseja realmente cancelar a execução #${executionId} da fila?`
-                );
+            const confirmar = await confirm({
+                title: `Cancelar execução #${executionId}?`,
+                description: "A solicitação será retirada da fila antes de iniciar em um Device.",
+                confirmLabel: "Cancelar execução",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {
@@ -297,11 +304,11 @@ export function useExecutionsData() {
                     data.status !== "success"
                 ) {
 
-                    window.alert(
-                        data.message ||
-                        data.error ||
-                        "Não foi possível cancelar a execução."
-                    );
+                    notify({
+                        tone: "danger",
+                        title: "A execução não foi cancelada",
+                        message: data.message || data.error || "O Control Room recusou o cancelamento.",
+                    });
 
 
                     return;
@@ -309,6 +316,7 @@ export function useExecutionsData() {
 
 
                 await carregarExecucoes();
+                notify({ tone: "success", title: "Execução cancelada", message: `A execução #${executionId} foi retirada da fila.` });
 
             } catch (err) {
 
@@ -318,9 +326,7 @@ export function useExecutionsData() {
                 );
 
 
-                window.alert(
-                    "Não foi possível comunicar com o Control Room."
-                );
+                notify({ tone: "danger", title: "Falha de comunicação", message: "Não foi possível cancelar a execução no Control Room." });
 
             } finally {
 

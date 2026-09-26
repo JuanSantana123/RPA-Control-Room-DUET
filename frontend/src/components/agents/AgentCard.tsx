@@ -44,6 +44,7 @@ import type {
 } from "../../types/agents";
 import PremiumSelect from "../ui/PremiumSelect";
 import { Button } from "../ui/Button";
+import { useInteraction } from "../../context/useInteraction";
 
 
 // ============================================================
@@ -89,6 +90,8 @@ function AgentCard({
     onDownload,
     onDelete,
 }: AgentCardProps) {
+
+    const { confirm } = useInteraction();
 
     // Mantém exatamente a regra visual existente:
     // somente status "online", ignorando maiúsculas/minúsculas,
@@ -533,7 +536,7 @@ function AgentCard({
 
                     <Button
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
 
                             const novoAmbiente:
                                 AgentEnvironment =
@@ -541,18 +544,21 @@ function AgentCard({
                                         ? "development"
                                         : "production";
 
-                            const confirmar =
-                                window.confirm(
+                            const confirmar = await confirm({
+                                title:
                                     novoAmbiente === "production"
-                                        ? (
-                                            `Deseja classificar "${agent.name}" ` +
-                                            "como Device de Produção?"
-                                        )
-                                        : (
-                                            `Deseja classificar "${agent.name}" ` +
-                                            "como Device de Desenvolvimento / Homologação?"
-                                        )
-                                );
+                                        ? "Mover Device para Produção?"
+                                        : "Mover Device para Desenvolvimento?",
+                                description:
+                                    novoAmbiente === "production"
+                                        ? `“${agent.name}” ficará disponível para execuções no ambiente de Produção.`
+                                        : `“${agent.name}” deixará o ambiente de Produção e voltará para Desenvolvimento / Homologação.`,
+                                confirmLabel: "Confirmar ambiente",
+                                tone:
+                                    novoAmbiente === "production"
+                                        ? "danger"
+                                        : "default",
+                            });
 
                             if (!confirmar) {
                                 return;

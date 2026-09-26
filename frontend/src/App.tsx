@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import MainLayout from "./layouts/MainLayout";
 import { PageSkeleton } from "./components/ui/Skeletons";
+import InteractionProvider from "./components/ui/InteractionProvider";
 
 const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -39,10 +40,11 @@ function NotFound() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoading />}>
-          <Routes>
+    <InteractionProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/development/:projectId/studio" element={<ProtectedRoute><RobotStudio /></ProtectedRoute>} />
             <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
@@ -60,10 +62,11 @@ function App() {
               {ComponentLab && <Route path="/component-lab" element={<ComponentLab />} />}
               <Route path="*" element={<NotFound />} />
             </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </AuthProvider>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </InteractionProvider>
   );
 }
 

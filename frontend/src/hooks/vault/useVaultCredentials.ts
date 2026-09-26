@@ -29,6 +29,7 @@ import {
 import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     VaultCredential,
@@ -56,6 +57,8 @@ export function useVaultCredentials({
     setError,
     setSuccessMessage,
 }: UseVaultCredentialsProps) {
+
+    const { confirm } = useInteraction();
 
     const [
         credentials,
@@ -156,10 +159,13 @@ export function useVaultCredentials({
                 number | null
         ) => {
 
-            const confirmar =
-                window.confirm(
-                    `Deseja realmente excluir a credencial "${credential.name}"?`
-                );
+            const confirmar = await confirm({
+                title: `Excluir a credencial “${credential.name}”?`,
+                description: "O segredo deixará de estar disponível para novas execuções autorizadas.",
+                detail: "Robôs que dependem desta credencial poderão falhar. Revise os vínculos antes de continuar.",
+                confirmLabel: "Excluir credencial",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {

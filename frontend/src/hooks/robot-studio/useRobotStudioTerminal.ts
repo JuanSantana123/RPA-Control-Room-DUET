@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getWebSocketBaseUrl } from "../../config/runtime";
 
 
 // ============================================================
@@ -56,21 +57,7 @@ function buildTerminalWebSocketUrl(
    * Isso evita deixar localhost ou o IP de uma máquina
    * específicos fixados no código.
    */
-  const controlRoomUrl =
-    `${window.location.protocol}//${window.location.hostname}:9000`;
-
-  /*
-   * Converte o protocolo HTTP da API para o protocolo
-   * correspondente de WebSocket:
-   *
-   * http://  -> ws://
-   * https:// -> wss://
-   */
-  const websocketBaseUrl =
-    controlRoomUrl.replace(
-      /^http/,
-      "ws",
-    );
+  const websocketBaseUrl = getWebSocketBaseUrl();
 
   return (
     `${websocketBaseUrl}` +

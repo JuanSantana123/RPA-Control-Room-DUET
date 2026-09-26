@@ -58,6 +58,7 @@ import {
     renameNodePath,
     updateFileContent,
 } from "../../utils/robotStudioTree";
+import { useInteraction } from "../../context/useInteraction";
 
 
 // ============================================================
@@ -108,6 +109,8 @@ export function useRobotStudioWorkspace({
     carregarCheckout,
     setOutputLines,
 }: UseRobotStudioWorkspaceParams) {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // ÁRVORE DO WORKSPACE
@@ -1449,29 +1452,24 @@ export function useRobotStudioWorkspace({
                     );
 
 
-            let mensagemConfirmacao =
-                node.type === "folder"
-                    ? (
-                        `Excluir a pasta "${node.name}" e TODO o conteúdo dela?`
-                    )
-                    : (
-                        `Excluir o arquivo "${node.name}"?`
-                    );
-
-
-            if (
-                possuiAlteracaoNaoSalva
-            ) {
-
-                mensagemConfirmacao +=
-                    "\n\nATENÇÃO: existem alterações não salvas nesse item.";
-            }
-
-
-            const confirmado =
-                window.confirm(
-                    mensagemConfirmacao
-                );
+            const confirmado = await confirm({
+                title:
+                    node.type === "folder"
+                        ? `Excluir a pasta “${node.name}”?`
+                        : `Excluir o arquivo “${node.name}”?`,
+                description:
+                    node.type === "folder"
+                        ? "Todo o conteúdo da pasta também será excluído do projeto."
+                        : "O arquivo será removido do workspace do projeto.",
+                detail: possuiAlteracaoNaoSalva
+                    ? "Existem alterações não salvas neste item e elas serão perdidas."
+                    : "Esta ação não pode ser desfeita.",
+                confirmLabel:
+                    node.type === "folder"
+                        ? "Excluir pasta"
+                        : "Excluir arquivo",
+                tone: "danger",
+            });
 
 
             if (!confirmado) {

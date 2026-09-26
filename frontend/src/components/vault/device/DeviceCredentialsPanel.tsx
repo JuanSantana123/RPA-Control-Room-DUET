@@ -75,6 +75,7 @@ import { CardGridSkeleton }
 import { Button, IconButton } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
 import EmptyState from "../../ui/EmptyState";
+import { useInteraction } from "../../../context/useInteraction";
 
 
 // ============================================================
@@ -109,6 +110,8 @@ function DeviceCredentialsPanel({
     setSuccessMessage,
     createRequestToken = 0,
 }: DeviceCredentialsPanelProps) {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // CRUD
@@ -284,10 +287,13 @@ function DeviceCredentialsPanel({
             credential: DeviceCredential
         ) => {
 
-            const confirmed =
-                window.confirm(
-                    `Deseja realmente excluir a credencial de dispositivo "${credential.name}"?`
-                );
+            const confirmed = await confirm({
+                title: "Excluir credencial do dispositivo?",
+                description: `A credencial “${credential.name}” deixará de estar disponível para novas execuções.`,
+                detail: "Esta ação não pode ser desfeita.",
+                confirmLabel: "Excluir credencial",
+                tone: "danger",
+            });
 
 
             if (

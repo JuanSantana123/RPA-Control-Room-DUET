@@ -37,6 +37,7 @@ import {
 
 import api from "../../services/api";
 import { obterMensagemErro } from "../../utils/robotErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     RobotFolder,
@@ -56,6 +57,8 @@ interface UseRobotFoldersParams {
 export function useRobotFolders({
     setError,
 }: UseRobotFoldersParams) {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // ESTADOS - PASTAS
@@ -433,10 +436,13 @@ export function useRobotFolders({
         folder: RobotFolder
     ) => {
 
-        const confirmar =
-            window.confirm(
-                `Deseja realmente excluir a pasta "${folder.name}"?`
-            );
+        const confirmar = await confirm({
+            title: `Excluir a pasta “${folder.name}”?`,
+            description: "A pasta será removida da organização do catálogo de robôs.",
+            detail: "Pastas com conteúdo ou dependências podem ser protegidas pelo Control Room.",
+            confirmLabel: "Excluir pasta",
+            tone: "danger",
+        });
 
 
         if (!confirmar) {

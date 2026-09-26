@@ -1,4 +1,30 @@
-# React + TypeScript + Vite
+# DUET Control Room — frontend
+
+Interface React + TypeScript do Control Room.
+
+## Configuração local
+
+Por padrão, a interface usa o mesmo host acessado no navegador e a porta `9000`
+para a API. Ambientes com proxy reverso ou outra topologia podem configurar:
+
+```text
+VITE_DUET_API_URL=https://control-room.exemplo.local/api
+VITE_DUET_API_TIMEOUT_MS=60000
+```
+
+O timeout aceita valores entre 5 segundos e 5 minutos. O mesmo endereço base é
+usado para derivar conexões WebSocket do Studio.
+
+## Verificação
+
+```bash
+npm run lint
+npm run build
+npm run test:components
+npm run test:visual
+```
+
+## Base técnica
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

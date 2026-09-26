@@ -36,6 +36,7 @@ import {
 import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useInteraction } from "../../context/useInteraction";
 
 import type {
     Role,
@@ -47,6 +48,8 @@ import type {
 // ============================================================
 
 export function useRolesData() {
+
+    const { confirm } = useInteraction();
 
     // ========================================================
     // ROLES
@@ -332,10 +335,13 @@ export function useRolesData() {
             ) => void
         ) => {
 
-            const confirmar =
-                window.confirm(
-                    "Tem certeza que deseja excluir esta Role?"
-                );
+            const confirmar = await confirm({
+                title: "Excluir perfil de acesso?",
+                description: "O perfil será removido e deixará de conceder permissões aos usuários associados.",
+                detail: "A operação poderá ser bloqueada se o perfil for estrutural ou ainda possuir vínculos protegidos.",
+                confirmLabel: "Excluir perfil",
+                tone: "danger",
+            });
 
 
             if (!confirmar) {
