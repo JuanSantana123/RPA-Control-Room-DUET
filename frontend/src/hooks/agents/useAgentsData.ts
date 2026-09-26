@@ -40,7 +40,7 @@ import type {
     Agent,
     NewAgentForm,
 } from "../../types/agents";
-import { getApiErrorMessage } from "../../utils/apiErrors";
+import { getApiErrorDetails, getApiErrorMessage } from "../../utils/apiErrors";
 import { useInteraction } from "../../context/useInteraction";
 
 
@@ -281,10 +281,10 @@ export function useAgentsData() {
                 );
 
 
-                setError(getApiErrorMessage(
+                setError(getApiErrorDetails(
                     err,
                     "O dispositivo não pôde ser cadastrado. Verifique a configuração do Control Room e tente novamente."
-                ));
+                ).message);
 
             } finally {
 

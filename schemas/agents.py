@@ -11,7 +11,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AgentRegisterRequest(BaseModel):
@@ -169,34 +169,6 @@ class AgentExecutionCredentialUpdateRequest(BaseModel):
             "utilizada para autenticar a sessão de execução."
         ),
     )
-    # ============================================================
-    # ALTERAÇÃO DA CREDENCIAL WINDOWS DE EXECUÇÃO
-    # ============================================================
-
-    class AgentExecutionCredentialUpdateRequest(BaseModel):
-        """
-        Associa ao Agent uma Credencial de Dispositivo existente
-        no Vault do DUET.
-
-        O Agent não recebe nem armazena senha nesta configuração.
-
-        Apenas o identificador da credencial é persistido:
-
-            execution_credential_id
-
-        A validação de que a credencial pertence ao escopo
-        "device" e ao tipo "windows" é responsabilidade da
-        camada de serviço, não deste schema.
-        """
-
-        credential_id: int = Field(
-            ...,
-            gt=0,
-            description=(
-                "ID da Credencial de Dispositivo Windows que será "
-                "utilizada para autenticar a sessão de execução."
-            ),
-        )
 
 # ============================================================
 # ALTERAÇÃO DE AMBIENTE DO AGENT
@@ -219,10 +191,6 @@ class AgentEnvironmentUpdateRequest(BaseModel):
         ),
     )
 
-
-# ============================================================
-# ALTERAÇÃO DE DISPLAY DO AGENT
-# ============================================================
 
 # ============================================================
 # ALTERAÇÃO DE DISPLAY DO AGENT
@@ -257,3 +225,113 @@ class AgentDisplayUpdateRequest(BaseModel):
         gt=0,
         description="Escala de exibição desejada em percentual.",
     )
+
+
+# ============================================================
+# RESPOSTAS DO CATÁLOGO DE AGENTS
+# ============================================================
+
+class AgentDisplayMode(BaseModel):
+    """Resolução reportada pelo Agent ou detectada no Windows."""
+
+    width: int = Field(..., gt=0)
+    height: int = Field(..., gt=0)
+
+
+class AgentCatalogItem(BaseModel):
+    """Representação segura de um Device na administração."""
+
+    agent_id: str
+    name: str
+    environment: Literal["development", "production"]
+    host: str | None
+    port: int = Field(..., ge=1, le=65535)
+    rpa_directory: str
+    status: str
+    session_status: str
+    username: str | None
+    execution_username: str | None
+    execution_domain: str | None
+    display_width: int = Field(..., gt=0)
+    display_height: int = Field(..., gt=0)
+    display_scale: int = Field(..., gt=0)
+    display_current: AgentDisplayMode | None
+    display_supported: list[AgentDisplayMode]
+
+
+class AgentExecutionItem(BaseModel):
+    """Dados mínimos expostos ao seletor de execução manual."""
+
+    agent_id: str
+    name: str
+    environment: Literal["development", "production"]
+    host: str | None
+    port: int = Field(..., ge=1, le=65535)
+    status: str
+    session_status: str
+    username: str | None
+    execution_username: str | None
+    execution_domain: str | None
+
+
+class AgentCreatedItem(BaseModel):
+    """Dados não sensíveis devolvidos após criar um Device."""
+
+    agent_id: str
+    name: str
+    environment: Literal["development", "production"]
+    port: int = Field(..., ge=1, le=65535)
+    rpa_directory: str
+    execution_username: str | None
+    execution_domain: str | None
+    status: str
+
+
+class AgentListResponse(BaseModel):
+    status: Literal["success"]
+    total: int = Field(..., ge=0)
+    agents: list[AgentCatalogItem]
+
+
+class AgentExecutionListResponse(BaseModel):
+    status: Literal["success"]
+    total: int = Field(..., ge=0)
+    agents: list[AgentExecutionItem]
+
+
+class AgentErrorResponse(BaseModel):
+    """Erro de domínio sem exposição de exceções ou segredos internos."""
+
+    model_config = ConfigDict(extra="allow")
+
+    status: Literal["error"]
+    message: str
+    error_code: str | None = None
+    agent_id: str | None = None
+
+
+class AgentDetailSuccessResponse(BaseModel):
+    status: Literal["success"]
+    agent: AgentCatalogItem
+
+
+class AgentMutationSuccessResponse(AgentDetailSuccessResponse):
+    message: str
+
+
+class AgentCreateSuccessResponse(BaseModel):
+    status: Literal["success"]
+    message: str
+    agent: AgentCreatedItem
+
+
+class AgentDeleteSuccessResponse(BaseModel):
+    status: Literal["success"]
+    message: str
+    agent_id: str
+
+
+AgentDetailResponse = AgentDetailSuccessResponse | AgentErrorResponse
+AgentMutationResponse = AgentMutationSuccessResponse | AgentErrorResponse
+AgentCreateResponse = AgentCreateSuccessResponse | AgentErrorResponse
+AgentDeleteResponse = AgentDeleteSuccessResponse | AgentErrorResponse

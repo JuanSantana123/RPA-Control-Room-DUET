@@ -37,6 +37,12 @@ from schemas.agents import (
     # Dispositivo Windows ao Agent.
     AgentExecutionCredentialUpdateRequest,
     AgentRegisterRequest,
+    AgentCreateResponse,
+    AgentDeleteResponse,
+    AgentDetailResponse,
+    AgentExecutionListResponse,
+    AgentListResponse,
+    AgentMutationResponse,
 )
 
 from agents.bootstrap_service import (
@@ -122,6 +128,7 @@ router = APIRouter(
 
 @router.get(
     "/agents",
+    response_model=AgentListResponse,
     summary="Listar Agents",
     description=(
         "Retorna todos os Agents cadastrados no Control Room. "
@@ -154,6 +161,7 @@ def list_agents(
 
 @router.get(
     "/agents/execution/available-agents",
+    response_model=AgentExecutionListResponse,
     summary="Listar Agents disponíveis para execução",
     description=(
         "Retorna os Agents cadastrados no Control Room que podem "
@@ -194,6 +202,7 @@ def listar_agents_disponiveis_para_execucao(
 
 @router.get(
     "/agents/{agent_id}",
+    response_model=AgentDetailResponse,
     summary="Consultar Agent",
     description=(
         "Retorna os dados de um Agent específico cadastrado no "
@@ -267,6 +276,7 @@ def register_agent(
 
 @router.post(
     "/agents",
+    response_model=AgentCreateResponse,
     summary="Criar Agent",
     description=(
         "Cria um novo Agent no Control Room. "
@@ -434,6 +444,7 @@ def download_agent(
 
 @router.patch(
     "/agents/{agent_id}/environment",
+    response_model=AgentMutationResponse,
     summary="Alterar ambiente do Agent",
     description=(
         "Altera administrativamente o ambiente operacional "
@@ -473,6 +484,7 @@ def update_agent_environment(
 
 @router.patch(
     "/agents/{agent_id}/display",
+    response_model=AgentMutationResponse,
     summary="Alterar configuração de display do Agent",
     description=(
         "Altera a resolução e a escala desejadas para a "
@@ -519,6 +531,7 @@ def update_agent_display(
 
 @router.patch(
     "/agents/{agent_id}/execution-user",
+    response_model=AgentMutationResponse,
     summary="Alterar usuário Windows de execução do Agent",
     description=(
         "Configura a identidade Windows que deverá executar "
@@ -625,6 +638,7 @@ def update_agent_execution_credential(
 
 @router.delete(
     "/agents/{agent_id}",
+    response_model=AgentDeleteResponse,
     summary="Excluir Agent",
     description=(
         "Remove logicamente um Agent cadastrado no Control Room. "

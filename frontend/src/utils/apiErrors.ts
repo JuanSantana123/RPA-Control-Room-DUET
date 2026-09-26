@@ -4,6 +4,7 @@ export interface ApiErrorDetails {
     message: string;
     status?: number;
     requestId?: string;
+    supportReference?: string;
     retryable: boolean;
 }
 
@@ -147,11 +148,16 @@ export const getApiErrorDetails = (
     fallback: string,
 ): ApiErrorDetails => {
     const { requestId, status } = readApiResponse(error);
+    const supportReference = requestId?.trim() || undefined;
+    const message = getApiErrorMessage(error, fallback);
 
     return {
-        message: getApiErrorMessage(error, fallback),
+        message: supportReference
+            ? `${message} Referência para suporte: ${supportReference}.`
+            : message,
         status,
         requestId,
+        supportReference,
         retryable:
             status === undefined ||
             status === 408 ||

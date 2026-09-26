@@ -9,6 +9,34 @@
 # ============================================================
 
 
+def _normalizar_resolucoes(display_supported):
+    """Mantém apenas modos de vídeo válidos recebidos de telemetria externa."""
+
+    if not isinstance(display_supported, list):
+        return []
+
+    resolucoes = []
+
+    for display_mode in display_supported:
+        if not isinstance(display_mode, dict):
+            continue
+
+        width = display_mode.get("width")
+        height = display_mode.get("height")
+
+        if (
+            isinstance(width, int)
+            and not isinstance(width, bool)
+            and width > 0
+            and isinstance(height, int)
+            and not isinstance(height, bool)
+            and height > 0
+        ):
+            resolucoes.append({"width": width, "height": height})
+
+    return resolucoes
+
+
 def serializar_agent_lista(agent):
     """
     Serializa um Agent para a tela administrativa.
@@ -21,11 +49,10 @@ def serializar_agent_lista(agent):
         "host": agent.host,
         "port": agent.port,
         "rpa_directory": agent.rpa_directory,
+        "status": agent.status,
         # Identidade Windows configurada para execução Desktop.
         #
         # Estes campos não contêm senha.
-        "execution_username": agent.execution_username,
-        "execution_domain": agent.execution_domain,
         "session_status": agent.session_status,
 
         # Usuário atualmente detectado na sessão Windows.
@@ -54,7 +81,7 @@ def serializar_agent_lista(agent):
         ),
 
         # Resoluções que a própria máquina informou suportar.
-        "display_supported": agent.display_supported or [],
+        "display_supported": _normalizar_resolucoes(agent.display_supported),
     }
 
 
@@ -96,6 +123,8 @@ def serializar_agent_consulta(agent):
         "port": agent.port,
         "rpa_directory": agent.rpa_directory,
         "status": agent.status,
+        "session_status": agent.session_status,
+        "username": agent.username,
 
         # Identidade Windows configurada administrativamente
         # para executar automações Desktop neste Agent.
@@ -106,7 +135,6 @@ def serializar_agent_consulta(agent):
         "execution_username": agent.execution_username,
         "execution_domain": agent.execution_domain,
 
-        # Configuração desejada de display.
         # Configuração desejada de display.
         "display_width": agent.display_width,
         "display_height": agent.display_height,
@@ -125,7 +153,7 @@ def serializar_agent_consulta(agent):
         ),
 
         # Resoluções suportadas reportadas pela própria máquina.
-        "display_supported": agent.display_supported or [],
+        "display_supported": _normalizar_resolucoes(agent.display_supported),
     }
 
 
