@@ -318,15 +318,22 @@ def get_execution_status(
 
     except requests.RequestException as error:
 
+        logger.warning(
+            "Falha ao consultar status do Agent",
+            extra={
+                "event": "agent_execution_status_request_failed",
+                "agent_id": agent_id,
+                "error_type": type(error).__name__,
+            },
+        )
+
         return {
 
             "status": "error",
 
             "message": "Não foi possível consultar o status de execução do Agent",
 
-            "agent_id": agent_id,
-
-            "error": str(error)
+            "agent_id": agent_id
 
         }
 
@@ -337,6 +344,15 @@ def get_execution_status(
 
     if response.status_code != 200:
 
+        logger.warning(
+            "Agent respondeu com erro ao consultar status",
+            extra={
+                "event": "agent_execution_status_http_error",
+                "agent_id": agent_id,
+                "http_status": response.status_code,
+            },
+        )
+
         return {
 
             "status": "error",
@@ -345,9 +361,7 @@ def get_execution_status(
 
             "agent_id": agent_id,
 
-            "http_status": response.status_code,
-
-            "response": response.text
+            "http_status": response.status_code
 
         }
 
@@ -581,6 +595,16 @@ def stop_agent_execution(
 
     except requests.RequestException as error:
 
+        logger.warning(
+            "Falha ao enviar comando de parada ao Agent",
+            extra={
+                "event": "agent_execution_stop_request_failed",
+                "agent_id": agent_id,
+                "execution_id": execution_id,
+                "error_type": type(error).__name__,
+            },
+        )
+
         return {
             "status": "error",
             "message": (
@@ -588,8 +612,7 @@ def stop_agent_execution(
                 "de stop para o Agent"
             ),
             "agent_id": agent_id,
-            "execution_id": execution_id,
-            "error": str(error)
+            "execution_id": execution_id
         }
 
 
@@ -599,6 +622,16 @@ def stop_agent_execution(
 
     if response.status_code != 200:
 
+        logger.warning(
+            "Agent respondeu com erro ao parar execução",
+            extra={
+                "event": "agent_execution_stop_http_error",
+                "agent_id": agent_id,
+                "execution_id": execution_id,
+                "http_status": response.status_code,
+            },
+        )
+
         return {
             "status": "error",
             "message": (
@@ -606,8 +639,7 @@ def stop_agent_execution(
             ),
             "agent_id": agent_id,
             "execution_id": execution_id,
-            "http_status": response.status_code,
-            "response": response.text
+            "http_status": response.status_code
         }
 
 
@@ -834,8 +866,7 @@ def cancel_execution(
         return {
             "status": "error",
             "message": "Não foi possível cancelar a execução.",
-            "execution_id": execution_id,
-            "error": str(error)
+            "execution_id": execution_id
         }
 
     finally:

@@ -1,22 +1,8 @@
 
-# ============================================================
-# MÓDULOS DO SCHEDULER
-# ============================================================
-#
-# O router HTTP utiliza os cálculos temporais do Scheduler,
-# enquanto execução e gerenciamento da thread permanecem
-# isolados nos módulos próprios da engine.
-# ============================================================
-
-from scheduler.calculations import (
-    _horario_para_datetime,
-    calcular_proxima_execucao,
-)
-
 # Contrato Pydantic utilizado pelos endpoints de criação
 # e atualização de agendamentos.
 from schemas.schedules import ScheduleCreateRequest
-import os
+import logging
 
 from fastapi import APIRouter, Depends
 # Importa a função responsável por verificar se o usuário
@@ -43,12 +29,14 @@ from pathlib import Path
 from scheduler.calculations import (
     _horario_para_datetime,
     calcular_proxima_execucao,
-    proxima_execucao_apos_execucao,
 )
 
 # Dependência responsável por validar
 # a sessão do usuário autenticado.
 from auth.dependencies import get_usuario_atual
+
+
+logger = logging.getLogger("control_room")
 
 
 router = APIRouter(
@@ -214,280 +202,6 @@ def listar_agendamentos():
         db.close()
 
 
-# ============================================================
-# EXECUTAR AGENDAMENTO
-# ============================================================
-
-def executar_agendamento(schedule_id):
-    logger.info(
-        f"[SCHEDULER] DISPARANDO AGENDAMENTO | "
-        f"Schedule ID: {schedule_id} | "
-        f"Thread: {threading.current_thread().name}"
-    )
-    # ========================================================
-    # CARREGA O AGENDAMENTO
-    # ========================================================
-
-    db = SessionLocal()
-
-    try:
-
-        schedule = db.query(
-            Schedule
-        ).filter(
-            Schedule.id == schedule_id,
-            Schedule.ativo == 1
-        ).first()
-
-        if not schedule:
-            return
-
-        robot_id = schedule.robot_id
-        agent_id_agendado = schedule.agent_id
-
-        # Captura o usuário enquanto o Schedule ainda
-        # está vinculado à sessão do banco.
-        user_id = schedule.user_id
-
-    finally:
-
-        db.close()
-
-
-    # ========================================================
-    # ESCOLHA DO AGENT
-    # ========================================================
-
-    agent_ids = []
-
-    db = SessionLocal()
-
-    try:
-
-        # ----------------------------------------------------
-        # Agent específico
-        # ----------------------------------------------------
-
-        if agent_id_agendado:
-
-            # Busca o Agent específico somente se ele
-            # continuar ativo no Control Room.
-            agent = db.query(
-                Agent
-            ).filter(
-                Agent.agent_id == agent_id_agendado,
-                Agent.is_active == 1
-            ).first()
-
-            if agent and agent.status == "online":
-
-                agent_ids.append(
-                    agent.agent_id
-                )
-
-        # ----------------------------------------------------
-        # Agent automático
-        # ----------------------------------------------------
-
-        else:
-
-            # Seleciona somente Agents ativos e online.
-            #
-            # Um Agent removido logicamente pode continuar
-            # armazenado no banco para preservar o histórico,
-            # mas nunca deve receber novas execuções.
-            agents = db.query(
-                Agent
-            ).filter(
-                Agent.status == "online",
-                Agent.is_active == 1
-            ).order_by(
-                Agent.name
-            ).all()
-
-            agent_ids = [
-                agent.agent_id
-                for agent in agents
-            ]
-
-    finally:
-
-        db.close()
-
-
-    # ========================================================
-    # NENHUM AGENT DISPONÍVEL
-    # ========================================================
-
-    if not agent_ids:
-
-        return {
-            "status": "waiting",
-            "message": "Nenhum Agent online"
-        }
-
-
-    # ========================================================
-    # CONSUME O DISPARO DO AGENDAMENTO
-    # ========================================================
-    #
-    # IMPORTANTE:
-    #
-    # Assim que o horário do agendamento chega, precisamos
-    # retirar esse disparo da condição "vencido".
-    #
-    # Caso contrário, se a execução ficar "queued", o Scheduler
-    # roda novamente daqui a 5 segundos e cria outra execução.
-    #
-    # Para "once":
-    #   - desativa definitivamente.
-    #
-    # Para os demais:
-    #   - calcula imediatamente a próxima execução.
-    #
-    # Dessa forma, o agendamento não fica preso no mesmo
-    # horário enquanto a RPA está aguardando na fila.
-    # ========================================================
-
-    agora = datetime.now()
-
-    db = SessionLocal()
-
-    try:
-
-        schedule = db.query(
-            Schedule
-        ).filter(
-            Schedule.id == schedule_id,
-            Schedule.ativo == 1
-        ).first()
-
-        if not schedule:
-            return {
-                "status": "error",
-                "message": "Agendamento não encontrado ou inativo"
-            }
-
-        schedule.ultima_execucao = agora
-
-        # ----------------------------------------------------
-        # UMA VEZ
-        # ----------------------------------------------------
-
-        if schedule.tipo == "once":
-
-            schedule.ativo = 0
-            schedule.proxima_execucao = None
-
-        # ----------------------------------------------------
-        # RECORRENTES
-        # ----------------------------------------------------
-
-        else:
-
-            schedule.proxima_execucao = (
-                proxima_execucao_apos_execucao(
-                    schedule,
-                    agora
-                )
-            )
-
-        db.commit()
-
-    finally:
-
-        db.close()
-
-
-    # ========================================================
-    # TENTA EXECUTAR
-    # ========================================================
-
-    ultimo_resultado = None
-
-    for agent_id in agent_ids:
-
-        try:
-
-            # O Scheduler chama diretamente a função interna de execução.
-            #
-            # Diferente da execução manual, aqui não existe uma requisição
-            # HTTP para o FastAPI resolver o usuário através de Depends.
-            #
-            # O user_id já foi recuperado do próprio agendamento.
-            resultado = _executar_robot(
-                agent_id=agent_id,
-                request=ExecutionRequest(
-                    robot_id=robot_id,
-                    user_id=user_id
-                )
-            )
-
-        except Exception as error:
-
-            resultado = {
-                "status": "error",
-                "message": str(error)
-            }
-
-        ultimo_resultado = resultado
-
-
-        # ====================================================
-        # EXECUÇÃO ACEITA
-        # ====================================================
-        #
-        # Tanto "success" quanto "queued" significam que o
-        # disparo do agendamento foi consumido.
-        #
-        # "queued" NÃO é um erro.
-        #
-        # A execução ficará aguardando o Agent ficar disponível.
-        # ====================================================
-
-        if resultado.get("status") in (
-            "success",
-            "queued"
-        ):
-
-            return resultado
-
-
-        # ====================================================
-        # AGENT OCUPADO
-        # ====================================================
-        #
-        # Se houver múltiplos Agents disponíveis, tenta o
-        # próximo.
-        # ====================================================
-
-        if resultado.get("message") == \
-                "Agent não está disponível para execução":
-
-            continue
-
-
-        # ====================================================
-        # OUTRO ERRO
-        # ====================================================
-        #
-        # Se foi escolhido um Agent específico, não tenta
-        # outro automaticamente.
-        # ====================================================
-
-        if agent_id_agendado:
-
-            break
-
-
-    # ========================================================
-    # RETORNO FINAL
-    # ========================================================
-
-    return ultimo_resultado or {
-        "status": "waiting",
-        "message": "Nenhum Agent disponível"
-    }
 # ============================================================
 # ENDPOINT EXCLUIR AGENDAMENTO
 # ============================================================
@@ -1054,14 +768,20 @@ def criar_agendamento(
 
         db.rollback()
 
+        logger.exception(
+            "Erro ao criar agendamento",
+            extra={
+                "event": "schedule_create_failed",
+                "error_type": type(error).__name__,
+            },
+        )
+
         return {
 
             "status": "error",
 
             "message":
-                "Não foi possível criar o agendamento",
-
-            "error": str(error)
+                "Não foi possível criar o agendamento"
         }
 
     finally:
@@ -1324,6 +1044,15 @@ def get_schedule(schedule_id: int):
 
     except Exception as error:
 
+        logger.exception(
+            "Erro ao consultar agendamento",
+            extra={
+                "event": "schedule_get_failed",
+                "schedule_id": schedule_id,
+                "error_type": type(error).__name__,
+            },
+        )
+
         return {
 
             "status": "error",
@@ -1332,10 +1061,7 @@ def get_schedule(schedule_id: int):
                 "Erro ao consultar agendamento",
 
             "schedule_id":
-                schedule_id,
-
-            "error":
-                str(error)
+                schedule_id
         }
 
     finally:
@@ -1673,15 +1399,21 @@ def update_schedule(
 
         db.rollback()
 
+        logger.exception(
+            "Erro ao atualizar agendamento",
+            extra={
+                "event": "schedule_update_failed",
+                "schedule_id": schedule_id,
+                "error_type": type(error).__name__,
+            },
+        )
+
         return {
 
             "status": "error",
 
             "message":
-                "Não foi possível atualizar o agendamento",
-
-            "error":
-                str(error)
+                "Não foi possível atualizar o agendamento"
         }
 
     finally:
@@ -1863,6 +1595,15 @@ def alterar_status_schedule(
 
         db.rollback()
 
+        logger.exception(
+            "Erro ao alterar status do agendamento",
+            extra={
+                "event": "schedule_status_update_failed",
+                "schedule_id": schedule_id,
+                "error_type": type(error).__name__,
+            },
+        )
+
         return {
 
             "status": "error",
@@ -1872,10 +1613,7 @@ def alterar_status_schedule(
                 "do agendamento",
 
             "schedule_id":
-                schedule_id,
-
-            "error":
-                str(error)
+                schedule_id
         }
 
     finally:
