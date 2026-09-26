@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 import uvicorn
 from database import criar_banco
 # Carrega a mesma lista de Origins confiáveis utilizada
@@ -39,7 +40,6 @@ from core.logging_config import logger
 # O import é intencional mesmo que "models" não seja usado
 # diretamente neste arquivo.
 import models
-import threading
 
 from api.roles import router as roles_router
 from api.user_roles import router as user_roles_router
@@ -50,7 +50,10 @@ from api.user_roles import router as user_roles_router
 
 from api.agents import (
     router as agents_router,
-    monitorar_agents
+)
+from agents.monitoring_service import (
+    iniciar_monitor_agents,
+    parar_monitor_agents,
 )
 # Importa o router responsável exclusivamente
 # pelo heartbeat enviado pelos Agents das VMs.
@@ -75,6 +78,7 @@ from api.schedules import (
 # e disparar os agendamentos cadastrados no Control Room.
 from scheduler.engine import (
     iniciar_scheduler,
+    parar_scheduler,
 )
 
 # ============================================================
@@ -89,6 +93,7 @@ from scheduler.engine import (
 
 from executions.queue import (
     iniciar_worker_fila,
+    parar_worker_fila,
 )
 # Importa o router responsável pelas rotas de logs.
 from api.logs import router as logs_router
@@ -480,6 +485,16 @@ except Exception as error:
 # ============================================================
 # INICIALIZAÇÃO DO SCHEDULER
 # ============================================================
+def background_workers_habilitados():
+    """
+    Permite separar réplicas HTTP dos processos que executam Scheduler,
+    Queue e monitoramento. O padrão preserva a instalação de processo único.
+    """
+
+    value = os.getenv("CONTROL_ROOM_ENABLE_BACKGROUND_WORKERS", "true")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @app.on_event("startup")
 def startup_scheduler():
     """
@@ -488,6 +503,24 @@ def startup_scheduler():
     """
 
     try:
+
+        if not background_workers_habilitados():
+            logger.info(
+                "Workers de background desabilitados nesta instância",
+                extra={
+                    "event": "background_workers_disabled",
+                    "status": "disabled",
+                },
+            )
+            logger.info(
+                "Control Room inicializado em modo somente API",
+                extra={
+                    "event": "control_room_ready",
+                    "status": "ready",
+                    "runtime_role": "api",
+                },
+            )
+            return
 
         iniciar_scheduler()
         # ====================================================
@@ -508,10 +541,7 @@ def startup_scheduler():
             }
         )
 
-        threading.Thread(
-            target=monitorar_agents,
-            daemon=True
-        ).start()
+        iniciar_monitor_agents()
 
         logger.info(
             "Monitoramento de Agents inicializado",
@@ -542,6 +572,26 @@ def startup_scheduler():
         )
 
         raise
+
+
+@app.on_event("shutdown")
+def shutdown_background_workers():
+    """Finaliza os loops cooperativamente antes do processo encerrar."""
+
+    if not background_workers_habilitados():
+        return
+
+    parar_monitor_agents()
+    parar_worker_fila()
+    parar_scheduler()
+
+    logger.info(
+        "Workers de background finalizados",
+        extra={
+            "event": "background_workers_stopped",
+            "status": "stopped",
+        },
+    )
 
 # ============================================================
 # INICIALIZAÇÃO

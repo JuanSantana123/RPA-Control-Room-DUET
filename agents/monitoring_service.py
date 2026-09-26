@@ -13,7 +13,7 @@
 
 from datetime import datetime, timedelta
 import logging
-import time
+import threading
 
 from database import SessionLocal
 
@@ -24,6 +24,10 @@ from agents.repository import (
 
 
 logger = logging.getLogger("control_room")
+AGENT_MONITOR_POLL_SECONDS = 10
+agent_monitor_stop_event = threading.Event()
+agent_monitor_thread = None
+agent_monitor_thread_lock = threading.Lock()
 
 
 def verificar_agents_offline():
@@ -126,8 +130,56 @@ def monitorar_agents():
     Mantém a frequência original de 10 segundos.
     """
 
-    while True:
+    while not agent_monitor_stop_event.is_set():
 
         verificar_agents_offline()
 
-        time.sleep(10)
+        agent_monitor_stop_event.wait(AGENT_MONITOR_POLL_SECONDS)
+
+    logger.info(
+        "Monitoramento de Agents finalizado",
+        extra={"event": "agent_monitor_stopped", "status": "stopped"},
+    )
+
+
+def iniciar_monitor_agents():
+    """Inicia no máximo um monitor de heartbeat dentro deste processo."""
+
+    global agent_monitor_thread
+
+    with agent_monitor_thread_lock:
+        if agent_monitor_thread is not None and agent_monitor_thread.is_alive():
+            return
+
+        agent_monitor_stop_event.clear()
+        agent_monitor_thread = threading.Thread(
+            target=monitorar_agents,
+            daemon=True,
+            name="RPA-Agent-Monitor",
+        )
+        agent_monitor_thread.start()
+
+
+def parar_monitor_agents(timeout_seconds=10):
+    """Solicita encerramento cooperativo e aguarda o monitor de heartbeat."""
+
+    global agent_monitor_thread
+
+    with agent_monitor_thread_lock:
+        current_thread = agent_monitor_thread
+        if current_thread is None:
+            return
+        agent_monitor_stop_event.set()
+
+    current_thread.join(timeout=timeout_seconds)
+
+    if current_thread.is_alive():
+        logger.warning(
+            "Monitor de Agents não finalizou dentro do prazo",
+            extra={"event": "agent_monitor_stop_timeout", "status": "warning"},
+        )
+        return
+
+    with agent_monitor_thread_lock:
+        if agent_monitor_thread is current_thread:
+            agent_monitor_thread = None

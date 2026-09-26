@@ -95,3 +95,10 @@ jobs:
       - name: Validar sintaxe dos módulos
         run: python -m compileall -q -x '(^|/)(frontend|\.git|\.venv|storage|workspaces)(/|$)' .
 
+      - name: Instalar dependências do backend
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Testar ciclo de vida dos workers
+        env:
+          DATABASE_URL: postgresql://duet_test:duet_test@127.0.0.1:1/duet_test
+        run: python -m unittest discover -s tests -v

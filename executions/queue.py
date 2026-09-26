@@ -27,7 +27,6 @@
 
 import logging
 import threading
-import time
 
 import requests
 
@@ -62,6 +61,7 @@ logger = logging.getLogger(
 
 
 QUEUE_POLL_SECONDS = 5
+queue_stop_event = threading.Event()
 
 
 # ============================================================
@@ -768,7 +768,7 @@ def worker_fila_execucoes():
         }
     )
 
-    while True:
+    while not queue_stop_event.is_set():
 
         try:
 
@@ -790,9 +790,12 @@ def worker_fila_execucoes():
                 }
             )
 
-        time.sleep(
-            QUEUE_POLL_SECONDS
-        )
+        queue_stop_event.wait(QUEUE_POLL_SECONDS)
+
+    logger.info(
+        "Worker da fila finalizado",
+        extra={"event": "execution_queue_worker_stopped", "status": "stopped"},
+    )
 
 
 # ============================================================
@@ -827,4 +830,30 @@ def iniciar_worker_fila():
             name="RPA-Execution-Queue",
         )
 
+        queue_stop_event.clear()
         thread_fila.start()
+
+
+def parar_worker_fila(timeout_seconds=10):
+    """Solicita encerramento cooperativo e aguarda o Worker da fila."""
+
+    global thread_fila
+
+    with thread_fila_lock:
+        current_thread = thread_fila
+        if current_thread is None:
+            return
+        queue_stop_event.set()
+
+    current_thread.join(timeout=timeout_seconds)
+
+    if current_thread.is_alive():
+        logger.warning(
+            "Worker da fila não finalizou dentro do prazo",
+            extra={"event": "execution_queue_stop_timeout", "status": "warning"},
+        )
+        return
+
+    with thread_fila_lock:
+        if thread_fila is current_thread:
+            thread_fila = None

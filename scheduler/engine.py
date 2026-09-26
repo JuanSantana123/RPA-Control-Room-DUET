@@ -17,7 +17,6 @@
 
 import logging
 import threading
-import time
 
 from datetime import datetime
 
@@ -39,6 +38,7 @@ logger = logging.getLogger(
 
 
 SCHEDULER_POLL_SECONDS = 5
+scheduler_stop_event = threading.Event()
 
 
 # ============================================================
@@ -201,7 +201,7 @@ def scheduler_loop():
         }
     )
 
-    while True:
+    while not scheduler_stop_event.is_set():
 
         try:
 
@@ -223,9 +223,12 @@ def scheduler_loop():
                 }
             )
 
-        time.sleep(
-            SCHEDULER_POLL_SECONDS
-        )
+        scheduler_stop_event.wait(SCHEDULER_POLL_SECONDS)
+
+    logger.info(
+        "Scheduler finalizado",
+        extra={"event": "scheduler_worker_stopped", "status": "stopped"},
+    )
 
 
 # ============================================================
@@ -260,4 +263,30 @@ def iniciar_scheduler():
             name="RPA-Scheduler",
         )
 
+        scheduler_stop_event.clear()
         scheduler_thread.start()
+
+
+def parar_scheduler(timeout_seconds=10):
+    """Solicita encerramento cooperativo e aguarda a thread do Scheduler."""
+
+    global scheduler_thread
+
+    with scheduler_thread_lock:
+        current_thread = scheduler_thread
+        if current_thread is None:
+            return
+        scheduler_stop_event.set()
+
+    current_thread.join(timeout=timeout_seconds)
+
+    if current_thread.is_alive():
+        logger.warning(
+            "Scheduler não finalizou dentro do prazo",
+            extra={"event": "scheduler_stop_timeout", "status": "warning"},
+        )
+        return
+
+    with scheduler_thread_lock:
+        if scheduler_thread is current_thread:
+            scheduler_thread = None
