@@ -12,3 +12,4 @@
 - Use `usePollingTask` for recurring server reads: do not overlap requests, keep useful stale data visible during refresh failures, and expose an explicit retry action.
 - Keep `/component-lab` development-only and free of operational data/actions. Run `npm run test:components` after changing shared controls, focus, themes or motion.
 - Track route coverage, evidence and remaining validation in `docs/frontend-reconstruction.md`. A successful build is not proof of full product reconstruction or backend integration.
+- Keep `.github/workflows/quality.yml` aligned with local verification. New shared UI must pass lint, TypeScript/build, component audit and the responsive visual matrix before merge.

@@ -1,0 +1,97 @@
+name: Qualidade
+
+on:
+  push:
+    branches: [main, codex/frontend-premium-rebuild]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend tipado e visual
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências reproduzíveis
+        run: npm ci
+
+      - name: Verificar lint
+        run: npm run lint
+
+      - name: Verificar tipos e build
+        run: npm run build
+
+      - name: Iniciar interface de auditoria
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/duet-vite.log 2>&1 &
+          echo $! > /tmp/duet-vite.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5173 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/duet-vite.log
+          exit 1
+
+      - name: Auditar componentes
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          DUET_FRONTEND_URL: http://127.0.0.1:5173
+        run: npm run test:components
+
+      - name: Auditar páginas e responsividade
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          DUET_FRONTEND_URL: http://127.0.0.1:5173
+        run: npm run test:visual
+
+      - name: Publicar evidências visuais em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duet-visual-evidence
+          path: .e2e
+          if-no-files-found: ignore
+          retention-days: 7
+
+  backend:
+    name: Backend compilável
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Validar sintaxe dos módulos
+        run: python -m compileall -q -x '(^|/)(frontend|\.git|\.venv|storage|workspaces)(/|$)' .
+
