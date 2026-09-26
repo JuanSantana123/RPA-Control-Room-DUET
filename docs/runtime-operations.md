@@ -34,10 +34,8 @@ Os testes usam uma URL PostgreSQL sintética e não abrem conexão: as rotinas d
 banco executadas pelos loops são substituídas por funções controladas. Eles
 verificam inicialização única, thread ativa e encerramento de cada worker.
 
-## Limite atual do schema
+## Schema
 
-O bootstrap ainda utiliza `Base.metadata.create_all` para instalações novas. Isso
-não representa versionamento de schema e não deve ser confundido com migrações
-reversíveis. A introdução de migrações versionadas precisa inventariar previamente
-o estado dos bancos instalados e criar um baseline compatível, sem alterar uma
-base operacional automaticamente.
+O bootstrap utiliza migrações versionadas e rejeita automaticamente um banco
+legado divergente. O procedimento completo, incluindo adoção segura do baseline,
+está em `docs/database-migrations.md`.
