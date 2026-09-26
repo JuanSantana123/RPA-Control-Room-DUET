@@ -50,6 +50,18 @@ def serializar_agent_lista(agent):
         "port": agent.port,
         "rpa_directory": agent.rpa_directory,
         "status": agent.status,
+        "accepting_work": agent.accepting_work,
+        "maintenance_reason": agent.maintenance_reason,
+        "availability_updated_at": (
+            agent.availability_updated_at.isoformat()
+            if agent.availability_updated_at
+            else None
+        ),
+        "last_heartbeat": (
+            agent.last_heartbeat.isoformat()
+            if agent.last_heartbeat
+            else None
+        ),
         # Identidade Windows configurada para execução Desktop.
         #
         # Estes campos não contêm senha.
@@ -99,6 +111,8 @@ def serializar_agent_execucao(agent):
         "host": agent.host,
         "port": agent.port,
         "status": agent.status,
+        "accepting_work": agent.accepting_work,
+        "maintenance_reason": agent.maintenance_reason,
         "session_status": agent.session_status,
 
         # Usuário atualmente detectado na sessão Windows.
@@ -123,6 +137,18 @@ def serializar_agent_consulta(agent):
         "port": agent.port,
         "rpa_directory": agent.rpa_directory,
         "status": agent.status,
+        "accepting_work": agent.accepting_work,
+        "maintenance_reason": agent.maintenance_reason,
+        "availability_updated_at": (
+            agent.availability_updated_at.isoformat()
+            if agent.availability_updated_at
+            else None
+        ),
+        "last_heartbeat": (
+            agent.last_heartbeat.isoformat()
+            if agent.last_heartbeat
+            else None
+        ),
         "session_status": agent.session_status,
         "username": agent.username,
 

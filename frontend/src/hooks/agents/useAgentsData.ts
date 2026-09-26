@@ -50,7 +50,7 @@ import { useInteraction } from "../../context/useInteraction";
 
 export function useAgentsData() {
 
-    const { confirm } = useInteraction();
+    const { confirm, notify } = useInteraction();
 
     // ========================================================
     // AGENTS
@@ -78,6 +78,7 @@ export function useAgentsData() {
     ] = useState("");
 
     const clearError = () => setError("");
+    const [updatingAvailability, setUpdatingAvailability] = useState<string | null>(null);
 
 
     // ========================================================
@@ -461,6 +462,45 @@ export function useAgentsData() {
                 ));
             }
         };
+
+    const alterarDisponibilidadeAgent = async (
+        agentId: string,
+        acceptingWork: boolean,
+        reason: string | null,
+    ) => {
+        try {
+            setError("");
+            setUpdatingAvailability(agentId);
+            const response = await api.patch(`/agents/${agentId}/availability`, {
+                accepting_work: acceptingWork,
+                reason,
+            });
+
+            if (response.data.status !== "success") {
+                setError(response.data.message || "Não foi possível alterar a disponibilidade do Device.");
+                return false;
+            }
+
+            const updatedAgent = response.data.agent as Agent;
+            setAgents((current) => current.map((agent) => (
+                agent.agent_id === agentId ? updatedAgent : agent
+            )));
+            notify({
+                tone: "success",
+                title: acceptingWork ? "Device liberado" : "Manutenção ativada",
+                message: response.data.message,
+            });
+            return true;
+        } catch (err) {
+            setError(getApiErrorMessage(
+                err,
+                "Não foi possível alterar a disponibilidade do Device.",
+            ));
+            return false;
+        } finally {
+            setUpdatingAvailability(null);
+        }
+    };
     // ========================================================
     // EXCLUIR AGENT
     // ========================================================
@@ -654,7 +694,9 @@ export function useAgentsData() {
         setNewAgent,
 
         creatingAgent,
+        updatingAvailability,
         alterarAmbienteAgent,
+        alterarDisponibilidadeAgent,
         alterarDisplayAgent,
         cadastrarAgent,
         excluirAgent,

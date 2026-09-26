@@ -1,4 +1,7 @@
 // ============================================================
+
+import { useMemo, useState } from "react";
+import { MonitorCheck, Search, Wrench } from "lucide-react";
 // DUET CORE - AGENTS PAGE
 // ============================================================
 //
@@ -51,6 +54,8 @@ import {
     useAgentsData,
 } from "../hooks/agents/useAgentsData";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
+import { TextField } from "../components/ui/TextField";
+import PremiumSelect from "../components/ui/PremiumSelect";
 
 
 // ============================================================
@@ -80,13 +85,37 @@ function Agents() {
         setNewAgent,
 
         creatingAgent,
+        updatingAvailability,
 
         cadastrarAgent,
         alterarAmbienteAgent,
+        alterarDisponibilidadeAgent,
         alterarDisplayAgent,
         excluirAgent,
         baixarAgent,
     } = useAgentsData();
+
+    const [search, setSearch] = useState("");
+    const [availabilityFilter, setAvailabilityFilter] = useState("all");
+
+    const filteredAgents = useMemo(() => {
+        const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
+        return agents.filter((agent) => {
+            const matchesSearch = !normalizedSearch || [agent.name, agent.agent_id, agent.host]
+                .some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedSearch));
+            const matchesAvailability = availabilityFilter === "all"
+                || (availabilityFilter === "available" && agent.accepting_work && agent.status.toLowerCase() === "online")
+                || (availabilityFilter === "maintenance" && !agent.accepting_work)
+                || (availabilityFilter === "offline" && agent.status.toLowerCase() !== "online");
+            return matchesSearch && matchesAvailability;
+        });
+    }, [agents, availabilityFilter, search]);
+
+    const availableCount = agents.filter(
+        (agent) => agent.accepting_work && agent.status.toLowerCase() === "online"
+    ).length;
+    const maintenanceCount = agents.filter((agent) => !agent.accepting_work).length;
+    const offlineCount = agents.filter((agent) => agent.status.toLowerCase() !== "online").length;
 
 
     // ========================================================
@@ -137,6 +166,58 @@ function Agents() {
                 }
             />
 
+            <section className="agents-operations" aria-labelledby="agents-operations-title">
+                <div className="agents-operations__summary">
+                    <div>
+                        <span>Capacidade disponível</span>
+                        <strong>{availableCount}</strong>
+                        <small>online e aceitando trabalho</small>
+                    </div>
+                    <div>
+                        <span>Em manutenção</span>
+                        <strong>{maintenanceCount}</strong>
+                        <small>reservas pausadas conscientemente</small>
+                    </div>
+                    <div>
+                        <span>Sem conexão</span>
+                        <strong>{offlineCount}</strong>
+                        <small>exigem verificação operacional</small>
+                    </div>
+                </div>
+                <div className="agents-operations__toolbar">
+                    <div>
+                        <h2 id="agents-operations-title">Visão operacional dos Devices</h2>
+                        <p>Encontre rapidamente a máquina adequada e controle novas reservas.</p>
+                    </div>
+                    <TextField
+                        type="search"
+                        label="Pesquisar Devices"
+                        labelHidden
+                        value={search}
+                        placeholder="Pesquisar por nome, ID ou host…"
+                        leadingIcon={<Search size={16} />}
+                        onChange={(event) => setSearch(event.target.value)}
+                    />
+                    <div className="agents-availability-filter">
+                        <label htmlFor="agents-availability-filter">Disponibilidade</label>
+                        <PremiumSelect
+                            id="agents-availability-filter"
+                            value={availabilityFilter}
+                            onChange={(event) => setAvailabilityFilter(event.target.value)}
+                        >
+                            <option value="all">Todos os Devices</option>
+                            <option value="available">Disponíveis</option>
+                            <option value="maintenance">Em manutenção</option>
+                            <option value="offline">Sem conexão</option>
+                        </PremiumSelect>
+                    </div>
+                    <div className="agents-operations__legend" aria-label="Legenda operacional">
+                        <span><MonitorCheck size={14} /> Disponível</span>
+                        <span><Wrench size={14} /> Manutenção</span>
+                    </div>
+                </div>
+            </section>
+
 
             {/* ==================================================
                 LISTAGEM
@@ -144,7 +225,7 @@ function Agents() {
 
             <AgentsList
                 agents={
-                    agents
+                    filteredAgents
                 }
                 loading={
                     loading
@@ -152,12 +233,15 @@ function Agents() {
                 error={
                     error
                 }
+                hasFilters={Boolean(search.trim()) || availabilityFilter !== "all"}
                 onEnvironmentChange={
                     alterarAmbienteAgent
                 }
                 onDisplayChange={
                     alterarDisplayAgent
                 }
+                updatingAvailability={updatingAvailability}
+                onAvailabilityChange={alterarDisponibilidadeAgent}
                 onDownload={
                     baixarAgent
                 }

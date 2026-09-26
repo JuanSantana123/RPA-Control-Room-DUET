@@ -33,6 +33,14 @@ from datetime import datetime
 class Agent(Base):
 
     __tablename__ = "agents"
+    __table_args__ = (
+        CheckConstraint(
+            "(accepting_work AND maintenance_reason IS NULL) OR "
+            "(NOT accepting_work AND maintenance_reason IS NOT NULL "
+            "AND length(btrim(maintenance_reason)) > 0)",
+            name="ck_agents_operational_availability",
+        ),
+    )
 
     agent_id = Column(
         String,
@@ -94,6 +102,25 @@ class Agent(Base):
         String,
         nullable=False,
         default="pending"
+    )
+
+    # Controle administrativo independente de conectividade e soft delete.
+    # False impede novas reservas, mas não encerra trabalho já em execução.
+    accepting_work = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        index=True,
+    )
+
+    maintenance_reason = Column(
+        String(240),
+        nullable=True,
+    )
+
+    availability_updated_at = Column(
+        DateTime,
+        nullable=True,
     )
 
     # ========================================================

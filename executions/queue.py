@@ -298,6 +298,7 @@ def _processar_execucao_queued(
         agent_host = agent.host
         agent_port = agent.port
         agent_status = agent.status
+        agent_accepting_work = agent.accepting_work
 
         agent_token_encrypted = (
             agent.agent_token_encrypted
@@ -322,6 +323,12 @@ def _processar_execucao_queued(
         return {
             "status": "waiting",
             "reason": "agent_offline",
+        }
+
+    if not agent_accepting_work:
+        return {
+            "status": "waiting",
+            "reason": "agent_maintenance",
         }
 
     # ========================================================
@@ -541,6 +548,12 @@ def _processar_execucao_queued(
             "status": "waiting",
             "reason": "agent_reserved",
         }
+    if resultado.get("agent_unavailable"):
+        return {
+            "status": "waiting",
+            "reason": "agent_maintenance",
+        }
+
     if resultado.get(
         "claim_lost"
     ):

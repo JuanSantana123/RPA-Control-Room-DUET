@@ -11,7 +11,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class AgentRegisterRequest(BaseModel):
@@ -227,6 +227,19 @@ class AgentDisplayUpdateRequest(BaseModel):
     )
 
 
+class AgentAvailabilityUpdateRequest(BaseModel):
+    accepting_work: bool
+    reason: str | None = Field(default=None, max_length=240)
+
+    @model_validator(mode="after")
+    def validate_reason(self):
+        normalized_reason = self.reason.strip() if self.reason else None
+        if not self.accepting_work and not normalized_reason:
+            raise ValueError("Informe o motivo da manutenção.")
+        self.reason = None if self.accepting_work else normalized_reason
+        return self
+
+
 # ============================================================
 # RESPOSTAS DO CATÁLOGO DE AGENTS
 # ============================================================
@@ -248,6 +261,10 @@ class AgentCatalogItem(BaseModel):
     port: int = Field(..., ge=1, le=65535)
     rpa_directory: str
     status: str
+    accepting_work: bool
+    maintenance_reason: str | None
+    availability_updated_at: str | None
+    last_heartbeat: str | None
     session_status: str
     username: str | None
     execution_username: str | None
@@ -268,6 +285,8 @@ class AgentExecutionItem(BaseModel):
     host: str | None
     port: int = Field(..., ge=1, le=65535)
     status: str
+    accepting_work: bool
+    maintenance_reason: str | None
     session_status: str
     username: str | None
     execution_username: str | None

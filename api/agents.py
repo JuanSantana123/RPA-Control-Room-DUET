@@ -29,6 +29,7 @@ from schemas.agents import (
     AgentCreateRequest,
     AgentDisplayUpdateRequest,
     AgentEnvironmentUpdateRequest,
+    AgentAvailabilityUpdateRequest,
 
     # Contrato utilizado para configurar o usuário Windows
     # responsável pelas automações Desktop deste Agent.
@@ -52,6 +53,7 @@ from agents.bootstrap_service import (
 
 from agents.catalog_service import (
     alterar_ambiente_agent_service,
+    alterar_disponibilidade_agent_service,
     alterar_display_agent_service,
 
     # Configura a identidade Windows utilizada para
@@ -666,4 +668,27 @@ def delete_agent(
     return excluir_agent_service(
         agent_id,
         db,
+    )
+
+
+@router.patch(
+    "/agents/{agent_id}/availability",
+    response_model=AgentMutationResponse,
+    summary="Alterar disponibilidade operacional do Agent",
+    description=(
+        "Pausa ou retoma novas reservas sem interromper uma execução em andamento. "
+        "Requer a permissão 'Agents:edit'."
+    ),
+    dependencies=[Depends(require_permission("Agents", "edit"))],
+)
+def update_agent_availability(
+    agent_id: str,
+    request: AgentAvailabilityUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    return alterar_disponibilidade_agent_service(
+        agent_id=agent_id,
+        accepting_work=request.accepting_work,
+        reason=request.reason,
+        db=db,
     )

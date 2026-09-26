@@ -15,12 +15,14 @@
 import logging
 import secrets
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from schemas.agents import AgentCreateRequest
 
 from agents.repository import (
     atualizar_ambiente_agent,
+    atualizar_disponibilidade_agent,
     atualizar_display_agent,
 
     # Atualiza a identidade Windows configurada para
@@ -31,6 +33,7 @@ from agents.repository import (
     criar_agent,
     desativar_agent,
     listar_agents_ativos,
+    listar_agents_para_execucao,
 )
 
 from agents.serializers import (
@@ -57,6 +60,7 @@ from agents.token_security import (
     AgentTokenSecurityError,
     proteger_agent_token,
 )
+from core.timezone import local_now_naive
 
 logger = logging.getLogger("control_room")
 
@@ -86,7 +90,7 @@ def listar_agents_disponiveis_execucao_service(
     de uma execução manual.
     """
 
-    agents = listar_agents_ativos(db)
+    agents = listar_agents_para_execucao(db)
 
     return {
         "status": "success",
@@ -646,5 +650,77 @@ def alterar_usuario_execucao_agent_service(
                 "Não foi possível alterar o usuário Windows "
                 "de execução do Agent."
             ),
+            "agent_id": agent_id,
+        }
+
+
+def alterar_disponibilidade_agent_service(
+    agent_id: str,
+    accepting_work: bool,
+    reason: str | None,
+    db: Session,
+):
+    """Pausa ou retoma novas reservas sem interromper execuções em andamento."""
+
+    try:
+        agent = buscar_agent_por_id(db, agent_id)
+        if not agent or agent.is_active != 1:
+            return {
+                "status": "error",
+                "message": "Agent não encontrado.",
+                "agent_id": agent_id,
+            }
+
+        # Usa a mesma trava das reservas de execução. Após esta mutação, uma
+        # reserva nova não consegue atravessar usando um estado obsoleto.
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:agent_id))"),
+            {"agent_id": agent_id},
+        )
+        db.refresh(agent)
+
+        atualizar_disponibilidade_agent(
+            agent,
+            accepting_work=accepting_work,
+            maintenance_reason=reason,
+            updated_at=local_now_naive(),
+        )
+        db.commit()
+        db.refresh(agent)
+
+        logger.info(
+            "Disponibilidade operacional do Agent alterada",
+            extra={
+                "event": "agent_operational_availability_updated",
+                "agent_id": agent.agent_id,
+                "accepting_work": agent.accepting_work,
+                "status": "success",
+            },
+        )
+
+        return {
+            "status": "success",
+            "message": (
+                "Device liberado para novas execuções."
+                if accepting_work
+                else "Device colocado em manutenção."
+            ),
+            "agent": serializar_agent_consulta(agent),
+        }
+
+    except Exception as error:
+        db.rollback()
+        logger.exception(
+            "Erro ao alterar disponibilidade operacional do Agent",
+            extra={
+                "event": "agent_operational_availability_update_failed",
+                "agent_id": agent_id,
+                "error_type": type(error).__name__,
+                "status": "error",
+            },
+        )
+        return {
+            "status": "error",
+            "message": "Não foi possível alterar a disponibilidade do Device.",
             "agent_id": agent_id,
         }

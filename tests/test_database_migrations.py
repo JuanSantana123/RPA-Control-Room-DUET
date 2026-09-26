@@ -33,14 +33,26 @@ class DatabaseMigrationTests(unittest.TestCase):
         criar_banco()
 
         with engine.connect() as connection:
-            tables = set(inspect(connection).get_table_names())
+            inspector = inspect(connection)
+            tables = set(inspector.get_table_names())
+            agent_columns = {column["name"] for column in inspector.get_columns("agents")}
+            agent_constraints = {
+                constraint["name"]
+                for constraint in inspector.get_check_constraints("agents")
+            }
             revision = connection.execute(
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
         self.assertIn("executions", tables)
         self.assertIn("automation_projects", tables)
-        self.assertEqual(revision, "e42f6c19a7d1")
+        self.assertTrue({
+            "accepting_work",
+            "maintenance_reason",
+            "availability_updated_at",
+        }.issubset(agent_columns))
+        self.assertIn("ck_agents_operational_availability", agent_constraints)
+        self.assertEqual(revision, "f7a1d4b3c902")
 
     def test_equivalent_legacy_schema_is_stamped(self):
         Base.metadata.create_all(bind=engine)
@@ -52,7 +64,7 @@ class DatabaseMigrationTests(unittest.TestCase):
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        self.assertEqual(revision, "e42f6c19a7d1")
+        self.assertEqual(revision, "f7a1d4b3c902")
 
     def test_drifted_legacy_schema_is_rejected_without_stamp(self):
         Base.metadata.create_all(bind=engine)

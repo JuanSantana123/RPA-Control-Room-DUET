@@ -15,6 +15,9 @@ const allCases = [
   { name: "dashboard-390-reduced-motion", route: "/", width: 390, height: 844, colorScheme: "dark", authenticated: true, reducedMotion: "reduce" },
   { name: "agents-390-dark", route: "/agents", width: 390, height: 844, colorScheme: "dark", authenticated: true },
   { name: "agents-1440-light", route: "/agents", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
+  { name: "agents-maintenance-390-light", route: "/agents", width: 390, height: 844, colorScheme: "light", authenticated: true, agentData: true, interaction: "agent-maintenance" },
+  { name: "agents-maintenance-1440-dark", route: "/agents", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, agentData: true, interaction: "agent-maintenance" },
+  { name: "agents-maintenance-editor-768-dark", route: "/agents", width: 768, height: 900, colorScheme: "dark", authenticated: true, agentData: true, interaction: "agent-maintenance-editor" },
   { name: "robots-390-light", route: "/robots", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "robots-1440-dark", route: "/robots", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "robots-folder-create-768-light", route: "/robots", width: 768, height: 900, colorScheme: "light", authenticated: true, interaction: "robot-folder-create" },
@@ -81,8 +84,9 @@ try {
 
     const mockApi = async (route) => {
         const pathname = new URL(route.request().url()).pathname;
+        const method = route.request().method();
         const permissions = [
-          "Dashboard:view", "Agents:view", "Development:view", "Development:create", "Development:edit",
+          "Dashboard:view", "Agents:view", "Agents:edit", "Development:view", "Development:create", "Development:edit",
           "Development:move_stage", "Development:delete", "Development:publish", "Development:trash_view",
           "Development:restore", "Development:permanent_delete", "Development:checkout",
           "Development:force_checkout_release", "Robots:view", "Executions:view", "Executions:execute",
@@ -95,12 +99,19 @@ try {
           permissions: [], credentials: [], logs: [], projects: [], cards: [], columns: [], libraries: [],
           dependencies: [], versions: [], tree: [],
         };
-        const body = pathname === "/auth/me"
+        const body = method === "PATCH" && pathname.endsWith("/availability")
+          ? { status: "success", message: "Device colocado em manutenção.", agent: { agent_id: "runner-fin-01", name: "Financeiro 01", environment: "production", host: "FIN-RPA-01", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: false, maintenance_reason: "Atualização preventiva do runtime", availability_updated_at: "2026-09-26T15:00:00", last_heartbeat: "2026-09-26T14:58:30", session_status: "ready", username: "duet.rpa", execution_username: "duet.rpa", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] } }
+          : pathname === "/auth/me"
           ? testCase.authenticated
             ? { status: "success", user: { id: 1, username: "operador", name: "Operador DUET", is_active: 1, permissions } }
             : { status: "unauthenticated" }
           : pathname === "/dashboard/stats"
             ? { total_agents: 12, agents_online: 9, total_robots: 48 }
+          : pathname === "/agents"
+            ? { status: "success", total: testCase.agentData ? 2 : 0, agents: testCase.agentData ? [
+                { agent_id: "runner-fin-01", name: "Financeiro 01", environment: "production", host: "FIN-RPA-01", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: true, maintenance_reason: null, availability_updated_at: "2026-09-26T10:00:00", last_heartbeat: "2026-09-26T14:58:30", session_status: "ready", username: "duet.rpa", execution_username: "duet.rpa", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
+                { agent_id: "runner-fiscal-02", name: "Fiscal 02", environment: "development", host: "FISCAL-RPA-02", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: false, maintenance_reason: "Atualização programada do Windows", availability_updated_at: "2026-09-26T13:40:00", last_heartbeat: "2026-09-26T14:57:10", session_status: "ready", username: "duet.fiscal", execution_username: "duet.fiscal", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
+              ] : [] }
           : pathname === "/schedules"
               ? { status: "success", total: testCase.scheduleData ? 1 : 0, schedules: testCase.scheduleData ? [{ id: 18, robot_id: 12, robot_name: "Conciliação financeira", agent_id: null, agent_name: "Automático", tipo: "daily", data_inicio: "2026-09-20T08:00:00", horario: "08:00", dias_semana: null, ativo: true, proxima_execucao: "2026-09-27T08:00:00", ultima_execucao: "2026-09-25T08:00:05", intervalo_ativo: false, intervalo_valor: null, intervalo_unidade: null, horario_fim: null, misfire_policy: "skip", misfire_grace_seconds: 600, ultima_ocorrencia_perdida: "2026-09-26T08:00:00" }] : [] }
             : pathname === "/schedules/options"
@@ -212,6 +223,31 @@ try {
       logsExplorerWorks = await page.locator(".logs-entry").count() === 1
         && await page.getByText("referência: req-9001").isVisible();
     }
+    let agentMaintenanceWorks = null;
+    if (testCase.interaction === "agent-maintenance") {
+      await page.getByRole("combobox", { name: "Disponibilidade" }).click();
+      await page.getByRole("option", { name: "Em manutenção" }).click();
+      await page.getByText("Atualização programada do Windows").waitFor();
+      agentMaintenanceWorks = await page.locator(".agent-card").count() === 1
+        && await page.getByText("Fiscal 02").isVisible()
+        && await page.locator(".agent-maintenance-badge").getByText("Manutenção", { exact: true }).isVisible();
+      await page.waitForTimeout(180);
+    }
+    let agentMaintenanceEditorWorks = null;
+    if (testCase.interaction === "agent-maintenance-editor") {
+      const card = page.locator(".agent-card").filter({ hasText: "Financeiro 01" });
+      await card.getByRole("switch", { name: /Aceitando novas execuções/ }).click();
+      const reason = card.getByRole("textbox", { name: "Motivo da manutenção" });
+      await reason.waitFor();
+      const submit = card.getByRole("button", { name: "Pausar novas execuções" });
+      const requiredStateWorks = await submit.isDisabled();
+      await reason.fill("Atualização preventiva do runtime");
+      await submit.click();
+      await card.getByText("Atualização preventiva do runtime").waitFor();
+      agentMaintenanceEditorWorks = requiredStateWorks
+        && await card.locator(".agent-maintenance-badge").isVisible();
+      await page.waitForTimeout(180);
+    }
     const metrics = await page.evaluate(() => {
       const visible = (element) => {
         const style = getComputedStyle(element);
@@ -282,13 +318,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

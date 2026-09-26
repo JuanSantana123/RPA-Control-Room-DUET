@@ -97,6 +97,56 @@
   color: var(--color-primary);
 }
 
+.agents-operations {
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.agents-operations__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.agents-operations__summary > div { min-width: 0; padding: 17px 20px; }
+.agents-operations__summary > div + div { border-left: 1px solid var(--color-border-light); }
+.agents-operations__summary span,
+.agents-operations__summary strong,
+.agents-operations__summary small { display: block; }
+.agents-operations__summary span { color: var(--color-text-muted); font-size: 10px; font-weight: var(--weight-bold); letter-spacing: 0.05em; text-transform: uppercase; }
+.agents-operations__summary strong { margin-top: 5px; color: var(--color-text-primary); font-size: 22px; }
+.agents-operations__summary small { margin-top: 3px; color: var(--color-text-muted); font-size: 11px; }
+
+.agents-operations__toolbar {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(240px, 0.8fr) 210px auto;
+  align-items: end;
+  gap: 14px;
+  padding: 17px 20px;
+}
+
+.agents-operations__toolbar h2 { color: var(--color-text-primary); font-size: 14px; }
+.agents-operations__toolbar p { margin-top: 4px; color: var(--color-text-muted); font-size: 11px; }
+
+.agents-availability-filter { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
+.agents-availability-filter > label { color: var(--color-text-secondary); font-size: 11px; font-weight: var(--weight-semibold); }
+
+.agents-operations__legend {
+  display: flex;
+  min-height: var(--control-height-md);
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.agents-operations__legend span { display: inline-flex; align-items: center; gap: 5px; }
+
 /* =========================================================
    FORMULÁRIO DE CADASTRO
    ========================================================= */
@@ -375,6 +425,10 @@
     0 6px 18px rgba(15, 23, 42, 0.05);
 }
 
+.agent-card--maintenance {
+  border-color: color-mix(in srgb, var(--color-warning) 28%, var(--color-border));
+}
+
 .agent-card-header {
   display: flex;
   align-items: flex-start;
@@ -461,6 +515,46 @@
 
   border-radius: 50%;
   background: currentColor;
+}
+
+.agent-availability {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 18px;
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.agent-availability--maintenance {
+  background: color-mix(in srgb, var(--color-warning-soft) 56%, var(--color-surface));
+}
+
+.agent-maintenance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  color: var(--color-warning);
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+  background: var(--color-warning-soft);
+  border-radius: 999px;
+}
+
+.agent-maintenance-editor {
+  padding: 16px 18px;
+  background: color-mix(in srgb, var(--color-warning-soft) 35%, var(--color-surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-warning) 24%, var(--color-border));
+}
+
+.agent-maintenance-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 /* =========================================================
@@ -648,6 +742,9 @@
   .agent-form .agent-create-submit {
     width: fit-content;
   }
+
+  .agents-operations__toolbar { grid-template-columns: 1fr 1fr; }
+  .agents-operations__legend { justify-content: flex-start; }
 }
 
 @media (max-width: 900px) {
@@ -669,6 +766,10 @@
     width: 100%;
   }
 
+  .agents-operations__summary { grid-template-columns: 1fr; }
+  .agents-operations__summary > div + div { border-top: 1px solid var(--color-border-light); border-left: 0; }
+  .agents-operations__toolbar { grid-template-columns: 1fr; }
+
   .agents-grid {
     padding: 16px;
   }
@@ -684,10 +785,21 @@
   }
 
   .agent-actions {
+    display: grid;
     width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .agent-actions .ui-button {
-    flex: 1;
+    width: 100%;
+    min-width: 0;
+    margin-right: 0;
   }
+
+  .agent-actions .ui-button--secondary:not(:first-child),
+  .agent-actions .ui-button--danger { min-width: 0; }
+
+  .agent-availability { align-items: flex-start; flex-direction: column; }
+  .agent-maintenance-editor__actions { flex-direction: column-reverse; }
+  .agent-maintenance-editor__actions .ui-button { width: 100%; }
 }

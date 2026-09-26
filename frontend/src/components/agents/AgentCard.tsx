@@ -29,6 +29,7 @@ import {
 // Ícones utilizados visualmente pelo card do Device.
 import {
     Bot,
+    Clock3,
     Download,
     FolderOpen,
     Monitor,
@@ -36,6 +37,7 @@ import {
     Settings2,
     Trash2,
     UserRound,
+    Wrench,
 } from "lucide-react";
 
 import type {
@@ -45,6 +47,8 @@ import type {
 import PremiumSelect from "../ui/PremiumSelect";
 import { Button } from "../ui/Button";
 import { useInteraction } from "../../context/useInteraction";
+import { Switch } from "../ui/Switch";
+import { TextField } from "../ui/TextField";
 
 
 // ============================================================
@@ -67,6 +71,12 @@ interface AgentCardProps {
             height: number,
             scale: number
         ) => void | Promise<void>;
+    availabilityBusy: boolean;
+    onAvailabilityChange: (
+        agentId: string,
+        acceptingWork: boolean,
+        reason: string | null,
+    ) => Promise<boolean>;
     onDownload:
         (
             agentId: string
@@ -87,6 +97,8 @@ function AgentCard({
     agent,
     onEnvironmentChange,
     onDisplayChange,
+    availabilityBusy,
+    onAvailabilityChange,
     onDownload,
     onDelete,
 }: AgentCardProps) {
@@ -99,6 +111,8 @@ function AgentCard({
     const isOnline =
         agent.status?.toLowerCase() ===
         "online";
+    const [editingAvailability, setEditingAvailability] = useState(false);
+    const [maintenanceReason, setMaintenanceReason] = useState("");
     // Nome amigável apresentado ao usuário.
     const environmentLabel =
         agent.environment === "production"
@@ -151,8 +165,12 @@ function AgentCard({
     const configuredResolution =
         `${agent.display_width}x${agent.display_height}`;
 
+    const heartbeatLabel = agent.last_heartbeat
+        ? new Date(agent.last_heartbeat).toLocaleString("pt-BR")
+        : "Ainda não recebido";
+
     return (
-        <article className="agent-card">
+        <article className={`agent-card${agent.accepting_work ? "" : " agent-card--maintenance"}`}>
 
             {/* ==================================================
                 CABEÇALHO
@@ -213,6 +231,68 @@ function AgentCard({
 
             </div>
 
+            <div className={`agent-availability${agent.accepting_work ? "" : " agent-availability--maintenance"}`}>
+                <Switch
+                    compact
+                    checked={agent.accepting_work}
+                    disabled={availabilityBusy}
+                    label={agent.accepting_work ? "Aceitando novas execuções" : "Device em manutenção"}
+                    description={agent.accepting_work
+                        ? "Novas reservas podem usar este Device."
+                        : agent.maintenance_reason || "Novas reservas estão pausadas."}
+                    onChange={async (event) => {
+                        if (!event.target.checked) {
+                            setMaintenanceReason("");
+                            setEditingAvailability(true);
+                            return;
+                        }
+
+                        const confirmed = await confirm({
+                            title: "Liberar Device para novas execuções?",
+                            description: `O Device "${agent.name}" voltará a aparecer nos seletores e poderá receber trabalho da fila.`,
+                            confirmLabel: "Liberar Device",
+                        });
+                        if (confirmed) await onAvailabilityChange(agent.agent_id, true, null);
+                    }}
+                />
+                {!agent.accepting_work && (
+                    <span className="agent-maintenance-badge"><Wrench size={14} aria-hidden="true" /> Manutenção</span>
+                )}
+            </div>
+
+            {editingAvailability && agent.accepting_work && (
+                <div className="agent-maintenance-editor">
+                    <TextField
+                        label="Motivo da manutenção"
+                        value={maintenanceReason}
+                        maxLength={240}
+                        placeholder="Ex.: atualização do Windows ou validação do ambiente"
+                        description="O motivo ficará visível para quem administra e agenda automações."
+                        onChange={(event) => setMaintenanceReason(event.target.value)}
+                    />
+                    <div className="agent-maintenance-editor__actions">
+                        <Button size="sm" variant="ghost" onClick={() => setEditingAvailability(false)}>Cancelar</Button>
+                        <Button
+                            size="sm"
+                            variant="primary"
+                            busy={availabilityBusy}
+                            loadingLabel="Pausando Device"
+                            disabled={!maintenanceReason.trim()}
+                            onClick={async () => {
+                                const updated = await onAvailabilityChange(
+                                    agent.agent_id,
+                                    false,
+                                    maintenanceReason.trim(),
+                                );
+                                if (updated) setEditingAvailability(false);
+                            }}
+                        >
+                            <Wrench size={14} aria-hidden="true" /> Pausar novas execuções
+                        </Button>
+                    </div>
+                </div>
+            )}
+
 
             {/* ==================================================
                 INFORMAÇÕES
@@ -239,6 +319,14 @@ function AgentCard({
 
                     </div>
 
+                </div>
+
+                <div className="agent-detail">
+                    <Clock3 size={15} strokeWidth={1.8} />
+                    <div>
+                        <span>Último heartbeat</span>
+                        <strong title={heartbeatLabel}>{heartbeatLabel}</strong>
+                    </div>
                 </div>
 
 

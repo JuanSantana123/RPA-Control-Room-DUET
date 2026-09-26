@@ -105,3 +105,16 @@ DUET_QUEUE_WARNING_SECONDS=900
 O valor aceito fica entre 60 e 86.400 segundos; ausência ou valor inválido retorna
 ao padrão seguro de 15 minutos. A janela é um indicador de atenção, não cancela,
 repete nem promove trabalho automaticamente.
+
+## Manutenção e disponibilidade dos Devices
+
+`accepting_work` é independente de `status` e `is_active`: um Device pode continuar
+online e cadastrado durante manutenção, sem receber novas reservas. Pausar exige um
+motivo operacional de até 240 caracteres; liberar remove esse motivo. A mudança usa
+a mesma trava transacional por Device que as reservas, eliminando a janela em que
+uma nova execução poderia iniciar depois da confirmação de pausa.
+
+Execuções já em andamento não são interrompidas. Itens já enfileirados permanecem
+na fila, preservando prioridade e `queued_at`, mas o worker não os despacha enquanto
+o Device estiver em manutenção. Agendamentos automáticos não selecionam Devices
+pausados; agendamentos vinculados aguardam disponibilidade sem serem descartados.

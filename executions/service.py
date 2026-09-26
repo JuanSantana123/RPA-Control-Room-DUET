@@ -171,6 +171,19 @@ def _reservar_execucao_direta(
         # precisa aguardar esta transação terminar.
         # --------------------------------------------------------
 
+        accepting_work = (
+            db.query(Agent.accepting_work)
+            .filter(
+                Agent.agent_id == agent_id,
+                Agent.is_active == 1,
+            )
+            .scalar()
+        )
+
+        if accepting_work is not True:
+            db.rollback()
+            return {"status": "unavailable"}
+
         execucao_running = (
             db.query(Execution.id)
             .filter(
@@ -379,6 +392,19 @@ def _claim_execucao_queued(
         # --------------------------------------------------------
         # CONFIRMA QUE O AGENT CONTINUA LIVRE
         # --------------------------------------------------------
+
+        accepting_work = (
+            db.query(Agent.accepting_work)
+            .filter(
+                Agent.agent_id == agent_id,
+                Agent.is_active == 1,
+            )
+            .scalar()
+        )
+
+        if accepting_work is not True:
+            db.rollback()
+            return {"status": "agent_unavailable"}
 
         outra_execucao_running = (
             db.query(Execution.id)
@@ -637,6 +663,15 @@ def _executar_robot(
         # Posteriormente windows_session_service decidirá se precisa
         # ou não resolver o segredo.
         # ========================================================
+
+        if not agent.accepting_work:
+            return {
+                "status": "queued" if request.execution_id is not None else "error",
+                "message": "O Device está em manutenção e não aceita novas execuções.",
+                "agent_id": agent_id,
+                "agent_unavailable": True,
+                "reason": "agent_maintenance",
+            }
 
         execution_credential_id = (
             agent.execution_credential_id
@@ -1033,6 +1068,16 @@ def _executar_robot(
                     "agent_id": agent_id,
                     "robot_id": robot_id,
                     "agent_busy": True,
+                }
+
+            if resultado_claim["status"] == "agent_unavailable":
+                return {
+                    "status": "queued",
+                    "message": "Device em manutenção; execução mantida na fila.",
+                    "execution_id": execution_id,
+                    "agent_id": agent_id,
+                    "robot_id": robot_id,
+                    "agent_unavailable": True,
                 }
 
             started_at = (
@@ -1852,6 +1897,13 @@ def _executar_robot(
                 "project_id": project_id,
                 "robot_name": robot_name,
                 "execution_status": "running",
+            }
+
+        if reserva["status"] == "unavailable":
+            return {
+                "status": "error",
+                "message": "O Device entrou em manutenção antes da reserva.",
+                "agent_id": agent_id,
             }
 
         execution_id = reserva["execution_id"]

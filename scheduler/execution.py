@@ -160,6 +160,7 @@ def _selecionar_agent(
             .filter(
                 Agent.agent_id == schedule.agent_id,
                 Agent.is_active == 1,
+                Agent.accepting_work.is_(True),
             )
             .first()
         )
@@ -177,6 +178,7 @@ def _selecionar_agent(
         .filter(
             Agent.is_active == 1,
             Agent.status == "online",
+            Agent.accepting_work.is_(True),
         )
         .order_by(
             Agent.name.asc()
@@ -200,6 +202,7 @@ def _selecionar_agent(
         db.query(Agent)
         .filter(
             Agent.is_active == 1,
+            Agent.accepting_work.is_(True),
         )
         .order_by(
             Agent.name.asc()

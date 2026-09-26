@@ -28,6 +28,19 @@ def listar_agents_ativos(db: Session):
     )
 
 
+def listar_agents_para_execucao(db: Session):
+    """Retorna somente Devices ativos que aceitam novas reservas."""
+
+    return (
+        db.query(Agent)
+        .filter(
+            Agent.is_active == 1,
+            Agent.accepting_work.is_(True),
+        )
+        .all()
+    )
+
+
 def buscar_agent_por_id(
     db: Session,
     agent_id: str,
@@ -274,4 +287,17 @@ def atualizar_credencial_execucao_agent(
 
     agent.execution_credential_id = execution_credential_id
 
+    return agent
+
+
+def atualizar_disponibilidade_agent(
+    agent,
+    *,
+    accepting_work: bool,
+    maintenance_reason: str | None,
+    updated_at,
+):
+    agent.accepting_work = accepting_work
+    agent.maintenance_reason = None if accepting_work else maintenance_reason
+    agent.availability_updated_at = updated_at
     return agent

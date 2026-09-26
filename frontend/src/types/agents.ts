@@ -52,6 +52,10 @@ export interface Agent {
     port: number;
     rpa_directory: string | null;
     status: string;
+    accepting_work: boolean;
+    maintenance_reason: string | null;
+    availability_updated_at: string | null;
+    last_heartbeat: string | null;
 
     // Ambiente operacional administrado pelo Control Room.
     environment: AgentEnvironment;

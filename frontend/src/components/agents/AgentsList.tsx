@@ -46,6 +46,7 @@ interface AgentsListProps {
     agents: Agent[];
     loading: boolean;
     error: string;
+    hasFilters: boolean;
     onEnvironmentChange:
         (
             agentId: string,
@@ -62,6 +63,12 @@ interface AgentsListProps {
             height: number,
             scale: number
         ) => void | Promise<void>;
+    updatingAvailability: string | null;
+    onAvailabilityChange: (
+        agentId: string,
+        acceptingWork: boolean,
+        reason: string | null,
+    ) => Promise<boolean>;
 
     onDownload:
         (
@@ -84,8 +91,11 @@ function AgentsList({
     agents,
     loading,
     error,
+    hasFilters,
     onEnvironmentChange,
     onDisplayChange,
+    updatingAvailability,
+    onAvailabilityChange,
     onDownload,
     onDelete,
 }: AgentsListProps) {
@@ -119,7 +129,7 @@ function AgentsList({
                     </span>
 
                     <span className="panel-count-label">
-                        cadastrados
+                        exibidos
                     </span>
 
                 </div>
@@ -147,8 +157,10 @@ function AgentsList({
 
                     <EmptyState
                         icon={<Monitor />}
-                        title="Nenhum dispositivo cadastrado"
-                        description="Cadastre o primeiro dispositivo para começar a executar automações com segurança."
+                        title={hasFilters ? "Nenhum Device corresponde aos filtros" : "Nenhum dispositivo cadastrado"}
+                        description={hasFilters
+                            ? "Ajuste a pesquisa ou a disponibilidade para ampliar os resultados."
+                            : "Cadastre o primeiro dispositivo para começar a executar automações com segurança."}
                     />
 
                 )}
@@ -159,7 +171,6 @@ function AgentsList({
                 ================================================== */}
 
             {!loading &&
-                !error &&
                 agents.length > 0 && (
 
                     <div className="agents-grid">
@@ -181,6 +192,8 @@ function AgentsList({
                                     onDisplayChange={
                                         onDisplayChange
                                     }
+                                    availabilityBusy={updatingAvailability === agent.agent_id}
+                                    onAvailabilityChange={onAvailabilityChange}
                                     onDownload={
                                         onDownload
                                     }

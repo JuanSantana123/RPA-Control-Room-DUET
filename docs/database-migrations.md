@@ -2,8 +2,9 @@
 
 O schema do DUET é controlado por Alembic. A revisão inicial
 `5e3799a70fb6` preserva o baseline integral e as evoluções seguintes são
-incrementais. O head atual é `e42f6c19a7d1`: depois da política de ocorrências
-atrasadas, esta revisão adiciona prioridade e instante de entrada à fila de execuções.
+incrementais. O head atual é `f7a1d4b3c902`: depois das políticas de ocorrências
+atrasadas e prioridade da fila, esta revisão separa a disponibilidade operacional
+dos Devices de conectividade e exclusão lógica.
 
 ## Startup seguro
 
@@ -48,7 +49,7 @@ O baseline foi exercitado em PostgreSQL 16 descartável com os ciclos:
 - schema legado equivalente → stamp do baseline;
 - schema legado com índice ausente → startup rejeitado e sem stamp.
 
-A evolução `5e3799a70fb6 → 9c31b2f4d802 → e42f6c19a7d1` também foi validada em PostgreSQL 16,
+A evolução `5e3799a70fb6 → 9c31b2f4d802 → e42f6c19a7d1 → f7a1d4b3c902` também foi validada em PostgreSQL 16,
 incluindo banco vazio, upgrade incremental, constraints, downgrade da revisão e
 `alembic check` sem diferenças.
 
