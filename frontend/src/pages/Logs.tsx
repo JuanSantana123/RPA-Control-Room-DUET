@@ -42,7 +42,9 @@ import LogsPanel
 import {
     useLogsData,
 } from "../hooks/logs/useLogsData";
+import { useMemo, useState } from "react";
 import { TriangleAlert } from "lucide-react";
+import LogsToolbar, { type LogLevelFilter } from "../components/logs/LogsToolbar";
 
 
 // ============================================================
@@ -50,6 +52,10 @@ import { TriangleAlert } from "lucide-react";
 // ============================================================
 
 function Logs() {
+
+    const [query, setQuery] = useState("");
+    const [level, setLevel] = useState<LogLevelFilter>("all");
+    const [autoRefresh, setAutoRefresh] = useState(true);
 
     // ========================================================
     // DADOS
@@ -61,8 +67,23 @@ function Logs() {
         refreshing,
         error,
         lastUpdated,
+        total,
+        truncated,
         carregarLogs,
-    } = useLogsData();
+    } = useLogsData(autoRefresh);
+
+    const filteredLogs = useMemo(() => {
+        const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+
+        return logs.filter((log) => {
+            if (level !== "all" && log.level.toUpperCase() !== level) return false;
+            if (!normalizedQuery) return true;
+
+            return [log.message, log.event, log.request_id, log.service, log.level]
+                .filter((value): value is string => typeof value === "string")
+                .some((value) => value.toLocaleLowerCase("pt-BR").includes(normalizedQuery));
+        });
+    }, [level, logs, query]);
 
 
     // ========================================================
@@ -83,6 +104,7 @@ function Logs() {
                 refreshing={refreshing}
                 lastUpdated={lastUpdated}
                 hasError={Boolean(error)}
+                autoRefresh={autoRefresh}
             />
 
 
@@ -104,6 +126,15 @@ function Logs() {
 
             )}
 
+            <LogsToolbar
+                query={query}
+                level={level}
+                autoRefresh={autoRefresh}
+                onQueryChange={setQuery}
+                onLevelChange={setLevel}
+                onAutoRefreshChange={setAutoRefresh}
+            />
+
 
             {/* ==================================================
                 PAINEL DE LOGS
@@ -111,7 +142,7 @@ function Logs() {
 
             <LogsPanel
                 logs={
-                    logs
+                    filteredLogs
                 }
                 loading={
                     loading
@@ -119,6 +150,9 @@ function Logs() {
                 error={
                     error
                 }
+                filtered={Boolean(query.trim()) || level !== "all"}
+                total={total}
+                truncated={truncated}
             />
 
         </div>

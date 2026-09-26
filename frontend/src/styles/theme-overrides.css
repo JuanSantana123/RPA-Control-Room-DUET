@@ -102,10 +102,16 @@
 }
 
 :root[data-theme="dark"] .execution-live-indicator,
-:root[data-theme="dark"] .logs-live-indicator:not(.logs-live-indicator--error) {
+:root[data-theme="dark"] .logs-live-indicator:not(.logs-live-indicator--error):not(.logs-live-indicator--paused) {
     color: var(--color-success) !important;
     background: var(--color-success-soft) !important;
     border-color: color-mix(in srgb, var(--color-success) 30%, var(--color-border)) !important;
+}
+
+:root[data-theme="dark"] .logs-live-indicator--paused {
+    color: var(--color-text-secondary) !important;
+    background: var(--color-surface-subtle) !important;
+    border-color: var(--color-border) !important;
 }
 
 :root[data-theme="dark"] .logs-live-indicator--error {

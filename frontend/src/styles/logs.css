@@ -121,6 +121,43 @@
 }
 
 /* =========================================================
+   EXPLORADOR / FILTROS
+   ========================================================= */
+
+.logs-toolbar {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) auto;
+    gap: 14px;
+    align-items: end;
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--color-surface) 94%, var(--color-primary) 6%);
+    box-shadow: var(--shadow-sm);
+}
+
+.logs-toolbar .ui-field {
+    gap: 0;
+}
+
+.logs-toolbar__level {
+    display: grid;
+    gap: 7px;
+}
+
+.logs-toolbar__level > label {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.logs-toolbar .ui-switch {
+    min-height: var(--control-height-md);
+    padding: 0 4px 0 10px;
+}
+
+/* =========================================================
    PAINEL PRINCIPAL
    ========================================================= */
 
@@ -275,6 +312,31 @@
     overflow-wrap: anywhere;
 }
 
+.logs-entry__content {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+}
+
+.logs-entry__metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.logs-entry__metadata code {
+    max-width: 100%;
+    padding: 3px 7px;
+    overflow: hidden;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* =========================================================
    ESTADOS
    ========================================================= */
@@ -326,6 +388,14 @@
    ========================================================= */
 
 @media (max-width: 850px) {
+    .logs-toolbar {
+        grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+    }
+
+    .logs-toolbar .ui-switch {
+        grid-column: 1 / -1;
+    }
+
     .logs-entry {
         grid-template-columns: 150px 90px minmax(0, 1fr);
         gap: 12px;
@@ -342,6 +412,16 @@
 }
 
 @media (max-width: 650px) {
+    .logs-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px;
+    }
+
+    .logs-toolbar .ui-switch {
+        grid-column: auto;
+        padding: 6px 2px;
+    }
+
     .logs-page-header {
         align-items: flex-start;
         flex-direction: column;
@@ -371,7 +451,7 @@
         order: 2;
     }
 
-    .logs-message {
+    .logs-entry__content {
         order: 3;
     }
 
@@ -400,6 +480,23 @@
 .logs-live-indicator--error::before {
     background: var(--color-danger);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 14%, transparent);
+}
+
+.logs-live-indicator--paused {
+    color: var(--color-text-secondary);
+    background: var(--color-surface-subtle);
+    border-color: var(--color-border);
+}
+
+.logs-live-indicator--paused::before {
+    background: var(--color-text-muted);
+    box-shadow: none;
+}
+
+:root[data-theme="dark"] .logs-live-indicator--paused {
+    color: var(--color-text-secondary);
+    background: var(--color-surface-subtle);
+    border-color: var(--color-border);
 }
 
 .logs-refresh-button svg { margin-right: 7px; }

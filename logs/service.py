@@ -22,6 +22,8 @@
 # ou autenticação de usuário.
 # ============================================================
 
+from collections import deque
+import logging
 from pathlib import Path
 import json
 
@@ -35,6 +37,27 @@ import json
 # ============================================================
 
 LOG_FILE = Path("logs") / "control_room.log"
+logger = logging.getLogger("control_room")
+
+
+def _texto_seguro(valor, *, padrao: str = "", limite: int = 4000) -> str:
+    if not isinstance(valor, str) or not valor:
+        return padrao
+
+    return valor[:limite]
+
+
+def _serializar_log(log_data: dict) -> dict:
+    """Expõe somente metadados operacionais aprovados para a interface."""
+
+    return {
+        "timestamp": _texto_seguro(log_data.get("timestamp"), limite=80),
+        "level": _texto_seguro(log_data.get("level"), padrao="INFO", limite=20),
+        "message": _texto_seguro(log_data.get("message"), limite=4000),
+        "event": _texto_seguro(log_data.get("event"), limite=120) or None,
+        "request_id": _texto_seguro(log_data.get("request_id"), limite=128) or None,
+        "service": _texto_seguro(log_data.get("service"), limite=120) or None,
+    }
 
 
 # ============================================================
@@ -79,6 +102,8 @@ def listar_logs_service(
         return {
             "status": "success",
             "logs": [],
+            "total": 0,
+            "truncated": False,
         }
 
     try:
@@ -87,99 +112,67 @@ def listar_logs_service(
         # LEITURA DO ARQUIVO
         # ====================================================
 
+        logs = deque(maxlen=limit)
+        total = 0
+
         with open(
             LOG_FILE,
             "r",
             encoding="utf-8",
         ) as arquivo:
 
-            linhas = arquivo.readlines()
+            # O arquivo é percorrido em streaming: a memória permanece
+            # limitada à página solicitada mesmo quando o log cresce.
+            for linha in arquivo:
 
-        # Mantém somente as últimas linhas solicitadas.
-        linhas = linhas[-limit:]
+                linha = linha.strip()
 
-        logs = []
+                if not linha:
+                    continue
 
-        # ====================================================
-        # PROCESSAMENTO DOS REGISTROS
-        # ====================================================
+                try:
 
-        for linha in linhas:
+                    log_data = json.loads(linha)
 
-            linha = linha.strip()
+                except (json.JSONDecodeError, TypeError):
+                    continue
 
-            # Ignora linhas vazias.
-            if not linha:
-                continue
+                if not isinstance(log_data, dict):
+                    continue
 
-            try:
+                nivel = _texto_seguro(
+                    log_data.get("level"),
+                    padrao="INFO",
+                    limite=20,
+                ).upper()
 
-                # Cada linha válida do arquivo deve representar
-                # um objeto JSON estruturado.
-                log_data = json.loads(linha)
+                if level and nivel != level.upper():
+                    continue
 
-            except json.JSONDecodeError:
+                log_data["level"] = nivel
+                total += 1
+                logs.append(_serializar_log(log_data))
 
-                # Preserva a compatibilidade com arquivos que
-                # ainda possam possuir registros antigos ou
-                # linhas inválidas.
-                continue
-
-            timestamp = log_data.get(
-                "timestamp",
-                "",
-            )
-
-            nivel = log_data.get(
-                "level",
-                "INFO",
-            )
-
-            mensagem = log_data.get(
-                "message",
-                "",
-            )
-
-            # =================================================
-            # FILTRO POR NÍVEL
-            # =================================================
-            #
-            # A comparação continua case-insensitive,
-            # exatamente como no comportamento original.
-            # =================================================
-
-            if (
-                level
-                and nivel.upper() != level.upper()
-            ):
-                continue
-
-            logs.append({
-                "timestamp": timestamp,
-                "level": nivel,
-                "message": mensagem,
-            })
-
-        # ====================================================
-        # ORDENAÇÃO
-        # ====================================================
-        #
-        # O arquivo é lido em ordem cronológica.
-        # Invertemos para apresentar os registros mais recentes
-        # primeiro, preservando o comportamento atual.
-        # ====================================================
-
-        logs.reverse()
+        registros = list(reversed(logs))
 
         return {
             "status": "success",
-            "logs": logs,
+            "logs": registros,
+            "total": total,
+            "truncated": total > len(registros),
         }
 
     except Exception as error:
 
+        logger.exception(
+            "Falha ao consultar arquivo de logs",
+            extra={
+                "event": "system_logs_read_failed",
+                "error_type": type(error).__name__,
+            },
+        )
+
         return {
             "status": "error",
             "message": "Não foi possível carregar os logs.",
-            "error": str(error),
         }

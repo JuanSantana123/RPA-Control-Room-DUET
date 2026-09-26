@@ -33,7 +33,8 @@ const allCases = [
   { name: "vault-1440-light", route: "/vault", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "roles-1440-dark", route: "/roles", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "users-390-light", route: "/users", width: 390, height: 844, colorScheme: "light", authenticated: true },
-  { name: "logs-1440-dark", route: "/logs", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
+  { name: "logs-390-light", route: "/logs", width: 390, height: 844, colorScheme: "light", authenticated: true },
+  { name: "logs-explorer-1440-dark", route: "/logs", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, interaction: "logs-filter" },
   { name: "studio-390-dark", route: "/development/1/studio", width: 390, height: 844, colorScheme: "dark", authenticated: true, studio: true },
   { name: "studio-1440-light", route: "/development/1/studio", width: 1440, height: 1000, colorScheme: "light", authenticated: true, studio: true },
   { name: "development-create-390-dark", route: "/development", width: 390, height: 844, colorScheme: "dark", authenticated: true, interaction: "development-create" },
@@ -103,6 +104,12 @@ try {
               ? []
             : pathname === "/executions"
               ? { executions: testCase.forceEmpty ? [] : [{ id: 142, robot_id: 9, robot_name: "Conciliação financeira", filename: "conciliacao.zip", agent_id: "runner-03", agent_name: "Financeiro 03", status: "running", started_at: "2026-09-26T14:45:00Z", finished_at: null, error_message: null }] }
+              : pathname === "/logs"
+                ? { status: "success", total: 3, truncated: false, logs: [
+                    { timestamp: "2026-09-26T18:42:03Z", level: "ERROR", message: "Falha controlada ao consultar o Device.", event: "agent_health_failed", request_id: "req-9001", service: "control-room" },
+                    { timestamp: "2026-09-26T18:41:55Z", level: "WARNING", message: "Device sem heartbeat dentro da janela esperada.", event: "agent_offline" },
+                    { timestamp: "2026-09-26T18:41:30Z", level: "INFO", message: "Ciclo de monitoramento concluído.", event: "agent_monitor_cycle" },
+                  ] }
               : pathname === "/development/projects/1"
                 ? { project: { id: 1, name: "Validação visual", description: "Projeto sintético para auditoria local", folder_id: null, status: "development", base_robot_id: null, base_version: null, created_by: 1, created_at: "2026-09-26T12:00:00Z", updated_at: "2026-09-26T12:00:00Z", is_active: true } }
                 : pathname === "/development/projects/1/checkout"
@@ -160,6 +167,16 @@ try {
       await page.waitForFunction(() => document.querySelector('#filtro-robo')?.textContent?.includes("Todos os robôs"));
       await page.waitForFunction(() => document.querySelector('button') && [...document.querySelectorAll('button')].find((button) => button.textContent?.includes("Limpar filtros"))?.disabled);
       filterNavigationWorks = true;
+    }
+    let logsExplorerWorks = null;
+    if (testCase.interaction === "logs-filter") {
+      await page.getByRole("combobox", { name: "Nível" }).click();
+      await page.getByRole("option", { name: "Erros", exact: true }).click();
+      await page.getByRole("searchbox", { name: "Pesquisar registros" }).fill("req-9001");
+      await page.getByRole("switch", { name: /Atualização automática/ }).uncheck();
+      await page.getByText("Atualização pausada").waitFor();
+      logsExplorerWorks = await page.locator(".logs-entry").count() === 1
+        && await page.getByText("referência: req-9001").isVisible();
     }
     const metrics = await page.evaluate(() => {
       const visible = (element) => {
@@ -227,13 +244,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, mobileNavigation, filterNavigationWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, mobileNavigation, filterNavigationWorks, logsExplorerWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.filterNavigationWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.filterNavigationWorks === false || result.logsExplorerWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

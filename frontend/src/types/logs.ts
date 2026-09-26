@@ -23,4 +23,7 @@ export interface SystemLog {
     timestamp: string;
     level: string;
     message: string;
+    event?: string | null;
+    request_id?: string | null;
+    service?: string | null;
 }

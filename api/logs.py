@@ -28,6 +28,7 @@ from auth.permissions import require_permission
 # Service responsável pela leitura, filtro e processamento
 # dos registros do arquivo de log.
 from logs.service import listar_logs_service
+from schemas.logs import LogLevel, LogsResponse
 
 
 # ============================================================
@@ -50,14 +51,14 @@ router = APIRouter(
 # LISTAR LOGS
 # ============================================================
 
-@router.get("/logs")
+@router.get("/logs", response_model=LogsResponse)
 def listar_logs(
     limit: int = Query(
         default=200,
         ge=1,
         le=1000
     ),
-    level: str | None = None,
+    level: LogLevel | None = None,
 
     # O usuário precisa possuir permissão explícita para
     # visualizar os Logs do Control Room.
