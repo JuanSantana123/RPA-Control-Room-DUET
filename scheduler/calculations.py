@@ -14,6 +14,8 @@
 
 from datetime import datetime, timedelta
 
+from core.timezone import local_now_naive
+
 
 # ============================================================
 # FUNÇÃO AUXILIAR - CONVERTE HORÁRIO
@@ -44,7 +46,7 @@ def _horario_para_datetime(data_base, horario):
 def calcular_proxima_execucao(schedule, agora=None):
 
     if agora is None:
-        agora = datetime.now()
+        agora = local_now_naive()
 
     inicio = schedule.data_inicio
 
@@ -495,7 +497,7 @@ def proxima_execucao_apos_execucao(
 ):
 
     if agora is None:
-        agora = datetime.now()
+        agora = local_now_naive()
 
 
     # ========================================================

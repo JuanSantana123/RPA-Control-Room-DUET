@@ -22,7 +22,9 @@
 # api/schedules.py sem alteração do contrato atual da API.
 # ============================================================
 
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 # ============================================================
@@ -54,3 +56,21 @@ class ScheduleCreateRequest(BaseModel):
     intervalo_unidade: str | None = None
 
     horario_fim: str | None = None
+
+
+class ScheduleRobotOption(BaseModel):
+    id: int = Field(..., gt=0)
+    name: str
+
+
+class ScheduleAgentOption(BaseModel):
+    agent_id: str
+    name: str
+    status: str
+
+
+class ScheduleOptionsResponse(BaseModel):
+    status: Literal["success"]
+    robots: list[ScheduleRobotOption]
+    agents: list[ScheduleAgentOption]
+    timezone: str

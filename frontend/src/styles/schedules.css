@@ -257,6 +257,20 @@
 }
 .schedule-form-section__heading h3 { margin: 1px 0 0; color: var(--color-text-primary); font-size: var(--text-sm); }
 .schedule-form-section__heading p { margin: 3px 0 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.45; }
+.schedule-timezone-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--color-surface));
+}
+.schedule-timezone-note svg { flex: 0 0 auto; margin-top: 1px; }
+.schedule-timezone-note > div { display: grid; min-width: 0; gap: 2px; }
+.schedule-timezone-note strong { color: var(--color-text-primary); font-size: var(--text-xs); }
+.schedule-timezone-note span { color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.45; overflow-wrap: anywhere; }
 .schedule-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
 .schedule-form-grid--timing { grid-template-columns: 1.15fr 1fr .8fr; }
 .schedule-form-group { display: grid; min-width: 0; gap: 7px; margin: 0; }

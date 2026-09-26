@@ -107,6 +107,7 @@ function Schedules() {
 
         robots,
         agents,
+        timezone,
 
         robotId,
         setRobotId,
@@ -240,6 +241,7 @@ function Schedules() {
                     agents={
                         agents
                     }
+                    timezone={timezone}
 
                     robotId={
                         robotId

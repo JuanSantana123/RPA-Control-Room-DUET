@@ -27,6 +27,8 @@ import logging
 
 from datetime import datetime
 
+from core.timezone import local_now_naive
+
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
@@ -221,7 +223,7 @@ def executar_agendamento(
                 "schedule_id": schedule_id,
             }
 
-        agora = datetime.now()
+        agora = local_now_naive()
 
         # Ainda não venceu.
         if schedule.proxima_execucao > agora:

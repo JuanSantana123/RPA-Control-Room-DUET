@@ -1,6 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { createPortal } from "react-dom";
-import { CalendarClock, RotateCw, X } from "lucide-react";
+import { CalendarClock, Globe2, RotateCw, X } from "lucide-react";
 
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
 import type { AgentOption, RobotOption } from "../../types/schedules";
@@ -20,6 +20,7 @@ interface ScheduleModalProps {
   editandoId: number | null;
   robots: RobotOption[];
   agents: AgentOption[];
+  timezone: string;
   robotId: string;
   setRobotId: Dispatch<SetStateAction<string>>;
   agentId: string;
@@ -49,7 +50,7 @@ interface ScheduleModalProps {
 }
 
 export default function ScheduleModal({
-  editandoId, robots, agents, robotId, setRobotId, agentId, setAgentId, tipo,
+  editandoId, robots, agents, timezone, robotId, setRobotId, agentId, setAgentId, tipo,
   dataInicio, setDataInicio, horario, setHorario, diasSemana, intervaloAtivo,
   setIntervaloAtivo, intervaloValor, setIntervaloValor, intervaloUnidade,
   setIntervaloUnidade, horarioFim, setHorarioFim, salvando, loadingOptions,
@@ -126,6 +127,13 @@ export default function ScheduleModal({
                   <h3 id="schedule-time-title">Quando deverá executar</h3>
                   <p>Configure o início e a recorrência da automação.</p>
                 </div></div>
+                <div className="schedule-timezone-note" role="note">
+                  <Globe2 size={16} aria-hidden="true" />
+                  <div>
+                    <strong>Fuso horário do Control Room</strong>
+                    <span>{timezone} · horários inválidos ou ambíguos em mudanças de horário civil serão recusados.</span>
+                  </div>
+                </div>
                 <div className="schedule-form-grid schedule-form-grid--timing">
                   <div className="schedule-form-group">
                     <label htmlFor="schedule-type">Frequência</label>

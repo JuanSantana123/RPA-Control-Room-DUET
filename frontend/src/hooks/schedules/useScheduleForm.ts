@@ -49,6 +49,14 @@ import type {
     RobotOption,
 } from "../../types/schedules";
 
+interface ScheduleOptionsResponse {
+    status: "success" | "error";
+    robots?: RobotOption[];
+    agents?: AgentOption[];
+    timezone?: string;
+    message?: string;
+}
+
 
 // ============================================================
 // PROPS DO HOOK
@@ -104,6 +112,11 @@ export function useScheduleForm({
         agents,
         setAgents,
     ] = useState<AgentOption[]>([]);
+
+    const [
+        timezone,
+        setTimezone,
+    ] = useState("America/Sao_Paulo");
 
 
     // ========================================================
@@ -197,7 +210,7 @@ export function useScheduleForm({
             try {
 
                 const response =
-                    await api.get(
+                    await api.get<ScheduleOptionsResponse>(
                         "/schedules/options"
                     );
 
@@ -227,6 +240,10 @@ export function useScheduleForm({
                 setAgents(
                     data.agents || []
                 );
+
+                if (typeof data.timezone === "string" && data.timezone.trim()) {
+                    setTimezone(data.timezone);
+                }
 
                 return true;
 
@@ -794,6 +811,7 @@ export function useScheduleForm({
         // Opções.
         robots,
         agents,
+        timezone,
 
         // Campos.
         robotId,

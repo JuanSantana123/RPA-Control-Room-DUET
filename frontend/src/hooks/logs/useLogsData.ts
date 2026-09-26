@@ -24,7 +24,11 @@ export function useLogsData(autoRefresh = true) {
 
   const carregarLogsComSinal = async (background = false, signal?: AbortSignal) => {
     const requestId = ++requestSequence.current;
-    background ? setRefreshing(true) : setLoading(true);
+    if (background) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const response = await api.get<LogsResponse>("/logs", {
         params: { limit: 500 },

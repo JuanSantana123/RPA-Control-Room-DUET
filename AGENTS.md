@@ -17,3 +17,4 @@
 - Preserve `X-Client-Request-ID`/`X-Request-ID` correlation and the `/health/live` versus `/health/ready` distinction. Health responses must not expose credentials, paths or operational payloads.
 - Define explicit Pydantic response models when changing JSON APIs. Keep success/error states discriminated, validate external telemetry before serialization, and add a contract test so frontend fields cannot silently diverge from backend payloads.
 - Never return raw exceptions, tracebacks or upstream response bodies to clients. Log controlled technical context with the request correlation ID and keep `tests/test_api_error_safety.py` passing.
+- Use `core.timezone.local_now_naive` for Scheduler wall-clock decisions and expose `DUET_TIMEZONE` in schedule UX. Do not reintroduce host-local `datetime.now()` into scheduling flows or silently reinterpret persisted schedules.

@@ -20,6 +20,8 @@ import threading
 
 from datetime import datetime
 
+from core.timezone import local_now_naive
+
 from database import SessionLocal
 from models import Schedule
 
@@ -149,7 +151,7 @@ def processar_ciclo_scheduler():
     sem precisar criar uma thread infinita.
     """
 
-    agora = datetime.now()
+    agora = local_now_naive()
 
     _inicializar_proximas_execucoes(
         agora

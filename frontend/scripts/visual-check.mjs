@@ -99,7 +99,7 @@ try {
             : pathname === "/schedules"
               ? { status: "success", schedules: [] }
             : pathname === "/schedules/options"
-              ? { status: "success", robots: [{ id: 12, name: "Conciliação financeira" }], agents: [{ agent_id: "runner-01", name: "Dispositivo Financeiro", status: "online" }] }
+              ? { status: "success", timezone: "America/Sao_Paulo", robots: [{ id: 12, name: "Conciliação financeira" }], agents: [{ agent_id: "runner-01", name: "Dispositivo Financeiro", status: "online" }] }
             : pathname === "/roles" || pathname === "/roles/permissions" || pathname === "/auth/users"
               ? []
             : pathname === "/executions"

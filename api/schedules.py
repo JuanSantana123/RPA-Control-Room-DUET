@@ -1,7 +1,7 @@
 
 # Contrato Pydantic utilizado pelos endpoints de criação
 # e atualização de agendamentos.
-from schemas.schedules import ScheduleCreateRequest
+from schemas.schedules import ScheduleCreateRequest, ScheduleOptionsResponse
 import logging
 
 from fastapi import APIRouter, Depends
@@ -14,6 +14,11 @@ from database import SessionLocal
 from models import Schedule, Robot, Agent, Execution
 from datetime import datetime
 from pathlib import Path
+from core.timezone import (
+    get_control_room_timezone_name,
+    local_now_naive,
+    validate_local_wall_time,
+)
 
 # ============================================================
 # CÁLCULOS TEMPORAIS DO SCHEDULER
@@ -490,8 +495,17 @@ def criar_agendamento(
                 "message": "Horário inválido. Use HH:MM."
             }
 
+        try:
+            validate_local_wall_time(data_horario)
+        except ValueError as validation_error:
+            validation_message = str(validation_error)
+            return {
+                "status": "error",
+                "message": validation_message,
+            }
 
-        agora = datetime.now()
+
+        agora = local_now_naive()
 
         # ========================================================
         # VALIDAÇÕES ESPECÍFICAS DO TIPO
@@ -595,6 +609,15 @@ def criar_agendamento(
                     "message": (
                         "Horário final inválido. Use HH:MM."
                     )
+                }
+
+            try:
+                validate_local_wall_time(fim_intervalo)
+            except ValueError as validation_error:
+                validation_message = str(validation_error)
+                return {
+                    "status": "error",
+                    "message": validation_message,
                 }
 
             if fim_intervalo <= data_horario:
@@ -803,6 +826,7 @@ def criar_agendamento(
 # ============================================================
 @router.get(
     "/schedules/options",
+    response_model=ScheduleOptionsResponse,
     summary="Consultar opções de agendamento",
     description=(
         "Retorna as opções disponíveis para criação de um agendamento. "
@@ -898,7 +922,9 @@ def opcoes_agendamento():
 
             "robots": robots,
 
-            "agents": agents
+            "agents": agents,
+
+            "timezone": get_control_room_timezone_name()
         }
 
     finally:
@@ -1285,6 +1311,15 @@ def update_schedule(
                 "message": "Horário inválido. Use HH:MM."
             }
 
+        try:
+            validate_local_wall_time(data_horario)
+        except ValueError as validation_error:
+            validation_message = str(validation_error)
+            return {
+                "status": "error",
+                "message": validation_message,
+            }
+
 
         if request.intervalo_ativo:
 
@@ -1306,12 +1341,21 @@ def update_schedule(
                     )
                 }
 
+            try:
+                validate_local_wall_time(fim_intervalo)
+            except ValueError as validation_error:
+                validation_message = str(validation_error)
+                return {
+                    "status": "error",
+                    "message": validation_message,
+                }
+
 
         # Schedule "once" não pode ser atualizado para uma
         # ocorrência que já passou.
         if (
             request.tipo == "once"
-            and data_horario <= datetime.now()
+            and data_horario <= local_now_naive()
         ):
 
             return {
@@ -1359,7 +1403,7 @@ def update_schedule(
         nova_proxima_execucao = (
             calcular_proxima_execucao(
                 schedule,
-                datetime.now()
+                local_now_naive()
             )
         )
 
@@ -1499,7 +1543,7 @@ def alterar_status_schedule(
 
         if ativo:
 
-            agora = datetime.now()
+            agora = local_now_naive()
 
             # Para Schedule "once", a ocorrência original precisa
             # continuar no futuro.

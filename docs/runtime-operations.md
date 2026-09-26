@@ -53,3 +53,23 @@ As respostas da API também recebem `X-Content-Type-Options: nosniff`,
 O bootstrap utiliza migrações versionadas e rejeita automaticamente um banco
 legado divergente. O procedimento completo, incluindo adoção segura do baseline,
 está em `docs/database-migrations.md`.
+
+## Fuso horário dos agendamentos
+
+O Scheduler interpreta datas e horários no fuso IANA definido por
+`DUET_TIMEZONE`. O padrão retrocompatível é:
+
+```text
+DUET_TIMEZONE=America/Sao_Paulo
+```
+
+Todas as réplicas HTTP e o processo responsável pelos workers devem usar o mesmo
+valor. A API informa esse fuso ao formulário de agendamento, e horários civis
+inexistentes ou ambíguos durante transições de horário são recusados antes da
+persistência. A dependência `tzdata` mantém a base IANA disponível também em
+hosts Windows e imagens sem dados de fuso do sistema operacional.
+
+Alterar o fuso em uma instalação que já possui agendamentos modifica a
+interpretação civil dos horários legados. Faça essa mudança somente em janela
+operacional, após revisar os agendamentos existentes; não há conversão automática
+silenciosa.
