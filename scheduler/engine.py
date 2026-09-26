@@ -239,6 +239,10 @@ scheduler_thread = None
 scheduler_thread_lock = threading.Lock()
 
 
+def scheduler_esta_ativo():
+    return scheduler_thread is not None and scheduler_thread.is_alive()
+
+
 def iniciar_scheduler():
     """
     Inicia no máximo uma thread Scheduler dentro do processo.

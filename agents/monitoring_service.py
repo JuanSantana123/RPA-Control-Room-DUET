@@ -30,6 +30,10 @@ agent_monitor_thread = None
 agent_monitor_thread_lock = threading.Lock()
 
 
+def monitor_agents_esta_ativo():
+    return agent_monitor_thread is not None and agent_monitor_thread.is_alive()
+
+
 def verificar_agents_offline():
     """
     Verifica Agents sem heartbeat há mais de 60 segundos.

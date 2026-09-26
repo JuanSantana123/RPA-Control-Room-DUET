@@ -806,6 +806,10 @@ thread_fila = None
 thread_fila_lock = threading.Lock()
 
 
+def worker_fila_esta_ativo():
+    return thread_fila is not None and thread_fila.is_alive()
+
+
 def iniciar_worker_fila():
     """
     Inicia no máximo um Worker da Queue dentro deste processo.

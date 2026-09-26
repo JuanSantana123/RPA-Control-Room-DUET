@@ -31,6 +31,7 @@ import os
 from datetime import datetime, timezone
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
+from core.request_context import get_request_id
 
 
 # ============================================================
@@ -156,6 +157,10 @@ class JsonFormatter(logging.Formatter):
 
             "message": record.getMessage(),
         }
+
+        active_request_id = get_request_id()
+        if active_request_id and not hasattr(record, "request_id"):
+            log_data["request_id"] = active_request_id
 
         # Adiciona apenas os campos extras que realmente
         # existirem naquele registro de log.

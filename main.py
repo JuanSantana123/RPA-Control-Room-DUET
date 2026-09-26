@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
 import uvicorn
 from database import criar_banco
 # Carrega a mesma lista de Origins confiáveis utilizada
@@ -30,6 +29,8 @@ from development.bootstrap import (
 # ============================================================
 
 from core.logging_config import logger
+from core.http_middleware import RequestContextMiddleware
+from core.runtime_config import background_workers_habilitados
 # Importa os modelos SQLAlchemy antes da criação das tabelas.
 #
 # Isso garante que todas as classes declaradas em models.py,
@@ -131,6 +132,7 @@ from api.vault_device_credentials import (
 from api.vault_credentials import agent_router as vault_agent_router
 # Importa o router responsável pelas permissões
 from api.role_vault_permissions import router as role_vault_permissions_router
+from api.health import router as health_router
 # ============================================================
 # CONTROL ROOM
 # ============================================================
@@ -144,6 +146,8 @@ app = FastAPI(
 # ============================================================
 # REGISTRO DOS ROUTERS
 # ============================================================
+
+app.include_router(health_router)
 
 # Registra todas as APIs relacionadas aos Agents.
 app.include_router(agents_router)
@@ -274,7 +278,9 @@ app.add_middleware(
     # Mantemos o comportamento HTTP atual da aplicação.
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+app.add_middleware(RequestContextMiddleware)
 # ============================================================
 # INÍCIO DA APLICAÇÃO
 # ============================================================
@@ -485,16 +491,6 @@ except Exception as error:
 # ============================================================
 # INICIALIZAÇÃO DO SCHEDULER
 # ============================================================
-def background_workers_habilitados():
-    """
-    Permite separar réplicas HTTP dos processos que executam Scheduler,
-    Queue e monitoramento. O padrão preserva a instalação de processo único.
-    """
-
-    value = os.getenv("CONTROL_ROOM_ENABLE_BACKGROUND_WORKERS", "true")
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
 @app.on_event("startup")
 def startup_scheduler():
     """

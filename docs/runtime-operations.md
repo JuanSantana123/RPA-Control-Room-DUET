@@ -34,6 +34,20 @@ Os testes usam uma URL PostgreSQL sintética e não abrem conexão: as rotinas d
 banco executadas pelos loops são substituídas por funções controladas. Eles
 verificam inicialização única, thread ativa e encerramento de cada worker.
 
+## Health checks e correlação
+
+- `GET /health/live`: confirma que o processo HTTP responde, sem depender do banco.
+- `GET /health/ready`: valida PostgreSQL, revisão Alembic e os workers exigidos pela
+  função desta instância. Retorna HTTP 503 quando algum requisito não está pronto.
+
+Toda resposta inclui `X-Request-ID`. O frontend envia `X-Client-Request-ID`, que é
+preservado quando possui formato seguro; valores inválidos são substituídos por
+UUID. O mesmo identificador entra automaticamente nos logs emitidos durante a
+requisição, junto de método, endpoint, status e duração.
+
+As respostas da API também recebem `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY` e `Referrer-Policy: no-referrer`.
+
 ## Schema
 
 O bootstrap utiliza migrações versionadas e rejeita automaticamente um banco
