@@ -69,7 +69,12 @@ export interface Schedule {
     intervalo_unidade: string | null;
     horario_fim: string | null;
 
+    misfire_policy: "run_once" | "skip";
+    misfire_grace_seconds: number;
+    ultima_ocorrencia_perdida: string | null;
+
     proxima_execucao: string | null;
+    ultima_execucao: string | null;
 
     ativo: boolean;
 }

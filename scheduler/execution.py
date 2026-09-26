@@ -50,6 +50,43 @@ logger = logging.getLogger(
 )
 
 
+def aplicar_politica_de_ocorrencia_perdida(schedule, agora):
+    """Avança uma ocorrência atrasada quando a política explícita é ``skip``.
+
+    Retorna ``True`` somente quando a ocorrência ultrapassou a tolerância e foi
+    ignorada. A função altera apenas o objeto recebido; a transação continua sob
+    responsabilidade do chamador.
+    """
+
+    scheduled_for = schedule.proxima_execucao
+    if scheduled_for is None or schedule.misfire_policy != "skip":
+        return False
+
+    grace_seconds = max(int(schedule.misfire_grace_seconds or 300), 30)
+    atraso_seconds = (agora - scheduled_for).total_seconds()
+    if atraso_seconds <= grace_seconds:
+        return False
+
+    schedule.ultima_ocorrencia_perdida = scheduled_for
+
+    if schedule.tipo == "once":
+        # Preservamos a configuração inativa para o operador entender por que a
+        # execução única não aconteceu e poder reagendá-la conscientemente.
+        schedule.ativo = 0
+        schedule.proxima_execucao = None
+        return True
+
+    schedule.proxima_execucao = proxima_execucao_apos_execucao(
+        schedule,
+        agora,
+    )
+
+    if schedule.proxima_execucao is None:
+        schedule.ativo = 0
+
+    return True
+
+
 # ============================================================
 # IDENTIFICADOR DA OCORRÊNCIA
 # ============================================================
@@ -254,6 +291,30 @@ def executar_agendamento(
         scheduled_for = (
             schedule.proxima_execucao
         )
+
+        if aplicar_politica_de_ocorrencia_perdida(schedule, agora):
+            next_run = schedule.proxima_execucao
+            schedule_id_perdido = schedule.id
+
+            db.commit()
+
+            logger.warning(
+                "Ocorrência vencida ignorada conforme política do agendamento",
+                extra={
+                    "event": "schedule_occurrence_skipped",
+                    "schedule_id": schedule_id_perdido,
+                    "scheduled_for": scheduled_for.isoformat(),
+                    "next_run": next_run.isoformat() if next_run else None,
+                    "status": "skipped",
+                },
+            )
+
+            return {
+                "status": "skipped",
+                "schedule_id": schedule_id_perdido,
+                "scheduled_for": scheduled_for.isoformat(),
+                "next_run": next_run.isoformat() if next_run else None,
+            }
 
         schedule_run_id = (
             _criar_schedule_run_id(

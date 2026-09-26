@@ -57,6 +57,38 @@ class ScheduleCreateRequest(BaseModel):
 
     horario_fim: str | None = None
 
+    misfire_policy: Literal["run_once", "skip"] = "run_once"
+
+    misfire_grace_seconds: int = Field(default=300, ge=30, le=86400)
+
+
+class ScheduleListItem(BaseModel):
+    id: int = Field(..., gt=0)
+    robot_id: int = Field(..., gt=0)
+    robot_name: str
+    agent_id: str | None
+    agent_name: str
+    tipo: str
+    data_inicio: str | None
+    horario: str
+    dias_semana: str | None
+    ativo: bool
+    proxima_execucao: str | None
+    ultima_execucao: str | None
+    intervalo_ativo: bool
+    intervalo_valor: int | None
+    intervalo_unidade: str | None
+    horario_fim: str | None
+    misfire_policy: Literal["run_once", "skip"]
+    misfire_grace_seconds: int = Field(..., ge=30, le=86400)
+    ultima_ocorrencia_perdida: str | None
+
+
+class ScheduleListResponse(BaseModel):
+    status: Literal["success"]
+    total: int = Field(..., ge=0)
+    schedules: list[ScheduleListItem]
+
 
 class ScheduleRobotOption(BaseModel):
     id: int = Field(..., gt=0)

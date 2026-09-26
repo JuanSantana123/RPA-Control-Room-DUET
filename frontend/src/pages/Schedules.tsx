@@ -137,6 +137,12 @@ function Schedules() {
         horarioFim,
         setHorarioFim,
 
+        misfirePolicy,
+        setMisfirePolicy,
+
+        misfireGraceSeconds,
+        setMisfireGraceSeconds,
+
         salvando,
         loadingOptions,
         formError,
@@ -306,6 +312,12 @@ function Schedules() {
                     setHorarioFim={
                         setHorarioFim
                     }
+
+                    misfirePolicy={misfirePolicy}
+                    setMisfirePolicy={setMisfirePolicy}
+
+                    misfireGraceSeconds={misfireGraceSeconds}
+                    setMisfireGraceSeconds={setMisfireGraceSeconds}
 
                     salvando={
                         salvando

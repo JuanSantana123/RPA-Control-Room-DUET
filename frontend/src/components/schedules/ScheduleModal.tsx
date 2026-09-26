@@ -1,6 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { createPortal } from "react-dom";
-import { CalendarClock, Globe2, RotateCw, X } from "lucide-react";
+import { CalendarClock, Globe2, RotateCw, ShieldAlert, X } from "lucide-react";
 
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
 import type { AgentOption, RobotOption } from "../../types/schedules";
@@ -39,6 +39,10 @@ interface ScheduleModalProps {
   setIntervaloUnidade: Dispatch<SetStateAction<string>>;
   horarioFim: string;
   setHorarioFim: Dispatch<SetStateAction<string>>;
+  misfirePolicy: "run_once" | "skip";
+  setMisfirePolicy: Dispatch<SetStateAction<"run_once" | "skip">>;
+  misfireGraceSeconds: number;
+  setMisfireGraceSeconds: Dispatch<SetStateAction<number>>;
   salvando: boolean;
   loadingOptions: boolean;
   formError: string;
@@ -54,12 +58,14 @@ export default function ScheduleModal({
   dataInicio, setDataInicio, horario, setHorario, diasSemana, intervaloAtivo,
   setIntervaloAtivo, intervaloValor, setIntervaloValor, intervaloUnidade,
   setIntervaloUnidade, horarioFim, setHorarioFim, salvando, loadingOptions,
+  misfirePolicy, setMisfirePolicy, misfireGraceSeconds, setMisfireGraceSeconds,
   formError, onClose, onChangeType, onToggleWeekday, onRetryOptions, onSave,
 }: ScheduleModalProps) {
   const dialogRef = useDialogFocus<HTMLDivElement>({ open: true, onClose, closeOnEscape: !salvando });
   const weeklyInvalid = tipo === "weekly" && diasSemana.length === 0;
   const intervalInvalid = tipo !== "once" && intervaloAtivo && (!intervaloValor || !horarioFim);
-  const formInvalid = loadingOptions || !robotId || !dataInicio || !horario || weeklyInvalid || intervalInvalid;
+  const recoveryInvalid = misfireGraceSeconds < 30 || misfireGraceSeconds > 86400;
+  const formInvalid = loadingOptions || !robotId || !dataInicio || !horario || weeklyInvalid || intervalInvalid || recoveryInvalid;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -174,6 +180,44 @@ export default function ScheduleModal({
                       onChange={(event) => setHorarioFim(event.target.value)} required />
                   </div>}
                 </div>}
+              </section>
+
+              <section className="schedule-form-section" aria-labelledby="schedule-recovery-title">
+                <div className="schedule-form-section__heading"><span>3</span><div>
+                  <h3 id="schedule-recovery-title">Como recuperar atrasos</h3>
+                  <p>Defina o comportamento após reinício ou indisponibilidade do Control Room.</p>
+                </div></div>
+                <div className="schedule-misfire-note" role="note">
+                  <ShieldAlert size={17} aria-hidden="true" />
+                  <span>A tolerância absorve pequenos atrasos de polling. Depois dela, a política escolhida decide o destino da ocorrência.</span>
+                </div>
+                <div className="schedule-form-grid schedule-form-grid--recovery">
+                  <div className="schedule-form-group">
+                    <label htmlFor="schedule-misfire-policy">Ocorrência vencida</label>
+                    <PremiumSelect id="schedule-misfire-policy" value={misfirePolicy}
+                      onChange={(event) => setMisfirePolicy(event.target.value === "skip" ? "skip" : "run_once")}>
+                      <option value="run_once">Executar uma vez ao retornar</option>
+                      <option value="skip">Ignorar e seguir a agenda</option>
+                    </PremiumSelect>
+                    <small>{misfirePolicy === "skip"
+                      ? "A ocorrência antiga não gera execução; a próxima data válida é preservada."
+                      : "Cria somente uma execução de recuperação, mesmo após várias ocorrências perdidas."}</small>
+                  </div>
+                  <div className="schedule-form-group">
+                    <label htmlFor="schedule-misfire-grace">Tolerância</label>
+                    <PremiumSelect id="schedule-misfire-grace" value={String(misfireGraceSeconds)}
+                      onChange={(event) => setMisfireGraceSeconds(Number(event.target.value))}>
+                      <option value="60">1 minuto</option>
+                      <option value="300">5 minutos</option>
+                      <option value="600">10 minutos</option>
+                      <option value="1800">30 minutos</option>
+                      <option value="3600">1 hora</option>
+                      <option value="21600">6 horas</option>
+                      <option value="86400">24 horas</option>
+                    </PremiumSelect>
+                    <small>Margem antes de considerar uma ocorrência perdida.</small>
+                  </div>
+                </div>
               </section>
             </>}
           </div>

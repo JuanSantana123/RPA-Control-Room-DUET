@@ -66,6 +66,13 @@ function ScheduleRow({
     onDelete,
 }: ScheduleRowProps) {
 
+    const graceSeconds = Number.isFinite(schedule.misfire_grace_seconds)
+        ? schedule.misfire_grace_seconds
+        : 300;
+    const graceLabel = graceSeconds >= 3600
+        ? `${graceSeconds / 3600} h`
+        : `${Math.round(graceSeconds / 60)} min`;
+
     return (
         <tr>
 
@@ -92,13 +99,7 @@ function ScheduleRow({
 
                     {schedule.agent_id && (
 
-                        <div
-                            style={{
-                                fontSize: "11px",
-                                color: "var(--color-text-muted)",
-                                marginTop: "2px",
-                            }}
-                        >
+                        <div className="schedule-agent-id">
                             {schedule.agent_id}
                         </div>
 
@@ -130,11 +131,7 @@ function ScheduleRow({
 
                 {schedule.intervalo_ativo && (
 
-                    <small
-                        style={{
-                            display: "block",
-                        }}
-                    >
+                    <small className="schedule-interval-summary">
                         A cada{" "}
                         {schedule.intervalo_valor}{" "}
 
@@ -177,10 +174,20 @@ function ScheduleRow({
 
             <td>
 
-                {schedule.ativo
-                    ? "● Ativo"
-                    : "● Inativo"
-                }
+                <div className="schedule-status-cell">
+                    <span className={`schedule-status-badge ${schedule.ativo ? "active" : "inactive"}`}>
+                        <i aria-hidden="true" />
+                        {schedule.ativo ? "Ativo" : "Inativo"}
+                    </span>
+                    <small>
+                        {schedule.misfire_policy === "skip"
+                            ? `Ignora atraso > ${graceLabel}`
+                            : `Recupera 1 atraso > ${graceLabel}`}
+                    </small>
+                    {schedule.ultima_ocorrencia_perdida && (
+                        <strong>Ignorada em {formatarData(schedule.ultima_ocorrencia_perdida)}</strong>
+                    )}
+                </div>
 
             </td>
 
@@ -204,10 +211,6 @@ function ScheduleRow({
                     Editar
                 </Button>
 
-
-                {" "}
-
-
                 <Button
                     variant="secondary"
                     size="sm"
@@ -224,10 +227,6 @@ function ScheduleRow({
                         : "Ativar"
                     }
                 </Button>
-
-
-                {" "}
-
 
                 <Button
                     variant="danger"

@@ -182,6 +182,16 @@ export function useScheduleForm({
         setHorarioFim,
     ] = useState("");
 
+    const [
+        misfirePolicy,
+        setMisfirePolicy,
+    ] = useState<"run_once" | "skip">("run_once");
+
+    const [
+        misfireGraceSeconds,
+        setMisfireGraceSeconds,
+    ] = useState(300);
+
 
     // ========================================================
     // SALVAMENTO
@@ -348,6 +358,10 @@ export function useScheduleForm({
 
             setHorarioFim("");
 
+            setMisfirePolicy("run_once");
+
+            setMisfireGraceSeconds(300);
+
 
             setModalAberto(
                 true
@@ -475,6 +489,15 @@ export function useScheduleForm({
                 return;
             }
 
+            if (
+                !Number.isInteger(misfireGraceSeconds)
+                || misfireGraceSeconds < 30
+                || misfireGraceSeconds > 86400
+            ) {
+                setFormError("Informe uma tolerância entre 30 segundos e 24 horas.");
+                return;
+            }
+
 
             // ====================================================
             // DIAS DA SEMANA
@@ -563,6 +586,12 @@ export function useScheduleForm({
 
                 horario_fim:
                     horarioFimEnvio,
+
+                misfire_policy:
+                    misfirePolicy,
+
+                misfire_grace_seconds:
+                    misfireGraceSeconds,
             };
 
 
@@ -788,6 +817,18 @@ export function useScheduleForm({
                     ""
                 );
 
+                setMisfirePolicy(
+                    schedule.misfire_policy === "skip"
+                        ? "skip"
+                        : "run_once"
+                );
+
+                setMisfireGraceSeconds(
+                    typeof schedule.misfire_grace_seconds === "number"
+                        ? schedule.misfire_grace_seconds
+                        : 300
+                );
+
 
             } catch (err) {
                 setLoadingOptions(false);
@@ -841,6 +882,12 @@ export function useScheduleForm({
 
         horarioFim,
         setHorarioFim,
+
+        misfirePolicy,
+        setMisfirePolicy,
+
+        misfireGraceSeconds,
+        setMisfireGraceSeconds,
 
         // Estado operacional.
         salvando,

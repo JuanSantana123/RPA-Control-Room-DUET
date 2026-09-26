@@ -40,7 +40,7 @@ class DatabaseMigrationTests(unittest.TestCase):
 
         self.assertIn("executions", tables)
         self.assertIn("automation_projects", tables)
-        self.assertEqual(revision, "5e3799a70fb6")
+        self.assertEqual(revision, "9c31b2f4d802")
 
     def test_equivalent_legacy_schema_is_stamped(self):
         Base.metadata.create_all(bind=engine)
@@ -52,7 +52,7 @@ class DatabaseMigrationTests(unittest.TestCase):
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        self.assertEqual(revision, "5e3799a70fb6")
+        self.assertEqual(revision, "9c31b2f4d802")
 
     def test_drifted_legacy_schema_is_rejected_without_stamp(self):
         Base.metadata.create_all(bind=engine)

@@ -1,8 +1,9 @@
 # Migrações versionadas do PostgreSQL
 
 O schema do DUET é controlado por Alembic. A revisão inicial
-`5e3799a70fb6` representa integralmente o metadata atual: tabelas, índices,
-constraints, relações e tipos PostgreSQL.
+`5e3799a70fb6` preserva o baseline integral e as evoluções seguintes são
+incrementais. O head atual é `9c31b2f4d802`, que adiciona política e evidência de
+ocorrências atrasadas aos agendamentos.
 
 ## Startup seguro
 
@@ -46,6 +47,10 @@ O baseline foi exercitado em PostgreSQL 16 descartável com os ciclos:
 - `downgrade base` → `upgrade head` → `alembic check` sem diferenças;
 - schema legado equivalente → stamp do baseline;
 - schema legado com índice ausente → startup rejeitado e sem stamp.
+
+A evolução `5e3799a70fb6 → 9c31b2f4d802` também foi validada em PostgreSQL 16,
+incluindo banco vazio, upgrade incremental, constraints, downgrade da revisão e
+`alembic check` sem diferenças.
 
 O banco local de desenvolvimento `duet-ui-dev-db` também foi comparado antes do
 stamp: zero diferenças foram encontradas. Nenhuma base externa ou de produção foi

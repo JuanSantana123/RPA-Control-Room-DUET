@@ -73,3 +73,17 @@ Alterar o fuso em uma instalação que já possui agendamentos modifica a
 interpretação civil dos horários legados. Faça essa mudança somente em janela
 operacional, após revisar os agendamentos existentes; não há conversão automática
 silenciosa.
+
+## Recuperação de ocorrências atrasadas
+
+Cada agendamento possui uma política explícita para reinícios e indisponibilidades:
+
+- `run_once` (padrão retrocompatível): materializa uma única execução atrasada e
+  retoma a agenda, sem reproduzir todas as ocorrências do período indisponível;
+- `skip`: registra a ocorrência perdida e avança para a próxima data válida sem
+  criar uma execução antiga.
+
+`misfire_grace_seconds` define a tolerância antes de aplicar a política (cinco
+minutos por padrão). Atrasos dentro dessa janela executam normalmente. A última
+ocorrência ignorada fica visível na página de Agendamentos; um agendamento único
+ignorado é preservado inativo para diagnóstico e reagendamento consciente.

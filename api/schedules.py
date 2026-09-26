@@ -1,7 +1,11 @@
 
 # Contrato Pydantic utilizado pelos endpoints de criação
 # e atualização de agendamentos.
-from schemas.schedules import ScheduleCreateRequest, ScheduleOptionsResponse
+from schemas.schedules import (
+    ScheduleCreateRequest,
+    ScheduleListResponse,
+    ScheduleOptionsResponse,
+)
 import logging
 
 from fastapi import APIRouter, Depends
@@ -67,6 +71,7 @@ router = APIRouter(
 
 @router.get(
     "/schedules",
+    response_model=ScheduleListResponse,
     summary="Listar agendamentos",
     description=(
         "Retorna todos os agendamentos ativos cadastrados no "
@@ -194,7 +199,18 @@ def listar_agendamentos():
                     schedule.intervalo_unidade,
 
                 "horario_fim":
-                    schedule.horario_fim
+                    schedule.horario_fim,
+
+                "misfire_policy":
+                    schedule.misfire_policy,
+
+                "misfire_grace_seconds":
+                    schedule.misfire_grace_seconds,
+
+                "ultima_ocorrencia_perdida":
+                    schedule.ultima_ocorrencia_perdida.isoformat()
+                    if schedule.ultima_ocorrencia_perdida
+                    else None
             })
 
         return {
@@ -725,6 +741,10 @@ def criar_agendamento(
 
             horario_fim=request.horario_fim,
 
+            misfire_policy=request.misfire_policy,
+
+            misfire_grace_seconds=request.misfire_grace_seconds,
+
             ativo=1,
 
             proxima_execucao=proxima_execucao,
@@ -775,6 +795,12 @@ def criar_agendamento(
 
                 "horario_fim":
                     schedule.horario_fim,
+
+                "misfire_policy":
+                    schedule.misfire_policy,
+
+                "misfire_grace_seconds":
+                    schedule.misfire_grace_seconds,
 
                 "ativo":
                     bool(schedule.ativo),
@@ -1057,6 +1083,17 @@ def get_schedule(schedule_id: int):
 
                 "horario_fim":
                     schedule.horario_fim,
+
+                "misfire_policy":
+                    schedule.misfire_policy,
+
+                "misfire_grace_seconds":
+                    schedule.misfire_grace_seconds,
+
+                "ultima_ocorrencia_perdida":
+                    schedule.ultima_ocorrencia_perdida.isoformat()
+                    if schedule.ultima_ocorrencia_perdida
+                    else None,
 
                 "proxima_execucao":
                     schedule.proxima_execucao.isoformat()
@@ -1395,6 +1432,14 @@ def update_schedule(
 
         schedule.horario_fim = (
             request.horario_fim
+        )
+
+        schedule.misfire_policy = (
+            request.misfire_policy
+        )
+
+        schedule.misfire_grace_seconds = (
+            request.misfire_grace_seconds
         )
 
 

@@ -29,6 +29,7 @@ const allCases = [
   { name: "history-1440-light", route: "/history", width: 1440, height: 900, colorScheme: "light", authenticated: true },
   { name: "schedules-390-light", route: "/schedules", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "schedules-1440-light", route: "/schedules", width: 1440, height: 900, colorScheme: "light", authenticated: true },
+  { name: "schedules-policy-1440-dark", route: "/schedules", width: 1440, height: 900, colorScheme: "dark", authenticated: true, scheduleData: true },
   { name: "schedules-modal-390-dark", route: "/schedules", width: 390, height: 844, colorScheme: "dark", authenticated: true, interaction: "schedule-modal" },
   { name: "schedules-modal-768-light", route: "/schedules", width: 768, height: 720, colorScheme: "light", authenticated: true, interaction: "schedule-modal" },
   { name: "vault-390-dark", route: "/vault", width: 390, height: 844, colorScheme: "dark", authenticated: true },
@@ -98,8 +99,8 @@ try {
             : { status: "unauthenticated" }
           : pathname === "/dashboard/stats"
             ? { total_agents: 12, agents_online: 9, total_robots: 48 }
-            : pathname === "/schedules"
-              ? { status: "success", schedules: [] }
+          : pathname === "/schedules"
+              ? { status: "success", total: testCase.scheduleData ? 1 : 0, schedules: testCase.scheduleData ? [{ id: 18, robot_id: 12, robot_name: "Conciliação financeira", agent_id: null, agent_name: "Automático", tipo: "daily", data_inicio: "2026-09-20T08:00:00", horario: "08:00", dias_semana: null, ativo: true, proxima_execucao: "2026-09-27T08:00:00", ultima_execucao: "2026-09-25T08:00:05", intervalo_ativo: false, intervalo_valor: null, intervalo_unidade: null, horario_fim: null, misfire_policy: "skip", misfire_grace_seconds: 600, ultima_ocorrencia_perdida: "2026-09-26T08:00:00" }] : [] }
             : pathname === "/schedules/options"
               ? { status: "success", timezone: "America/Sao_Paulo", robots: [{ id: 12, name: "Conciliação financeira" }], agents: [{ agent_id: "runner-01", name: "Dispositivo Financeiro", status: "online" }] }
             : pathname === "/roles" || pathname === "/roles/permissions" || pathname === "/auth/users"
@@ -143,9 +144,16 @@ try {
       continue;
     }
     await page.waitForTimeout(120);
+    let scheduleRecoveryWorks = null;
     if (testCase.interaction === "schedule-modal") {
       await page.getByRole("button", { name: "Novo agendamento" }).click();
-      await page.getByRole("dialog", { name: "Novo agendamento" }).waitFor();
+      const dialog = page.getByRole("dialog", { name: "Novo agendamento" });
+      await dialog.waitFor();
+      await dialog.getByRole("combobox", { name: "Ocorrência vencida" }).click();
+      await page.getByRole("option", { name: "Ignorar e seguir a agenda" }).click();
+      await dialog.getByRole("combobox", { name: "Tolerância" }).click();
+      await page.getByRole("option", { name: "10 minutos" }).click();
+      scheduleRecoveryWorks = await dialog.getByText("A ocorrência antiga não gera execução").isVisible();
       await page.waitForTimeout(180);
     }
     if (testCase.interaction === "development-create") {
@@ -245,6 +253,10 @@ try {
     const rootUploadAvailable = testCase.route === "/robots"
       ? await page.getByRole("button", { name: "Enviar pacote" }).first().isEnabled()
       : null;
+    const schedulePolicyWorks = testCase.scheduleData
+      ? await page.getByText("Ignora atraso > 10 min").isVisible()
+        && await page.getByText(/Ignorada em/).isVisible()
+      : null;
 
     let mobileNavigation = null;
     if (testCase.authenticated && !testCase.studio && !testCase.interaction && testCase.width <= 1024) {
@@ -256,13 +268,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, mobileNavigation, filterNavigationWorks, executionDetailsWorks, logsExplorerWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, filterNavigationWorks, executionDetailsWorks, logsExplorerWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.logsExplorerWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.logsExplorerWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

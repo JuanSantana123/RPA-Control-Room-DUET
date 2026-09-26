@@ -2305,6 +2305,30 @@ class Schedule(Base):
         nullable=True
     )
 
+    # Define como o Scheduler reage quando o Control Room volta
+    # depois da janela de tolerância de uma ocorrência.
+    #
+    # run_once: materializa uma execução atrasada e retoma a agenda.
+    # skip: registra a perda e avança sem executar a ocorrência antiga.
+    misfire_policy = Column(
+        String,
+        nullable=False,
+        default="run_once"
+    )
+
+    # Pequenos atrasos de polling/startup ainda são considerados pontuais.
+    misfire_grace_seconds = Column(
+        Integer,
+        nullable=False,
+        default=300
+    )
+
+    # Mantém evidência operacional da ocorrência mais recente ignorada.
+    ultima_ocorrencia_perdida = Column(
+        DateTime,
+        nullable=True
+    )
+
     
 # ============================================================
 # USUÁRIOS
