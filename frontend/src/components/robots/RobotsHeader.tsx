@@ -16,32 +16,23 @@
 // apenas pela composição da página e coordenação dos módulos.
 // ============================================================
 
-import { Package } from "lucide-react";
-
-
 function RobotsHeader() {
 
     return (
         <div className="page-heading">
             <div>
                 <div className="page-eyebrow">
-                    AUTOMATION MANAGEMENT
+                    GESTÃO DE AUTOMAÇÕES
                 </div>
 
                 <h1>Robôs</h1>
 
                 <p>
                     Gerencie os robôs disponíveis, organize suas pastas e
-                    execute automações nos Agents conectados.
+                    execute automações nos dispositivos conectados.
                 </p>
             </div>
 
-            <div className="page-heading-icon">
-                <Package
-                    size={24}
-                    strokeWidth={1.7}
-                />
-            </div>
         </div>
     );
 }

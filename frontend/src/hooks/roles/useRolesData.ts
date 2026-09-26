@@ -35,6 +35,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     Role,
@@ -163,7 +164,12 @@ export function useRolesData() {
 
     useEffect(() => {
 
-        carregarRoles();
+        const initialLoad = window.setTimeout(
+            carregarRoles,
+            0
+        );
+
+        return () => window.clearTimeout(initialLoad);
 
     }, [
         carregarRoles,
@@ -290,7 +296,7 @@ export function useRolesData() {
                     );
                 }
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao criar Role:",
@@ -298,17 +304,7 @@ export function useRolesData() {
                 );
 
 
-                console.error(
-                    "Resposta da API:",
-                    err.response?.data
-                );
-
-
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível criar a Role."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível criar a Role."));
 
             } finally {
 
@@ -373,7 +369,7 @@ export function useRolesData() {
                     "Role excluída com sucesso."
                 );
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao excluir Role:",
@@ -381,11 +377,7 @@ export function useRolesData() {
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível excluir a Role."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível excluir a Role."));
             }
         };
 

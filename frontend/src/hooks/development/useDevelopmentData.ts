@@ -237,7 +237,7 @@ function useDevelopmentData():
                 activeProjects
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao carregar projetos de Desenvolvimento:",
@@ -339,7 +339,7 @@ function useDevelopmentData():
                         );
                     }
 
-                } catch (err: any) {
+                } catch (err) {
 
                     console.error(
                         "Erro ao carregar permissões de Desenvolvimento:",

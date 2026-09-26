@@ -21,9 +21,14 @@
 import RoleCard
     from "./RoleCard";
 
+import { CardGridSkeleton }
+    from "../ui/Skeletons";
+
 import type {
     Role,
 } from "../../types/roles";
+import { UsersRound } from "lucide-react";
+import EmptyState from "../ui/EmptyState";
 
 
 // ============================================================
@@ -87,28 +92,15 @@ function RolesList({
                 ================================================== */}
 
             {loadingRoles ? (
-
-                <div className="roles-empty-state">
-
-                    <div className="roles-empty-icon">
-                        ⏳
-                    </div>
-
-                    Carregando Roles...
-
-                </div>
+                <CardGridSkeleton count={3} />
 
             ) : roles.length === 0 ? (
 
-                <div className="roles-empty-state">
-
-                    <div className="roles-empty-icon">
-                        👥
-                    </div>
-
-                    Nenhuma Role cadastrada.
-
-                </div>
+                <EmptyState
+                    icon={<UsersRound />}
+                    title="Nenhum perfil cadastrado"
+                    description="Crie um perfil para organizar permissões e responsabilidades da equipe."
+                />
 
             ) : (
 

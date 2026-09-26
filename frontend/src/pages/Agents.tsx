@@ -50,6 +50,7 @@ import AgentsList
 import {
     useAgentsData,
 } from "../hooks/agents/useAgentsData";
+import FeedbackBanner from "../components/ui/FeedbackBanner";
 
 
 // ============================================================
@@ -73,6 +74,7 @@ function Agents() {
         agents,
         loading,
         error,
+        clearError,
 
         newAgent,
         setNewAgent,
@@ -106,11 +108,13 @@ function Agents() {
                 ================================================== */}
 
             {error && (
-
-                <div className="alert alert-error">
-                    {error}
-                </div>
-
+                <FeedbackBanner
+                    tone="error"
+                    title="Não foi possível concluir a operação"
+                    message={error}
+                    hint="Os dados preenchidos foram preservados para você corrigir a configuração e tentar novamente."
+                    onDismiss={clearError}
+                />
             )}
 
 

@@ -64,6 +64,7 @@ import {
 import {
     groupPermissionsByResource,
 } from "../utils/rolePermissions";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 
 
 // ============================================================
@@ -238,9 +239,7 @@ function Roles() {
 
                 <div className="roles-alert roles-alert-error">
 
-                    <span>
-                        ⚠
-                    </span>
+                    <TriangleAlert size={18} strokeWidth={1.8} aria-hidden="true" />
 
                     <span>
                         {error}
@@ -255,9 +254,7 @@ function Roles() {
 
                 <div className="roles-alert roles-alert-success">
 
-                    <span>
-                        ✓
-                    </span>
+                    <CircleCheck size={18} strokeWidth={1.8} aria-hidden="true" />
 
                     <span>
                         {success}

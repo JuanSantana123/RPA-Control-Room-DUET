@@ -1,4 +1,7 @@
 // ============================================================
+
+import { ShieldPlus } from "lucide-react";
+import { Button } from "../ui/Button";
 // DUET CORE - ROLES - HEADER
 // ============================================================
 //
@@ -42,16 +45,16 @@ function RolesHeader({
 }: RolesHeaderProps) {
 
     return (
-        <div className="roles-page-header">
+        <header className="page-heading roles-page-header">
 
             <div>
 
-                <p className="roles-eyebrow">
-                    ACCESS CONTROL
+                <p className="page-eyebrow roles-eyebrow">
+                    CONTROLE DE ACESSO
                 </p>
 
                 <h1>
-                    Roles
+                    Perfis de acesso
                 </h1>
 
                 <p>
@@ -63,16 +66,17 @@ function RolesHeader({
 
             {!showCreateForm && (
 
-                <button
-                    className="roles-primary-button"
+                <Button
+                    variant="primary"
                     onClick={onCreate}
                 >
-                    + Nova Role
-                </button>
+                    <ShieldPlus size={17} strokeWidth={1.9} aria-hidden="true" />
+                    Novo perfil
+                </Button>
 
             )}
 
-        </div>
+        </header>
     );
 }
 

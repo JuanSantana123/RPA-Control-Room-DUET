@@ -34,6 +34,12 @@ import VaultCredentialCreateForm
 import VaultCredentialEditForm
     from "./VaultCredentialEditForm";
 
+import { CardGridSkeleton }
+    from "../ui/Skeletons";
+import { KeyRound, MousePointer2 } from "lucide-react";
+import { Button } from "../ui/Button";
+import EmptyState from "../ui/EmptyState";
+
 import type {
     EditCredentialField,
     NewCredentialField,
@@ -205,15 +211,14 @@ function VaultCredentialsPanel({
                     selectedFolder.parent_id !==
                         null && (
 
-                        <button
-                            type="button"
-                            className="primary-button"
+                        <Button
                             onClick={
                                 onOpenCreate
                             }
                         >
-                            + Nova credencial
-                        </button>
+                            <KeyRound size={15} strokeWidth={1.9} aria-hidden="true" />
+                            Nova credencial
+                        </Button>
 
                     )}
 
@@ -301,21 +306,24 @@ function VaultCredentialsPanel({
 
             {!selectedFolder ? (
 
-                <p className="vault-empty-state">
-                    Selecione uma pasta para visualizar suas credenciais.
-                </p>
+                <EmptyState
+                    compact
+                    icon={<MousePointer2 />}
+                    title="Selecione uma pasta"
+                    description="Escolha uma pasta ao lado para visualizar e administrar suas credenciais."
+                />
 
             ) : loadingCredentials ? (
-
-                <p>
-                    Carregando credenciais...
-                </p>
+                <CardGridSkeleton count={3} />
 
             ) : credentials.length === 0 ? (
 
-                <p className="vault-empty-state">
-                    Nenhuma credencial cadastrada nesta pasta.
-                </p>
+                <EmptyState
+                    compact
+                    icon={<KeyRound />}
+                    title="Nenhuma credencial nesta pasta"
+                    description="Adicione a primeira credencial para disponibilizá-la às automações autorizadas."
+                />
 
             ) : (
 

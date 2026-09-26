@@ -19,6 +19,10 @@
 // Essas responsabilidades pertencem a useUserPassword.
 // ============================================================
 
+import { KeyRound } from "lucide-react";
+import { Button } from "../ui/Button";
+import { TextField } from "../ui/TextField";
+
 
 // ============================================================
 // PROPS
@@ -66,7 +70,7 @@ function UserPasswordPanel({
                 <div className="users-panel-heading">
 
                     <div className="users-panel-icon">
-                        🔑
+                        <KeyRound size={18} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
                     <div>
@@ -90,14 +94,11 @@ function UserPasswordPanel({
 
                 <div className="users-form-grid">
 
-                    <div className="users-field-group">
-
-                        <label>
-                            Nova senha
-                        </label>
-
-                        <input
+                    <TextField
+                            id="new-user-password-value"
+                            label="Nova senha"
                             type="password"
+                            autoComplete="new-password"
                             placeholder="Digite a nova senha"
                             value={newPassword}
                             onChange={(event) =>
@@ -105,19 +106,14 @@ function UserPasswordPanel({
                                     event.target.value
                                 )
                             }
-                        />
-
-                    </div>
+                    />
 
 
-                    <div className="users-field-group">
-
-                        <label>
-                            Confirmar senha
-                        </label>
-
-                        <input
+                    <TextField
+                            id="confirm-user-password-value"
+                            label="Confirmar senha"
                             type="password"
+                            autoComplete="new-password"
                             placeholder="Confirme a nova senha"
                             value={confirmNewPassword}
                             onChange={(event) =>
@@ -125,28 +121,25 @@ function UserPasswordPanel({
                                     event.target.value
                                 )
                             }
-                        />
-
-                    </div>
+                    />
 
                 </div>
 
 
                 <div className="users-edit-actions">
 
-                    <button
-                        className="users-secondary-button"
+                    <Button
                         onClick={onCancel}
                     >
                         Cancelar
-                    </button>
+                    </Button>
 
-                    <button
-                        className="users-primary-button"
+                    <Button
+                        variant="primary"
                         onClick={onSave}
                     >
                         Salvar nova senha
-                    </button>
+                    </Button>
 
                 </div>
 

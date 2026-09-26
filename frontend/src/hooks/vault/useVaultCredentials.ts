@@ -28,6 +28,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     VaultCredential,
@@ -207,7 +208,7 @@ export function useVaultCredentials({
                     );
                 }
 
-            } catch (error: any) {
+            } catch (error) {
 
                 console.error(
                     "Erro ao excluir credencial:",
@@ -215,10 +216,7 @@ export function useVaultCredentials({
                 );
 
 
-                setError(
-                    error?.response?.data?.message ||
-                    "Erro ao excluir a credencial."
-                );
+                setError(getApiErrorMessage(error, "Erro ao excluir a credencial."));
             }
         };
 

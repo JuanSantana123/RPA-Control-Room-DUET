@@ -25,6 +25,7 @@
 import {
     RefreshCw,
 } from "lucide-react";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -66,7 +67,7 @@ function ExecutionsHeader({
 }: ExecutionsHeaderProps) {
 
     return (
-        <div className="page-header executions-page-header">
+        <header className="page-heading executions-page-header">
 
             <div>
 
@@ -91,18 +92,16 @@ function ExecutionsHeader({
             </div>
 
 
-            <button
-                type="button"
-                className="secondary-button"
+            <Button
                 onClick={onRefresh}
                 title="Atualizar execuções"
             >
                 <RefreshCw size={16} />
 
                 Atualizar
-            </button>
+            </Button>
 
-        </div>
+        </header>
     );
 }
 

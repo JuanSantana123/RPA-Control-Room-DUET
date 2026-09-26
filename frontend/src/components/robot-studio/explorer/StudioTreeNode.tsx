@@ -247,7 +247,7 @@ function StudioTreeNode({
 
                         background:
                             selected
-                                ? "#252526"
+                                ? "var(--studio-surface-raised)"
                                 : "transparent",
                     }}
                 >
@@ -567,7 +567,7 @@ function StudioTreeNode({
 
                 background:
                     active
-                        ? "#37373d"
+                        ? "var(--studio-border)"
                         : "transparent",
             }}
         >

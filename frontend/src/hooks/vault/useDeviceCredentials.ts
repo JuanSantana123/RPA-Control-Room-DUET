@@ -249,7 +249,12 @@ export const useDeviceCredentials =
         useEffect(
             () => {
 
-                void carregarCredenciais();
+                const initialLoad = window.setTimeout(
+                    carregarCredenciais,
+                    0
+                );
+
+                return () => window.clearTimeout(initialLoad);
 
             },
             [

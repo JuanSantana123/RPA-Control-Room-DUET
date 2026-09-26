@@ -55,6 +55,11 @@ import {
     formatDeletedAt,
 } from "../../../utils/dateTime";
 
+import { CardGridSkeleton }
+    from "../../ui/Skeletons";
+import { Button } from "../../ui/Button";
+import EmptyState from "../../ui/EmptyState";
+
 
 // ============================================================
 // PROPS
@@ -157,32 +162,7 @@ function TrashProjectGrid({
     // ========================================================
 
     if (loading) {
-
-        return (
-
-            <div className="panel-empty-state">
-
-                <div className="panel-empty-icon">
-
-                    <Trash2
-                        size={24}
-                        strokeWidth={1.6}
-                    />
-
-                </div>
-
-
-                <h3>
-                    Carregando Lixeira...
-                </h3>
-
-
-                <p>
-                    Buscando projetos removidos no Control Room.
-                </p>
-
-            </div>
-        );
+        return <CardGridSkeleton count={3} />;
     }
 
 
@@ -200,36 +180,13 @@ function TrashProjectGrid({
 
         return (
 
-            <div className="panel-empty-state">
-
-                <div className="panel-empty-icon">
-
-                    <Trash2
-                        size={24}
-                        strokeWidth={1.6}
-                    />
-
-                </div>
-
-
-                <h3>
-
-                    {trashIsEmpty
-                        ? "A Lixeira está vazia"
-                        : "Nenhum projeto encontrado"}
-
-                </h3>
-
-
-                <p>
-
-                    {trashIsEmpty
-                        ? "Projetos excluídos aparecerão aqui antes da remoção permanente."
-                        : "Tente pesquisar por outro nome ou descrição."}
-
-                </p>
-
-            </div>
+            <EmptyState
+                icon={<Trash2 />}
+                title={trashIsEmpty ? "A Lixeira está vazia" : "Nenhum projeto encontrado"}
+                description={trashIsEmpty
+                    ? "Projetos excluídos aparecerão aqui antes da remoção permanente."
+                    : "Tente pesquisar por outro nome, descrição ou ajuste os filtros."}
+            />
         );
     }
 
@@ -380,10 +337,10 @@ function TrashProjectGrid({
 
                                 {canRestore && (
 
-                                    <button
-                                        type="button"
-
-                                        className="primary-button"
+                                    <Button
+                                        size="sm"
+                                        busy={restoringProjectId === project.id}
+                                        loadingLabel="Restaurando projeto"
 
                                         disabled={
                                             restoringProjectId ===
@@ -406,12 +363,9 @@ function TrashProjectGrid({
                                         />
 
 
-                                        {restoringProjectId ===
-                                            project.id
-                                            ? "Restaurando..."
-                                            : "Restaurar"}
+                                        Restaurar
 
-                                    </button>
+                                    </Button>
                                 )}
 
 
@@ -421,10 +375,11 @@ function TrashProjectGrid({
 
                                 {canPermanentDelete && (
 
-                                    <button
-                                        type="button"
-
-                                        className="secondary-button"
+                                    <Button
+                                        variant="danger"
+                                        size="sm"
+                                        busy={permanentlyDeletingProjectId === project.id}
+                                        loadingLabel="Excluindo projeto permanentemente"
 
                                         disabled={
                                             permanentlyDeletingProjectId ===
@@ -440,10 +395,6 @@ function TrashProjectGrid({
                                             );
                                         }}
 
-                                        style={{
-                                            color:
-                                                "#dc2626",
-                                        }}
                                     >
 
                                         <Trash2
@@ -452,12 +403,9 @@ function TrashProjectGrid({
                                         />
 
 
-                                        {permanentlyDeletingProjectId ===
-                                            project.id
-                                            ? "Excluindo..."
-                                            : "Excluir permanentemente"}
+                                        Excluir permanentemente
 
-                                    </button>
+                                    </Button>
                                 )}
 
                             </div>

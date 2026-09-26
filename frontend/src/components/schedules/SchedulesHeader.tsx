@@ -1,4 +1,7 @@
 // ============================================================
+
+import { CalendarPlus } from "lucide-react";
+import { Button } from "../ui/Button";
 // DUET CORE - SCHEDULES - HEADER
 // ============================================================
 //
@@ -41,7 +44,7 @@ function SchedulesHeader({
             <div>
 
                 <div className="page-eyebrow">
-                    AUTOMATION SCHEDULES
+                    AGENDAMENTOS DE AUTOMAÇÃO
                 </div>
 
                 <h1>
@@ -55,13 +58,13 @@ function SchedulesHeader({
             </div>
 
 
-            <button
-                type="button"
-                className="primary-button"
+            <Button
+                variant="primary"
                 onClick={onNewSchedule}
             >
-                + Novo Agendamento
-            </button>
+                <CalendarPlus size={17} strokeWidth={1.9} aria-hidden="true" />
+                Novo agendamento
+            </Button>
 
         </section>
     );

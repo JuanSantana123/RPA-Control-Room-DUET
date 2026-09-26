@@ -33,14 +33,19 @@ import {
 } from "react";
 
 import api from "../../services/api";
+import { obterMensagemErro } from "../../utils/robotErrors";
 
 import type {
     ExecutionAgent,
     Robot,
 } from "../../types/robots";
 
+interface UseRobotExecutionParams {
+    setError: React.Dispatch<React.SetStateAction<string>>;
+    setSuccess: React.Dispatch<React.SetStateAction<string>>;
+}
 
-export function useRobotExecution() {
+export function useRobotExecution({ setError, setSuccess }: UseRobotExecutionParams) {
 
     // ========================================================
     // ESTADOS
@@ -108,9 +113,14 @@ export function useRobotExecution() {
                     "Erro ao carregar Agents disponíveis para execução:",
                     err
                 );
+
+                setError(obterMensagemErro(
+                    err,
+                    "Não foi possível carregar os dispositivos disponíveis para execução. Atualize a página ou verifique a conexão com o Control Room."
+                ));
             });
 
-    }, []);
+    }, [setError]);
 
 
     // ========================================================
@@ -136,12 +146,15 @@ export function useRobotExecution() {
         // Nenhuma execução é enviada sem Agent selecionado.
         if (!selectedExecutionAgent) {
 
-            alert(
-                "Selecione um Agent para executar o robô."
+            setError(
+                "Selecione um dispositivo disponível antes de enviar o robô para execução."
             );
 
             return;
         }
+
+        setError("");
+        setSuccess("");
 
 
         // Desabilita somente o Robot que está sendo enviado.
@@ -168,12 +181,12 @@ export function useRobotExecution() {
             );
 
 
-            alert(
+            setSuccess(
                 response.data.message ||
                 "Robô enviado para execução."
             );
 
-        } catch (err: any) {
+        } catch (err: unknown) {
 
             console.error(
                 "Erro ao executar robô:",
@@ -181,13 +194,10 @@ export function useRobotExecution() {
             );
 
 
-            const mensagem =
-                err.response?.data?.message ||
-                err.response?.data?.detail ||
-                "Erro ao executar o robô.";
-
-
-            alert(mensagem);
+            setError(obterMensagemErro(
+                err,
+                `Não foi possível enviar "${robot.name}" para execução. Confirme o dispositivo selecionado e se ele está online.`
+            ));
 
         } finally {
 

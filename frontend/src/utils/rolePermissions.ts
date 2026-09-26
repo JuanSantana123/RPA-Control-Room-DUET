@@ -53,24 +53,13 @@ export function groupPermissionsByResource(
 
             // Cria o grupo somente quando o recurso
             // ainda não estiver presente.
-            if (
-                !grupos[
-                    permission.resource
-                ]
-            ) {
-
-                grupos[
-                    permission.resource
-                ] = [];
-            }
+            const group =
+                grupos[permission.resource] ??
+                (grupos[permission.resource] = []);
 
 
             // Adiciona a permissão ao recurso correspondente.
-            grupos[
-                permission.resource
-            ].push(
-                permission
-            );
+            group.push(permission);
 
 
             return grupos;

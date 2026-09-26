@@ -37,6 +37,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     EditCredentialField,
@@ -400,7 +401,7 @@ export function useVaultCredentialEditing({
                     );
                 }
 
-            } catch (error: any) {
+            } catch (error) {
 
                 console.error(
                     "Erro ao atualizar credencial:",
@@ -408,11 +409,7 @@ export function useVaultCredentialEditing({
                 );
 
 
-                setError(
-                    error?.response?.data?.message ||
-                    error?.response?.data?.detail ||
-                    "Erro ao atualizar a credencial."
-                );
+                setError(getApiErrorMessage(error, "Erro ao atualizar a credencial."));
 
             } finally {
 

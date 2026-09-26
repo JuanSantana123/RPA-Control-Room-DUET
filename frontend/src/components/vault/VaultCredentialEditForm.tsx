@@ -26,6 +26,9 @@ import type {
     EditCredentialField,
     VaultCredential,
 } from "../../types/vault";
+import { Plus } from "lucide-react";
+import { Button } from "../ui/Button";
+import { Switch } from "../ui/Switch";
 
 
 // ============================================================
@@ -94,13 +97,14 @@ function VaultCredentialEditForm({
 
             <div className="vault-form-group">
 
-                <label>
+                <label htmlFor="vault-edit-credential-name">
                     Nome da credencial
                 </label>
 
                 <br />
 
                 <input
+                    id="vault-edit-credential-name"
                     type="text"
                     className="form-input"
                     value={
@@ -130,6 +134,7 @@ function VaultCredentialEditForm({
 
                         <input
                             type="text"
+                            aria-label={`Nome do campo ${index + 1}`}
                             className="form-input"
                             placeholder="Nome do campo"
                             value={field.name}
@@ -150,6 +155,7 @@ function VaultCredentialEditForm({
                                     ? "password"
                                     : "text"
                             }
+                            aria-label={`Valor do campo ${index + 1}`}
                             className="form-input"
                             placeholder={
                                 field.is_secret &&
@@ -169,32 +175,21 @@ function VaultCredentialEditForm({
                         />
 
 
-                        <label className="vault-secret-label">
-
-                            <input
-                                type="checkbox"
-                                checked={
-                                    field.is_secret
-                                }
-                                disabled={updating}
-                                onChange={(event) =>
-                                    onUpdateField(
-                                        index,
-                                        "is_secret",
-                                        event.target.checked
-                                    )
-                                }
-                            />
-
-                            {" "}
-                            Secreto
-
-                        </label>
+                        <Switch
+                            compact
+                            className="vault-secret-label"
+                            label="Secreto"
+                            checked={field.is_secret}
+                            disabled={updating}
+                            onChange={(event) =>
+                                onUpdateField(index, "is_secret", event.target.checked)
+                            }
+                        />
 
 
-                        <button
-                            type="button"
-                            className="secondary-button"
+                        <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() =>
                                 onRemoveField(
                                     index
@@ -206,7 +201,7 @@ function VaultCredentialEditForm({
                             }
                         >
                             Remover
-                        </button>
+                        </Button>
 
                     </div>
 
@@ -214,37 +209,34 @@ function VaultCredentialEditForm({
             )}
 
 
-            <button
-                type="button"
-                className="secondary-button"
+            <Button
+                variant="secondary"
+                size="sm"
                 onClick={onAddField}
             >
-                + Adicionar campo
-            </button>
+                <Plus size={15} strokeWidth={2} aria-hidden="true" />
+                Adicionar campo
+            </Button>
 
 
             <div className="vault-form-actions">
 
-                <button
-                    type="button"
-                    className="primary-button"
+                <Button
                     onClick={onSave}
+                    busy={updating}
+                    loadingLabel="Salvando alterações"
                 >
-                    {updating
-                        ? "Salvando..."
-                        : "Salvar alterações"
-                    }
-                </button>
+                    Salvar alterações
+                </Button>
 
 
-                <button
-                    type="button"
-                    className="secondary-button"
+                <Button
+                    variant="secondary"
                     onClick={onCancel}
                     disabled={updating}
                 >
                     Cancelar
-                </button>
+                </Button>
 
             </div>
 

@@ -300,12 +300,17 @@ function useDevelopmentExecution({
                 onlineAgents.length === 1
             ) {
 
-                setSelectedExecutionAgentId(
-                    onlineAgents[0].agent_id
-                );
+                const onlyOnlineAgent =
+                    onlineAgents[0];
+
+                if (onlyOnlineAgent) {
+                    setSelectedExecutionAgentId(
+                        onlyOnlineAgent.agent_id
+                    );
+                }
             }
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao carregar Agents para execução:",
@@ -494,7 +499,7 @@ function useDevelopmentExecution({
                 setSelectedExecutionAgentId("");
                 setExecutionError("");
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao executar projeto de Desenvolvimento:",

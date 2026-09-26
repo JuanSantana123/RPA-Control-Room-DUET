@@ -5,80 +5,19 @@
 // Importa recursos do React para criar e controlar
 // o contexto de autenticação da aplicação.
 import {
-    createContext,
-    useContext,
     useEffect,
     useState,
 } from "react";
 
 // Importa a instância do Axios utilizada pelo Frontend.
 import api from "../services/api";
+import { AuthContext, type AuthUser } from "./auth-context";
 
 // ============================================================
 // TIPAGEM DO USUÁRIO
 // ============================================================
 
 // Representa os dados do usuário autenticado.
-interface User {
-    id: number;
-    username: string;
-    name: string;
-    is_active: number;
-
-    // Permissões efetivas calculadas pelo Backend através
-    // das Roles atribuídas ao usuário.
-    //
-    // Exemplos:
-    // "Dashboard:view"
-    // "Users:view"
-    // "Roles:edit"
-    permissions: string[];
-}
-
-// ============================================================
-// TIPAGEM DO CONTEXTO
-// ============================================================
-
-interface AuthContextType {
-    // Usuário atualmente autenticado.
-    user: User | null;
-
-    // Indica se o Frontend ainda está verificando
-    // a sessão existente.
-    loading: boolean;
-
-    // Verifica se o usuário autenticado possui uma
-    // determinada permissão efetiva do RBAC.
-    //
-    // Exemplo:
-    // can("Dashboard:view")
-    //
-    // Importante:
-    // esta verificação controla apenas a interface.
-    // O Backend continua sendo a autoridade de segurança.
-    can: (permission: string) => boolean;
-
-    // Realiza o login e atualiza o usuário
-    // dentro do AuthContext.
-    login: (
-        username: string,
-        password: string
-    ) => Promise<boolean>;
-
-    // Encerra a sessão do usuário.
-    logout: () => Promise<void>;
-}
-
-// ============================================================
-// CRIAÇÃO DO CONTEXTO
-// ============================================================
-
-// Cria o contexto que será compartilhado
-// pelas páginas da aplicação.
-const AuthContext = createContext<
-    AuthContextType | undefined
->(undefined);
-
 // ============================================================
 // PROVIDER
 // ============================================================
@@ -89,7 +28,7 @@ export function AuthProvider({
     children: React.ReactNode;
 }) {
     // Guarda o usuário autenticado.
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<AuthUser | null>(null);
 
     // Enquanto verificamos a sessão existente,
     // mantemos loading como true.
@@ -243,24 +182,4 @@ export function AuthProvider({
             {children}
         </AuthContext.Provider>
     );
-}
-
-// ============================================================
-// HOOK DE AUTENTICAÇÃO
-// ============================================================
-
-export function useAuth() {
-    // Permite que qualquer componente da aplicação
-    // acesse o usuário e as funções de autenticação.
-    const context = useContext(AuthContext);
-
-    // Gera um erro caso o hook seja utilizado
-    // fora do AuthProvider.
-    if (!context) {
-        throw new Error(
-            "useAuth deve ser utilizado dentro de AuthProvider."
-        );
-    }
-
-    return context;
 }

@@ -24,6 +24,11 @@
 
 import ScheduleRow from "./ScheduleRow";
 
+import { TableSkeleton }
+    from "../ui/Skeletons";
+import EmptyState from "../ui/EmptyState";
+import { CalendarClock } from "lucide-react";
+
 import type {
     Schedule,
 } from "../../types/schedules";
@@ -90,11 +95,11 @@ function SchedulesTable({
 
                         <tr>
                             <th>Robô</th>
-                            <th>Agent</th>
+                            <th>Dispositivo</th>
                             <th>Tipo</th>
                             <th>Horário</th>
                             <th>Próxima execução</th>
-                            <th>Status</th>
+                            <th>Situação</th>
                             <th>Ações</th>
                         </tr>
 
@@ -112,9 +117,9 @@ function SchedulesTable({
                             <tr>
                                 <td
                                     colSpan={7}
-                                    className="table-empty-state"
+                                    className="table-loading-state"
                                 >
-                                    Carregando agendamentos...
+                                    <TableSkeleton rows={4} columns={5} />
                                 </td>
                             </tr>
 
@@ -129,11 +134,12 @@ function SchedulesTable({
                             schedules.length === 0 && (
 
                                 <tr>
-                                    <td
-                                        colSpan={7}
-                                        className="table-empty-state"
-                                    >
-                                        Nenhum agendamento cadastrado.
+                                    <td colSpan={7}>
+                                        <EmptyState
+                                            icon={<CalendarClock />}
+                                            title="Nenhum agendamento cadastrado"
+                                            description="Crie um agendamento para executar robôs automaticamente em datas e horários definidos."
+                                        />
                                     </td>
                                 </tr>
 

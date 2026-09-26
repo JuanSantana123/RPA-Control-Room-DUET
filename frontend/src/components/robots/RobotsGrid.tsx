@@ -31,10 +31,16 @@ import type {
 } from "../../types/robots";
 
 import RobotCard from "./RobotCard";
+import { CardGridSkeleton } from "../ui/Skeletons";
+import { Button } from "../ui/Button";
+import EmptyState from "../ui/EmptyState";
 
 
 interface RobotsGridProps {
     robots: Robot[];
+    totalRobotCount: number;
+    viewMode: "grid" | "list";
+    hasActiveFilter: boolean;
     loadingRobots: boolean;
 
     openRobotMenu: number | null;
@@ -74,11 +80,16 @@ interface RobotsGridProps {
     onExecuteRobot: (
         robot: Robot
     ) => void;
+
+    onClearFilter: () => void;
 }
 
 
 function RobotsGrid({
     robots,
+    totalRobotCount,
+    viewMode,
+    hasActiveFilter,
     loadingRobots,
     openRobotMenu,
     expandedRobotLibraries,
@@ -93,34 +104,27 @@ function RobotsGrid({
     onToggleLibraries,
     onCreateNewVersion,
     onExecuteRobot,
+    onClearFilter,
 }: RobotsGridProps) {
 
     return (
         <div className="selected-robots-content">
 
             {loadingRobots ? (
-                <div className="panel-loading">
-                    Carregando robôs...
-                </div>
+                <CardGridSkeleton count={3} />
             ) : robots.length === 0 ? (
-                <div className="panel-empty-state">
-
-                    <div className="panel-empty-icon">
-                        <Package
-                            size={22}
-                            strokeWidth={1.6}
-                        />
-                    </div>
-
-                    <h3>Nenhum robô nesta pasta</h3>
-
-                    <p>
-                        Faça upload de um pacote para disponibilizar
-                        um robô nesta pasta.
-                    </p>
-                </div>
+                <EmptyState
+                    icon={<Package />}
+                    title={hasActiveFilter && totalRobotCount > 0 ? "Nenhum resultado encontrado" : "Nenhum robô nesta pasta"}
+                    description={hasActiveFilter && totalRobotCount > 0
+                        ? "Ajuste o termo de pesquisa ou a ordenação para localizar outra automação."
+                        : "Envie um pacote para disponibilizar uma automação nesta localização."}
+                    action={hasActiveFilter && totalRobotCount > 0 ? (
+                        <Button size="sm" onClick={onClearFilter}>Limpar pesquisa</Button>
+                    ) : undefined}
+                />
             ) : (
-                <div className="robots-grid">
+                <div className={`robots-grid robots-grid--${viewMode}`}>
 
                     {robots.map((robot) => (
                         <RobotCard

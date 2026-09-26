@@ -29,13 +29,18 @@ import type {
 
 import {
     Boxes,
+    CircleCheck,
     Network,
     Plus,
+    ServerCog,
 } from "lucide-react";
 
 import type {
     NewAgentForm,
 } from "../../types/agents";
+import PremiumSelect from "../ui/PremiumSelect";
+import { Button } from "../ui/Button";
+import { TextField } from "../ui/TextField";
 
 
 // ============================================================
@@ -67,6 +72,11 @@ function AgentCreatePanel({
     creatingAgent,
     onCreate,
 }: AgentCreatePanelProps) {
+    const numericPort = Number(newAgent.port);
+    const portIsValid = Number.isInteger(numericPort) && numericPort >= 1 && numericPort <= 65535;
+    const portError = newAgent.port && !portIsValid
+        ? "Use uma porta inteira entre 1 e 65535."
+        : undefined;
 
     return (
         <section className="content-panel agent-create-panel">
@@ -76,7 +86,7 @@ function AgentCreatePanel({
                 <div>
 
                     <h2>
-                        Novo Device
+                        Novo dispositivo
                     </h2>
 
                     <p>
@@ -86,25 +96,31 @@ function AgentCreatePanel({
                 </div>
 
 
-                <div className="section-icon">
-                    <Plus
+                <div className="agent-create-panel__status" aria-label="Cadastro em duas etapas">
+                    <ServerCog
                         size={18}
                         strokeWidth={1.8}
+                        aria-hidden="true"
                     />
+                    <span>Configuração rápida</span>
                 </div>
 
             </div>
 
 
-            <div className="agent-form">
+            <form
+                className="agent-form"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    if (portIsValid) void onCreate();
+                }}
+            >
 
                 <div className="form-field">
 
-
-                    <div className="form-field">
-
                         <label htmlFor="agent-environment">
-                            Ambiente
+                            <span className="agent-field-step">1</span>
+                            Ambiente de execução
                         </label>
 
                         <div className="input-with-icon">
@@ -114,7 +130,7 @@ function AgentCreatePanel({
                                 strokeWidth={1.8}
                             />
 
-                            <select
+                            <PremiumSelect
                                 id="agent-environment"
                                 value={newAgent.environment}
                                 disabled={creatingAgent}
@@ -137,50 +153,41 @@ function AgentCreatePanel({
                                 <option value="production">
                                     Produção
                                 </option>
-                            </select>
+                            </PremiumSelect>
 
                         </div>
 
-                    </div>
-
-                    <label htmlFor="agent-port">
-                        Porta de comunicação
-                    </label>
-
-
-                    <div className="input-with-icon">
-
-                        <Network
-                            size={16}
-                            strokeWidth={1.8}
-                        />
-
-
-                        <input
-                            id="agent-port"
-                            type="number"
-                            placeholder="Ex.: 8000"
-                            value={newAgent.port}
-                            disabled={creatingAgent}
-                            onChange={(event) => {
-
-                                setNewAgent({
-                                    ...newAgent,
-                                    port:
-                                        event.target.value,
-                                });
-                            }}
-                        />
-
-                    </div>
-
                 </div>
 
-
-                <button
-                    className="primary-button"
-                    onClick={onCreate}
+                <TextField
+                    id="agent-port"
+                    label={<span className="agent-field-label"><span className="agent-field-step">2</span>Porta de comunicação</span>}
+                    description="Porta local reservada para a comunicação segura com este dispositivo."
+                    error={portError}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={65535}
+                    placeholder="Ex.: 8000"
+                    value={newAgent.port}
                     disabled={creatingAgent}
+                    leadingIcon={<Network size={16} strokeWidth={1.8} />}
+                    onChange={(event) => {
+                        setNewAgent({
+                            ...newAgent,
+                            port: event.target.value,
+                        });
+                    }}
+                />
+
+
+                <Button
+                    variant="primary"
+                    className="agent-create-submit"
+                    type="submit"
+                    busy={creatingAgent}
+                    disabled={!portIsValid}
+                    loadingLabel="Cadastrando dispositivo"
                 >
 
                     <Plus
@@ -188,14 +195,16 @@ function AgentCreatePanel({
                         strokeWidth={2}
                     />
 
-                    {creatingAgent
-                        ? "Cadastrando..."
-                        : "Cadastrar Device"
-                    }
+                    Cadastrar dispositivo
 
-                </button>
+                </Button>
 
-            </div>
+                <div className="agent-create-panel__assurance">
+                    <CircleCheck size={15} aria-hidden="true" />
+                    <span>Você poderá baixar o instalador e o token após o cadastro.</span>
+                </div>
+
+            </form>
 
         </section>
     );

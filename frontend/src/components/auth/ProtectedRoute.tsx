@@ -8,7 +8,8 @@ import { Navigate } from "react-router-dom";
 
 // Importa o hook que fornece o estado
 // de autenticação da aplicação.
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
+import { BrandMark } from "../brand/BrandMark";
 
 // ============================================================
 // COMPONENTE
@@ -33,15 +34,10 @@ export default function ProtectedRoute({
     // temporariamente como uma sessão inexistente.
     if (loading) {
         return (
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: "100vh",
-                }}
-            >
-                Carregando...
+            <div className="session-loading" role="status">
+                <BrandMark />
+                <span className="session-loading-bar" aria-hidden="true" />
+                <span>Validando sessão...</span>
             </div>
         );
     }

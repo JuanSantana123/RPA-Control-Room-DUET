@@ -34,6 +34,7 @@ import {
 } from "react";
 
 import api from "../../services/api";
+import { obterMensagemErro } from "../../utils/robotErrors";
 
 import type {
     Robot,
@@ -205,9 +206,10 @@ export function useRobotLibraries({
                 );
 
 
-                setError(
-                    `Não foi possível carregar as bibliotecas de "${robot.name}".`
-                );
+                setError(obterMensagemErro(
+                    err,
+                    `Não foi possível carregar as bibliotecas de "${robot.name}". O release pode não possuir um snapshot de dependências.`
+                ));
 
 
                 return [];

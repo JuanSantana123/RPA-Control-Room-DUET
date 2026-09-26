@@ -42,6 +42,7 @@ import {
 } from "react";
 
 import api from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     AgentOption,
@@ -178,6 +179,10 @@ export function useScheduleForm({
         setSalvando,
     ] = useState(false);
 
+    const [loadingOptions, setLoadingOptions] = useState(false);
+    const [formError, setFormError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+
 
     // ========================================================
     // CARREGAR ROBOTS E AGENTS
@@ -185,6 +190,9 @@ export function useScheduleForm({
 
     const carregarOpcoesAgendamento =
         async () => {
+
+            setLoadingOptions(true);
+            setFormError("");
 
             try {
 
@@ -203,13 +211,11 @@ export function useScheduleForm({
                     data.status !== "success"
                 ) {
 
-                    window.alert(
+                    setFormError(
                         data.message ||
-                        "Não foi possível carregar as opções."
+                        "Não foi possível carregar os robôs e dispositivos disponíveis."
                     );
-
-
-                    return;
+                    return false;
                 }
 
 
@@ -222,17 +228,16 @@ export function useScheduleForm({
                     data.agents || []
                 );
 
+                return true;
+
             } catch (err) {
-
-                console.error(
-                    "Erro ao carregar opções:",
-                    err
-                );
-
-
-                window.alert(
-                    "Erro ao carregar robôs e Agents."
-                );
+                setFormError(getApiErrorMessage(
+                    err,
+                    "Não foi possível carregar os robôs e dispositivos disponíveis."
+                ));
+                return false;
+            } finally {
+                setLoadingOptions(false);
             }
         };
 
@@ -243,15 +248,12 @@ export function useScheduleForm({
 
     const novoAgendamento =
         async () => {
-
-            // Mantém a ordem atual:
-            // primeiro busca as opções disponíveis.
-            await carregarOpcoesAgendamento();
-
-
             setEditandoId(
                 null
             );
+
+            setFormError("");
+            setSuccessMessage("");
 
 
             setRobotId("");
@@ -333,6 +335,8 @@ export function useScheduleForm({
             setModalAberto(
                 true
             );
+
+            await carregarOpcoesAgendamento();
         };
 
 
@@ -350,6 +354,8 @@ export function useScheduleForm({
         setEditandoId(
             null
         );
+
+        setFormError("");
     };
 
 
@@ -434,34 +440,21 @@ export function useScheduleForm({
             // ====================================================
 
             if (!robotId) {
-
-                window.alert(
-                    "Selecione um robô."
-                );
-
-
+                setFormError("Selecione o robô que será executado.");
                 return;
             }
 
 
             if (!dataInicio) {
 
-                window.alert(
-                    "Informe a data de início."
-                );
-
-
+                setFormError("Informe a data de início do agendamento.");
                 return;
             }
 
 
             if (!horario) {
 
-                window.alert(
-                    "Informe o horário."
-                );
-
-
+                setFormError("Informe o horário da primeira execução.");
                 return;
             }
 
@@ -482,11 +475,7 @@ export function useScheduleForm({
                     diasSemana.length === 0
                 ) {
 
-                    window.alert(
-                        "Selecione pelo menos um dia da semana."
-                    );
-
-
+                    setFormError("Selecione pelo menos um dia para a recorrência semanal.");
                     return;
                 }
 
@@ -566,6 +555,8 @@ export function useScheduleForm({
                     true
                 );
 
+                setFormError("");
+
 
                 // =================================================
                 // CRIAÇÃO
@@ -591,19 +582,11 @@ export function useScheduleForm({
                         data.status !== "success"
                     ) {
 
-                        window.alert(
-                            data.message ||
-                            "Não foi possível criar o agendamento."
-                        );
-
-
+                        setFormError(data.message || "Não foi possível criar o agendamento.");
                         return;
                     }
 
-
-                    window.alert(
-                        "Agendamento criado com sucesso!"
-                    );
+                    setSuccessMessage("Agendamento criado com sucesso.");
 
                 }
 
@@ -629,19 +612,11 @@ export function useScheduleForm({
                         data.status !== "success"
                     ) {
 
-                        window.alert(
-                            data.message ||
-                            "Não foi possível atualizar o agendamento."
-                        );
-
-
+                        setFormError(data.message || "Não foi possível atualizar o agendamento.");
                         return;
                     }
 
-
-                    window.alert(
-                        "Agendamento atualizado com sucesso!"
-                    );
+                    setSuccessMessage("Agendamento atualizado com sucesso.");
                 }
 
 
@@ -654,16 +629,10 @@ export function useScheduleForm({
                 await onScheduleSaved();
 
             } catch (err) {
-
-                console.error(
-                    "Erro ao salvar agendamento:",
-                    err
-                );
-
-
-                window.alert(
-                    "Erro ao comunicar com o Control Room."
-                );
+                setFormError(getApiErrorMessage(
+                    err,
+                    "Não foi possível salvar o agendamento. Revise os dados e tente novamente."
+                ));
 
             } finally {
 
@@ -683,6 +652,12 @@ export function useScheduleForm({
             id: number
         ) => {
 
+            setEditandoId(id);
+            setModalAberto(true);
+            setFormError("");
+            setSuccessMessage("");
+            setLoadingOptions(true);
+
             try {
 
                 // Busca os dados completos do Schedule.
@@ -701,24 +676,14 @@ export function useScheduleForm({
                     data.status !== "success"
                 ) {
 
-                    window.alert(
-                        data.message ||
-                        "Erro ao carregar o agendamento."
-                    );
-
-
+                    setFormError(data.message || "Não foi possível carregar o agendamento selecionado.");
+                    setLoadingOptions(false);
                     return;
                 }
 
 
                 const schedule =
                     data.schedule;
-
-
-                // Guarda o Schedule em edição.
-                setEditandoId(
-                    id
-                );
 
 
                 // Mantém a ordem atual:
@@ -807,21 +772,12 @@ export function useScheduleForm({
                 );
 
 
-                setModalAberto(
-                    true
-                );
-
             } catch (err) {
-
-                console.error(
-                    "Erro ao carregar agendamento:",
-                    err
-                );
-
-
-                window.alert(
-                    "Erro ao carregar o agendamento."
-                );
+                setLoadingOptions(false);
+                setFormError(getApiErrorMessage(
+                    err,
+                    "Não foi possível carregar o agendamento selecionado."
+                ));
             }
         };
 
@@ -870,6 +826,10 @@ export function useScheduleForm({
 
         // Estado operacional.
         salvando,
+        loadingOptions,
+        formError,
+        successMessage,
+        clearSuccessMessage: () => setSuccessMessage(""),
 
         // Ações.
         novoAgendamento,
@@ -878,5 +838,6 @@ export function useScheduleForm({
         alterarTipoAgendamento,
         salvarAgendamento,
         editarAgendamento,
+        recarregarOpcoes: carregarOpcoesAgendamento,
     };
 }

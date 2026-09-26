@@ -24,6 +24,9 @@
 import type {
     NewCredentialField,
 } from "../../types/vault";
+import { Plus } from "lucide-react";
+import { Button } from "../ui/Button";
+import { Switch } from "../ui/Switch";
 
 
 // ============================================================
@@ -92,13 +95,14 @@ function VaultCredentialCreateForm({
 
             <div className="vault-form-group">
 
-                <label>
+                <label htmlFor="vault-new-credential-name">
                     Nome da credencial
                 </label>
 
                 <br />
 
                 <input
+                    id="vault-new-credential-name"
                     type="text"
                     className="form-input"
                     placeholder="Ex.: usuario_1"
@@ -129,6 +133,7 @@ function VaultCredentialCreateForm({
 
                         <input
                             type="text"
+                            aria-label={`Nome do campo ${index + 1}`}
                             className="form-input"
                             placeholder="Nome do campo"
                             value={field.name}
@@ -149,6 +154,7 @@ function VaultCredentialCreateForm({
                                     ? "password"
                                     : "text"
                             }
+                            aria-label={`Valor do campo ${index + 1}`}
                             className="form-input"
                             placeholder="Valor"
                             value={field.value}
@@ -163,32 +169,21 @@ function VaultCredentialCreateForm({
                         />
 
 
-                        <label className="vault-secret-label">
-
-                            <input
-                                type="checkbox"
-                                checked={
-                                    field.is_secret
-                                }
-                                disabled={creating}
-                                onChange={(event) =>
-                                    onUpdateField(
-                                        index,
-                                        "is_secret",
-                                        event.target.checked
-                                    )
-                                }
-                            />
-
-                            {" "}
-                            Secreto
-
-                        </label>
+                        <Switch
+                            compact
+                            className="vault-secret-label"
+                            label="Secreto"
+                            checked={field.is_secret}
+                            disabled={creating}
+                            onChange={(event) =>
+                                onUpdateField(index, "is_secret", event.target.checked)
+                            }
+                        />
 
 
-                        <button
-                            type="button"
-                            className="secondary-button"
+                        <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() =>
                                 onRemoveField(
                                     index
@@ -200,7 +195,7 @@ function VaultCredentialCreateForm({
                             }
                         >
                             Remover
-                        </button>
+                        </Button>
 
                     </div>
 
@@ -208,39 +203,35 @@ function VaultCredentialCreateForm({
             )}
 
 
-            <button
-                type="button"
-                className="secondary-button"
+            <Button
+                variant="secondary"
+                size="sm"
                 onClick={onAddField}
                 disabled={creating}
             >
-                + Adicionar campo
-            </button>
+                <Plus size={15} strokeWidth={2} aria-hidden="true" />
+                Adicionar campo
+            </Button>
 
 
             <div className="vault-form-actions">
 
-                <button
-                    type="button"
-                    className="primary-button"
+                <Button
                     onClick={onSave}
-                    disabled={creating}
+                    busy={creating}
+                    loadingLabel="Salvando credencial"
                 >
-                    {creating
-                        ? "Salvando..."
-                        : "Salvar credencial"
-                    }
-                </button>
+                    Salvar credencial
+                </Button>
 
 
-                <button
-                    type="button"
-                    className="secondary-button"
+                <Button
+                    variant="secondary"
                     onClick={onCancel}
                     disabled={creating}
                 >
                     Cancelar
-                </button>
+                </Button>
 
             </div>
 

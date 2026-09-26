@@ -25,16 +25,17 @@
 // cada registro individual.
 // ============================================================
 
-import {
-    Loader2,
-    Search,
-} from "lucide-react";
+import { Activity } from "lucide-react";
+
+import { TableSkeleton }
+    from "../ui/Skeletons";
 
 import type {
     Execution,
 } from "../../types/executions";
 
 import ExecutionRow from "./ExecutionRow";
+import EmptyState from "../ui/EmptyState";
 
 
 // ============================================================
@@ -151,18 +152,7 @@ function ExecutionsTable({
                             <tr>
                                 <td colSpan={10}>
 
-                                    <div className="execution-empty-state">
-
-                                        <Loader2
-                                            size={22}
-                                            className="spin"
-                                        />
-
-                                        <span>
-                                            Carregando execuções...
-                                        </span>
-
-                                    </div>
+                                    <TableSkeleton rows={4} columns={6} />
 
                                 </td>
                             </tr>
@@ -176,19 +166,11 @@ function ExecutionsTable({
                             <tr>
                                 <td colSpan={10}>
 
-                                    <div className="execution-empty-state">
-
-                                        <Search size={25} />
-
-                                        <strong>
-                                            Nenhuma execução encontrada
-                                        </strong>
-
-                                        <span>
-                                            Não existem execuções correspondentes aos filtros atuais.
-                                        </span>
-
-                                    </div>
+                                    <EmptyState
+                                        icon={<Activity />}
+                                        title="Nenhuma execução em andamento"
+                                        description="Quando um robô for iniciado, seu progresso e dispositivo aparecerão aqui em tempo real."
+                                    />
 
                                 </td>
                             </tr>

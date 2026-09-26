@@ -10,6 +10,9 @@ from permissions import (
     criar_admin_inicial,
     sincronizar_permissoes_administrador,
 )
+from development.bootstrap import (
+    criar_estagios_desenvolvimento_iniciais,
+)
 
 # ============================================================
 # LOGGING CENTRAL DO CONTROL ROOM
@@ -304,6 +307,39 @@ except Exception as error:
             "error_type": type(error).__name__,
             "error_message": str(error)
         }
+    )
+
+    raise
+
+
+# ============================================================
+# WORKFLOW DE DESENVOLVIMENTO
+# ============================================================
+# Instalações novas precisam dos códigos estruturais utilizados pelo
+# Development e pelo Studio. A rotina é idempotente e não altera estágios
+# já cadastrados, inclusive quando a ordem foi personalizada.
+try:
+
+    criar_estagios_desenvolvimento_iniciais()
+
+    logger.info(
+        "Estágios do workflow de Desenvolvimento verificados",
+        extra={
+            "event": "development_stages_initialized",
+            "status": "success",
+        },
+    )
+
+except Exception as error:
+
+    logger.exception(
+        "Falha ao inicializar estágios do workflow de Desenvolvimento",
+        extra={
+            "event": "development_stages_initialization_failed",
+            "status": "error",
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+        },
     )
 
     raise

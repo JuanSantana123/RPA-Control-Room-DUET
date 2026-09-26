@@ -348,7 +348,7 @@ function RobotStudioExplorer({
 
                     background:
                         selectedFolderId === null
-                            ? "#252526"
+                            ? "var(--studio-surface-raised)"
                             : "transparent",
                 }}
             >

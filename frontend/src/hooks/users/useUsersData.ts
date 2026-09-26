@@ -37,6 +37,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     User,
@@ -391,7 +392,7 @@ export function useUsersData() {
                     );
                 }
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao criar usuário:",
@@ -399,10 +400,7 @@ export function useUsersData() {
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    "Não foi possível criar o usuário."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível criar o usuário."));
             }
         };
 
@@ -458,7 +456,7 @@ export function useUsersData() {
 
                 await carregarUsuarios();
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao excluir usuário:",
@@ -466,11 +464,7 @@ export function useUsersData() {
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível excluir o usuário."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível excluir o usuário."));
             }
         };
 
@@ -529,7 +523,7 @@ export function useUsersData() {
 
                 await carregarUsuarios();
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao alterar status do usuário:",
@@ -537,11 +531,7 @@ export function useUsersData() {
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível alterar o status do usuário."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível alterar o status do usuário."));
             }
         };
 

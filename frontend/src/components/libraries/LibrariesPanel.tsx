@@ -20,8 +20,13 @@ import {
     Trash2,
     X,
 } from "lucide-react";
+import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
 
 import api from "../../services/api";
+import { PanelSkeleton } from "../ui/Skeletons";
+import { Button, IconButton } from "../ui/Button";
+import { TextField } from "../ui/TextField";
+import { TextAreaField } from "../ui/TextAreaField";
 // Componente visual utilizado para selecionar a pasta de destino.
 import LibraryFolderPicker from "./LibraryFolderPicker";
 
@@ -964,13 +969,14 @@ const carregarRobosDaLibrary = async (
             //       └── services
             // ------------------------------------------------
 
+            const rootNode = tree[0];
+
             if (
                 tree.length === 1 &&
-                tree[0].type === "folder" &&
-                tree[0].name === library.import_name
+                rootNode?.type === "folder" &&
+                rootNode.name === library.import_name
             ) {
-                tree =
-                    tree[0].children || [];
+                tree = rootNode.children || [];
             }
 
 
@@ -1063,7 +1069,12 @@ const carregarRobosDaLibrary = async (
     };
 
     useEffect(() => {
-        void carregarBibliotecas();
+        const initialLoad = window.setTimeout(
+            carregarBibliotecas,
+            0
+        );
+
+        return () => window.clearTimeout(initialLoad);
     }, []);
 
     // ========================================================
@@ -2159,6 +2170,22 @@ const carregarRobosDaLibrary = async (
     // INTERFACE
     // ========================================================
 
+    const folderEditorDialogRef = useDialogFocus<HTMLDivElement>({
+        open: Boolean(folderEditorMode),
+        onClose: fecharFolderEditor,
+        closeOnEscape: !savingFolder,
+    });
+    const libraryEditorDialogRef = useDialogFocus<HTMLDivElement>({
+        open: Boolean(libraryEditorMode),
+        onClose: fecharLibraryEditor,
+        closeOnEscape: !savingLibrary,
+    });
+    const confirmationDialogRef = useDialogFocus<HTMLDivElement>({
+        open: Boolean(confirmation),
+        onClose: () => setConfirmation(null),
+        closeOnEscape: !confirmingAction,
+    });
+
     return (
         <div
             className="libraries-module"
@@ -2209,9 +2236,7 @@ const carregarRobosDaLibrary = async (
                             />
                         </button>
 
-                        <button
-                            type="button"
-                            className="library-button library-button-secondary"
+                        <Button variant="secondary"
                             onClick={(event) => {
                                 event.stopPropagation();
                                 abrirCriacaoPasta(null);
@@ -2222,11 +2247,9 @@ const carregarRobosDaLibrary = async (
                                 strokeWidth={1.9}
                             />
                             Nova pasta
-                        </button>
+                        </Button>
 
-                        <button
-                            type="button"
-                            className="library-button library-button-primary"
+                        <Button variant="primary"
                             onClick={(event) => {
                                 event.stopPropagation();
                                 abrirCriacaoLibrary(null);
@@ -2237,7 +2260,7 @@ const carregarRobosDaLibrary = async (
                                 strokeWidth={2}
                             />
                             Nova biblioteca
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -2276,32 +2299,24 @@ const carregarRobosDaLibrary = async (
                 <div className="libraries-workspace">
                     <aside className="libraries-explorer">
                         <div className="libraries-explorer-toolbar">
-                            <div className="libraries-search">
-                                <Search
-                                    size={15}
-                                    strokeWidth={1.8}
-                                />
-
-                                <input
-                                    type="search"
-                                    value={librarySearch}
-                                    placeholder="Buscar biblioteca..."
-                                    onChange={(event) =>
-                                        setLibrarySearch(event.target.value)
-                                    }
-                                    aria-label="Buscar no catálogo de Bibliotecas"
-                                />
-
-                                {librarySearch && (
-                                    <button
-                                        type="button"
+                            <TextField
+                                label="Buscar no catálogo de bibliotecas"
+                                labelHidden
+                                containerClassName="libraries-search-field"
+                                type="search"
+                                value={librarySearch}
+                                placeholder="Buscar por nome, import ou descrição"
+                                leadingIcon={<Search size={15} strokeWidth={1.8} />}
+                                trailingAction={librarySearch ? (
+                                    <IconButton
+                                        label="Limpar busca de bibliotecas"
+                                        icon={<X size={14} aria-hidden="true" />}
+                                        size="sm"
                                         onClick={() => setLibrarySearch("")}
-                                        aria-label="Limpar busca"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                )}
-                            </div>
+                                    />
+                                ) : undefined}
+                                onChange={(event) => setLibrarySearch(event.target.value)}
+                            />
 
                             <div className="libraries-explorer-stats">
                                 <span>
@@ -2327,9 +2342,7 @@ const carregarRobosDaLibrary = async (
 
                             <div className="libraries-tree-content">
                                 {loadingLibraries ? (
-                                    <div className="libraries-tree-state">
-                                        Carregando catálogo...
-                                    </div>
+                                    <PanelSkeleton lines={4} />
                                 ) : visibleTree.length === 0 ? (
                                     <div className="libraries-tree-empty">
                                         <div className="libraries-tree-empty-icon">
@@ -2399,9 +2412,7 @@ const carregarRobosDaLibrary = async (
                                     </div>
 
                                     <div className="libraries-details-actions">
-                                        <button
-                                            type="button"
-                                            className="library-button library-button-secondary"
+                                        <Button variant="secondary"
                                             onClick={() =>
                                                 abrirPickerMoverLibrary(
                                                     selectedLibrary
@@ -2410,11 +2421,9 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <Move size={15} />
                                             Mover
-                                        </button>
+                                        </Button>
 
-                                        <button
-                                            type="button"
-                                            className="library-button library-button-primary"
+                                        <Button variant="primary"
                                             onClick={() =>
                                                 abrirEdicaoLibrary(
                                                     selectedLibrary
@@ -2423,7 +2432,7 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <Pencil size={15} />
                                             Editar
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
 
@@ -2493,10 +2502,7 @@ const carregarRobosDaLibrary = async (
 
 
                                     {loadingLibraryRobots ? (
-
-                                        <div className="library-usage-state">
-                                            Carregando Robots...
-                                        </div>
+                                        <PanelSkeleton lines={3} />
 
                                     ) : libraryRobots.length === 0 ? (
 
@@ -2589,9 +2595,7 @@ const carregarRobosDaLibrary = async (
                                     </div>
 
                                     {loadingVersions ? (
-                                        <div className="library-versions-state">
-                                            Carregando versões...
-                                        </div>
+                                        <PanelSkeleton lines={3} />
                                     ) : versions.length === 0 ? (
                                         <div className="library-versions-empty">
                                             <FileCode2 size={20} />
@@ -2725,7 +2729,7 @@ const carregarRobosDaLibrary = async (
                                                                         "0 8px 10px 8px",
 
                                                                     border:
-                                                                        "1px solid rgba(148, 163, 184, 0.18)",
+                                                                        "1px solid color-mix(in srgb, var(--color-text-muted) 18%, transparent)",
 
                                                                     borderRadius:
                                                                         "8px",
@@ -2759,7 +2763,7 @@ const carregarRobosDaLibrary = async (
                                                                             0.8,
 
                                                                         borderBottom:
-                                                                            "1px solid rgba(148, 163, 184, 0.14)",
+                                                                            "1px solid color-mix(in srgb, var(--color-text-muted) 14%, transparent)",
                                                                     }}
                                                                 >
                                                                     <FileCode2
@@ -2771,21 +2775,7 @@ const carregarRobosDaLibrary = async (
 
 
                                                                 {loadingVersionTree ? (
-
-                                                                    <div
-                                                                        style={{
-                                                                            padding:
-                                                                                "12px",
-
-                                                                            fontSize:
-                                                                                "12px",
-
-                                                                            opacity:
-                                                                                0.7,
-                                                                        }}
-                                                                    >
-                                                                        Carregando snapshot...
-                                                                    </div>
+                                                                    <PanelSkeleton lines={3} />
 
                                                                 ) : versionTree.length === 0 ? (
 
@@ -2862,9 +2852,7 @@ const carregarRobosDaLibrary = async (
                                     </div>
 
                                     <div className="libraries-details-actions">
-                                        <button
-                                            type="button"
-                                            className="library-button library-button-secondary"
+                                        <Button variant="secondary"
                                             onClick={() =>
                                                 abrirCriacaoPasta(
                                                     selectedFolder.id
@@ -2873,11 +2861,9 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <FolderPlus size={15} />
                                             Subpasta
-                                        </button>
+                                        </Button>
 
-                                        <button
-                                            type="button"
-                                            className="library-button library-button-primary"
+                                        <Button variant="primary"
                                             onClick={() =>
                                                 abrirCriacaoLibrary(
                                                     selectedFolder.id
@@ -2886,7 +2872,7 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <Plus size={15} />
                                             Nova biblioteca
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
 
@@ -2926,23 +2912,19 @@ const carregarRobosDaLibrary = async (
                                 </p>
 
                                 <div className="libraries-details-empty-actions">
-                                    <button
-                                        type="button"
-                                        className="library-button library-button-secondary"
+                                    <Button variant="secondary"
                                         onClick={() => abrirCriacaoPasta(null)}
                                     >
                                         <FolderPlus size={15} />
                                         Criar pasta
-                                    </button>
+                                    </Button>
 
-                                    <button
-                                        type="button"
-                                        className="library-button library-button-primary"
+                                    <Button variant="primary"
                                         onClick={() => abrirCriacaoLibrary(null)}
                                     >
                                         <Plus size={15} />
                                         Nova biblioteca
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -2967,10 +2949,12 @@ const carregarRobosDaLibrary = async (
                     }}
                 >
                     <div
+                        ref={folderEditorDialogRef}
                         className="library-modal"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="library-folder-editor-title"
+                        tabIndex={-1}
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="library-modal-header">
@@ -3044,32 +3028,26 @@ const carregarRobosDaLibrary = async (
                                         </strong>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        className="library-button library-button-secondary"
+                                    <Button variant="secondary"
                                         disabled={savingFolder}
                                         onClick={abrirPickerCriacaoPasta}
                                     >
                                         <Move size={15} />
                                         Alterar local
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                         </div>
 
                         <div className="library-modal-footer">
-                            <button
-                                type="button"
-                                className="library-button library-button-secondary"
+                            <Button variant="secondary"
                                 disabled={savingFolder}
                                 onClick={fecharFolderEditor}
                             >
                                 Cancelar
-                            </button>
+                            </Button>
 
-                            <button
-                                type="button"
-                                className="library-button library-button-primary"
+                            <Button variant="primary"
                                 disabled={
                                     savingFolder ||
                                     !folderName.trim()
@@ -3081,7 +3059,7 @@ const carregarRobosDaLibrary = async (
                                     : folderEditorMode === "create"
                                         ? "Criar pasta"
                                         : "Salvar nome"}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -3104,10 +3082,12 @@ const carregarRobosDaLibrary = async (
                     }}
                 >
                     <div
+                        ref={libraryEditorDialogRef}
                         className="library-modal library-modal-large"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="library-editor-title"
+                        tabIndex={-1}
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="library-modal-header">
@@ -3186,24 +3166,17 @@ const carregarRobosDaLibrary = async (
                                 </div>
                             </div>
 
-                            <div className="library-modal-field">
-                                <label htmlFor="library-description">
-                                    Descrição
-                                </label>
-
-                                <textarea
-                                    id="library-description"
-                                    rows={4}
-                                    value={libraryDescription}
-                                    placeholder="Explique a finalidade desta biblioteca..."
-                                    disabled={savingLibrary}
-                                    onChange={(event) =>
-                                        setLibraryDescription(
-                                            event.target.value
-                                        )
-                                    }
-                                />
-                            </div>
+                            <TextAreaField
+                                id="library-description"
+                                label="Descrição"
+                                description="Opcional: explique quando esta biblioteca deve ser reutilizada."
+                                rows={4}
+                                value={libraryDescription}
+                                placeholder="Explique a finalidade desta biblioteca..."
+                                disabled={savingLibrary}
+                                counter={`${libraryDescription.length} caracteres`}
+                                onChange={(event) => setLibraryDescription(event.target.value)}
+                            />
 
                             {libraryEditorMode === "create" && (
                                 <div className="library-modal-location-card">
@@ -3225,32 +3198,26 @@ const carregarRobosDaLibrary = async (
                                         </small>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        className="library-button library-button-secondary"
+                                    <Button variant="secondary"
                                         disabled={savingLibrary}
                                         onClick={abrirPickerCriacaoLibrary}
                                     >
                                         <Move size={15} />
                                         Alterar pasta
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                         </div>
 
                         <div className="library-modal-footer">
-                            <button
-                                type="button"
-                                className="library-button library-button-secondary"
+                            <Button variant="secondary"
                                 disabled={savingLibrary}
                                 onClick={fecharLibraryEditor}
                             >
                                 Cancelar
-                            </button>
+                            </Button>
 
-                            <button
-                                type="button"
-                                className="library-button library-button-primary"
+                            <Button variant="primary"
                                 disabled={
                                     savingLibrary ||
                                     !libraryName.trim() ||
@@ -3266,7 +3233,7 @@ const carregarRobosDaLibrary = async (
                                     : libraryEditorMode === "create"
                                         ? "Criar biblioteca"
                                         : "Salvar alterações"}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -3312,10 +3279,12 @@ const carregarRobosDaLibrary = async (
                     }}
                 >
                     <div
+                        ref={confirmationDialogRef}
                         className="library-confirm-modal"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="library-confirm-title"
+                        tabIndex={-1}
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="library-confirm-icon">
@@ -3344,18 +3313,14 @@ const carregarRobosDaLibrary = async (
                         </div>
 
                         <div className="library-confirm-actions">
-                            <button
-                                type="button"
-                                className="library-button library-button-secondary"
+                            <Button variant="secondary"
                                 disabled={confirmingAction}
                                 onClick={() => setConfirmation(null)}
                             >
                                 Cancelar
-                            </button>
+                            </Button>
 
-                            <button
-                                type="button"
-                                className="library-button library-button-danger"
+                            <Button variant="danger"
                                 disabled={confirmingAction}
                                 onClick={() =>
                                     void confirmarAcaoDestrutiva()
@@ -3366,7 +3331,7 @@ const carregarRobosDaLibrary = async (
                                     : confirmation.kind === "delete-folder"
                                         ? "Excluir pasta"
                                         : "Desativar biblioteca"}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

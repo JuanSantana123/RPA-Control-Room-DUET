@@ -20,6 +20,7 @@
 import type {
     VaultFolder,
 } from "../../types/vault";
+import { Folder, FolderPlus } from "lucide-react";
 
 
 // ============================================================
@@ -82,7 +83,8 @@ function VaultFolderNode({
                         }`
                     }
                 >
-                    📁 {folder.name}
+                    <Folder size={16} strokeWidth={1.8} aria-hidden="true" />
+                    <span>{folder.name}</span>
                 </button>
 
 
@@ -95,7 +97,8 @@ function VaultFolderNode({
                         )
                     }
                 >
-                    + Subpasta
+                    <FolderPlus size={14} strokeWidth={1.9} aria-hidden="true" />
+                    Subpasta
                 </button>
 
 

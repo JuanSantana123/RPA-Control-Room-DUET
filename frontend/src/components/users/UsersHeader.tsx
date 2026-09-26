@@ -24,12 +24,12 @@
 function UsersHeader() {
 
     return (
-        <div className="users-page-header">
+        <header className="page-heading users-page-header">
 
             <div>
 
-                <p className="users-page-eyebrow">
-                    USER MANAGEMENT
+                <p className="page-eyebrow users-page-eyebrow">
+                    GESTÃO DE USUÁRIOS
                 </p>
 
                 <h1>
@@ -42,7 +42,7 @@ function UsersHeader() {
 
             </div>
 
-        </div>
+        </header>
     );
 }
 

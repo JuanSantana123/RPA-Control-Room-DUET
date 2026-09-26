@@ -32,12 +32,17 @@
 // ============================================================
 
 import {
+    useCallback,
     useEffect,
     useMemo,
     useState,
 } from "react";
 
 import api from "../../services/api";
+import {
+    getApiErrorMessage,
+    getApiErrorStatus,
+} from "../../utils/apiErrors";
 
 import type {
     OpenTab,
@@ -90,47 +95,6 @@ interface UseRobotStudioWorkspaceParams {
 // Mantém a mesma leitura de detail/message já utilizada
 // atualmente pelo RobotStudio.
 // ============================================================
-
-const getApiErrorMessage = (
-    err: any,
-    fallback: string
-): string => {
-
-    const detail =
-        err?.response?.data?.detail;
-
-
-    if (typeof detail === "string") {
-        return detail;
-    }
-
-
-    if (
-        detail &&
-        typeof detail === "object" &&
-        typeof detail.message === "string"
-    ) {
-        return detail.message;
-    }
-
-
-    const message =
-        err?.response?.data?.message;
-
-
-    if (typeof message === "string") {
-        return message;
-    }
-
-
-    if (typeof err?.message === "string") {
-        return err.message;
-    }
-
-
-    return fallback;
-};
-
 
 // ============================================================
 // HOOK
@@ -387,7 +351,7 @@ export function useRobotStudioWorkspace({
                         ]
                     );
 
-                } catch (err: any) {
+                } catch (err: unknown) {
 
                     console.error(
                         "Erro ao carregar workspace:",
@@ -395,10 +359,10 @@ export function useRobotStudioWorkspace({
                     );
 
 
-                    const mensagem =
-                        err.response?.data?.detail ||
-                        err.response?.data?.message ||
-                        "Não foi possível carregar o workspace.";
+                    const mensagem = getApiErrorMessage(
+                        err,
+                        "Não foi possível carregar o workspace."
+                    );
 
 
                     setOutputLines(
@@ -418,6 +382,7 @@ export function useRobotStudioWorkspace({
         projectId,
         permissionsLoaded,
         canViewDevelopment,
+        setOutputLines,
     ]);
 
 
@@ -513,7 +478,7 @@ export function useRobotStudioWorkspace({
                         )
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao abrir arquivo do workspace:",
@@ -521,10 +486,10 @@ export function useRobotStudioWorkspace({
                 );
 
 
-                const mensagem =
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível abrir o arquivo.";
+                const mensagem = getApiErrorMessage(
+                        err,
+                        "Não foi possível abrir o arquivo."
+                    );
 
 
                 setOutputLines(
@@ -650,7 +615,7 @@ export function useRobotStudioWorkspace({
     // /development/projects/{project_id}/workspace/file
     // ========================================================
 
-    const saveWorkspace =
+    const saveWorkspace = useCallback(
         async () => {
 
             if (
@@ -703,7 +668,7 @@ export function useRobotStudioWorkspace({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao salvar arquivo:",
@@ -712,7 +677,7 @@ export function useRobotStudioWorkspace({
 
 
                 if (
-                    err?.response?.status ===
+                    getApiErrorStatus(err) ===
                     423
                 ) {
 
@@ -737,7 +702,15 @@ export function useRobotStudioWorkspace({
                     ]
                 );
             }
-        };
+        },
+        [
+            activeFile,
+            canWriteWorkspace,
+            carregarCheckout,
+            projectId,
+            setOutputLines,
+        ]
+    );
 
 
     // ========================================================
@@ -783,10 +756,7 @@ export function useRobotStudioWorkspace({
         };
 
     }, [
-        workspace,
-        activeFileId,
-        projectId,
-        canWriteWorkspace,
+        saveWorkspace,
     ]);
 
 
@@ -913,7 +883,7 @@ export function useRobotStudioWorkspace({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao criar arquivo:",
@@ -922,7 +892,7 @@ export function useRobotStudioWorkspace({
 
 
                 if (
-                    err?.response?.status ===
+                    getApiErrorStatus(err) ===
                     423
                 ) {
 
@@ -1073,7 +1043,7 @@ export function useRobotStudioWorkspace({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao criar pasta:",
@@ -1082,7 +1052,7 @@ export function useRobotStudioWorkspace({
 
 
                 if (
-                    err?.response?.status ===
+                    getApiErrorStatus(err) ===
                     423
                 ) {
 
@@ -1395,7 +1365,7 @@ export function useRobotStudioWorkspace({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao renomear item:",
@@ -1404,7 +1374,7 @@ export function useRobotStudioWorkspace({
 
 
                 if (
-                    err?.response?.status ===
+                    getApiErrorStatus(err) ===
                     423
                 ) {
 
@@ -1680,7 +1650,7 @@ export function useRobotStudioWorkspace({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao excluir item:",
@@ -1689,7 +1659,7 @@ export function useRobotStudioWorkspace({
 
 
                 if (
-                    err?.response?.status ===
+                    getApiErrorStatus(err) ===
                     423
                 ) {
 

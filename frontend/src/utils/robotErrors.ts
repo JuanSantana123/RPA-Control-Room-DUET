@@ -1,4 +1,6 @@
 // ============================================================
+
+import { getApiErrorMessage } from "./apiErrors";
 // DUET CORE - ROBOTS - API ERROR UTILITIES
 // ============================================================
 //
@@ -58,6 +60,12 @@ export function obterMensagemErro(
     error: unknown,
     fallback: string
 ): string {
+
+    const normalized = getApiErrorMessage(error, fallback);
+
+    if (normalized !== fallback) {
+        return normalized;
+    }
 
     const candidate = error as {
         response?: {

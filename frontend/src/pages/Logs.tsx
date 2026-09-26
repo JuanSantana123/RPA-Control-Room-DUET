@@ -42,6 +42,7 @@ import LogsPanel
 import {
     useLogsData,
 } from "../hooks/logs/useLogsData";
+import { TriangleAlert } from "lucide-react";
 
 
 // ============================================================
@@ -57,7 +58,9 @@ function Logs() {
     const {
         logs,
         loading,
+        refreshing,
         error,
+        lastUpdated,
         carregarLogs,
     } = useLogsData();
 
@@ -77,6 +80,9 @@ function Logs() {
                 onRefresh={
                     carregarLogs
                 }
+                refreshing={refreshing}
+                lastUpdated={lastUpdated}
+                hasError={Boolean(error)}
             />
 
 
@@ -88,9 +94,7 @@ function Logs() {
 
                 <div className="logs-alert">
 
-                    <span>
-                        ⚠
-                    </span>
+                    <TriangleAlert size={18} strokeWidth={1.8} aria-hidden="true" />
 
                     <span>
                         {error}

@@ -1,249 +1,70 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-// Importa o layout principal da aplicação.
-import MainLayout from "./layouts/MainLayout";
-// Importa o componente que impede o acesso
-// às páginas internas sem uma sessão válida.
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-// Importa a página de Dashboard.
-import Dashboard from "./pages/Dashboard";
-// Página de gerenciamento dos Agents/Maquinas que executam os Robôs.
-import Agents from "./pages/Agents";
-// Página de gerenciamento dos Robôs.
-import Robots from "./pages/Robots";
-// Página de desenvolvimento e testes das automações.
-import Development from "./pages/Development";
-// Página de desenvolvimento dos Robôs.
-//
-// O RobotStudio utiliza uma rota própria e ocupa a tela inteira,
-// sem o MainLayout do Control Room.
-import RobotStudio from "./pages/RobotStudio";
-// Importa a página de Execuções.
-import Executions from "./pages/Executions";
-// Importa a página de Histórico.
-import History from "./pages/History";
-// Importa a página de Agendamentos.
-import Schedules from "./pages/Schedules";
-// Importa a página de Logs.
-import Logs from "./pages/Logs";
-// Página de gerenciamento do Vault e das credenciais.
-import Vault from "./pages/Vault";
-// Importa a página de gerenciamento das Roles.
-import Roles from "./pages/Roles";
-// Importa a tela de login que criamos.
-// Essa página será exibida quando acessarmos /login.
-import Login from "./pages/Login";
-// Importa a página de gerenciamento dos usuários.
-import Users from "./pages/Users";
-// Importa o Provider responsável por disponibilizar
-// o estado de autenticação para toda a aplicação.
 import { AuthProvider } from "./context/AuthContext";
-// ============================================================
-// APLICAÇÃO PRINCIPAL
-// ============================================================
-//
-// O React Router controla as páginas da aplicação.
-//
-// O MainLayout é compartilhado por todas as páginas.
-//
-// A estrutura fica:
-//
-// BrowserRouter
-//     │
-//     └── MainLayout
-//             │
-//             ├── Dashboard
-//             ├── Agents
-//             ├── Robôs
-//             ├── Execuções
-//             ├── Histórico
-//             └── Agendamentos
-//
-// Neste momento somente Dashboard e Agents existem.
-// As outras rotas serão adicionadas durante a migração.
-// ============================================================
+import MainLayout from "./layouts/MainLayout";
+import { PageSkeleton } from "./components/ui/Skeletons";
+
+const Login = lazy(() => import("./pages/Login"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Agents = lazy(() => import("./pages/Agents"));
+const Robots = lazy(() => import("./pages/Robots"));
+const Development = lazy(() => import("./pages/Development"));
+const RobotStudio = lazy(() => import("./pages/RobotStudio"));
+const Executions = lazy(() => import("./pages/Executions"));
+const History = lazy(() => import("./pages/History"));
+const Schedules = lazy(() => import("./pages/Schedules"));
+const Logs = lazy(() => import("./pages/Logs"));
+const Vault = lazy(() => import("./pages/Vault"));
+const Roles = lazy(() => import("./pages/Roles"));
+const Users = lazy(() => import("./pages/Users"));
+const ComponentLab = import.meta.env.DEV ? lazy(() => import("./pages/ComponentLab")) : null;
+
+function PageLoading() {
+  return <PageSkeleton />;
+}
+
+function NotFound() {
+  return (
+    <section className="not-found">
+      <span className="not-found-code">404</span>
+      <h2>Página não encontrada</h2>
+      <p>O endereço informado não corresponde a uma área disponível do Control Room.</p>
+      <Link className="ui-button ui-button--primary ui-button--md" to="/">
+        <span className="ui-button__content">Voltar à visão geral</span>
+      </Link>
+    </section>
+  );
+}
 
 function App() {
-
-    return (
-        <AuthProvider>
-            <BrowserRouter>
-
-                <Routes>
-                    {/* Rota pública da tela de login. */}
-                    <Route
-                        path="/login"
-                        element={<Login />}
-                    />
-
-
-                    {/* ==================================================
-                        DUET STUDIO
-                        ==================================================
-
-                        O Studio trabalha sobre um projeto de desenvolvimento.
-
-                        O projectId identifica o workspace editável e não
-                        uma versão publicada da área de Robôs.
-                    */}
-
-                    <Route
-                        path="/development/:projectId/studio"
-                        element={
-                            <ProtectedRoute>
-                                <RobotStudio />
-                            </ProtectedRoute>
-                        }
-                    />
-
-                    {/* ==================================================
-                        LAYOUT PRINCIPAL
-                        ==================================================
-                        
-                        Tudo que estiver dentro desta rota utilizará
-                        o MainLayout.
-                    */}
-
-                    <Route
-                        element={
-                            <ProtectedRoute>
-                                <MainLayout />
-                            </ProtectedRoute>
-                        }
-                    >
-
-                        {/* ==================================================
-                            DASHBOARD
-                            ==================================================
-                        */}
-
-                        <Route
-                            path="/"
-                            element={<Dashboard />}
-                        />
-
-
-                        {/* ==================================================
-                            AGENTS
-                            ==================================================
-                        */}
-
-                        <Route
-                            path="/agents"
-                            element={<Agents />}
-                        />
-
-
-                        {/* ==================================================
-                            DESENVOLVIMENTO
-                            ==================================================
-
-                            Área destinada aos projetos em desenvolvimento,
-                            testes e workspaces editáveis.
-                        */}
-
-                        <Route
-                            path="/development"
-                            element={<Development />}
-                        />
-
-
-                        {/* ==================================================
-                            ROBÔS
-                            ==================================================
-                            
-                            Área destinada às automações publicadas.
-                        */}
-
-                        <Route
-                            path="/robots"
-                            element={<Robots />}
-                        />
-                        {/* ==================================================
-                            EXECUÇÕES
-                            ==================================================
-                            
-                            Página de acompanhamento das execuções
-                            dos robôs.
-                        */}
-                        <Route
-                            path="/executions"
-                            element={<Executions />}
-                        />
-
-                        {/* ==================================================
-                            HISTÓRICO
-                            ==================================================
-                            
-                            Página com as execuções finalizadas.
-                        */}
-
-                        <Route
-                            path="/history"
-                            element={<History />}
-                        />
-
-                        {/* ==================================================
-                            AGENDAMENTOS
-                            ==================================================
-                            
-                            Página de gerenciamento dos agendamentos.
-                        */} 
-                        <Route
-                            path="/schedules"
-                            element={<Schedules />}
-                        />
-                        {/* ==================================================
-                            LOGS
-                            ==================================================
-                            
-                            Página de acompanhamento dos logs.
-                        */}
-                        <Route 
-                            path="/logs" 
-                            element={<Logs />} 
-                        />
-
-                        {/* ==================================================
-                            VAULT
-                            ==================================================
-
-                            Página de gerenciamento das credenciais.
-                        */}
-                        <Route
-                            path="/vault"
-                            element={<Vault />}
-                        />
-
-                        {/* ==================================================
-                            ROLES
-                            ==================================================
-
-                            Página de gerenciamento dos perfis de acesso.
-                        */}
-                        <Route
-                            path="/roles"
-                            element={<Roles />}
-                        />
-
-
-                        {/* ==================================================
-                            USUÁRIOS
-                            ==================================================
-
-                            Página de gerenciamento dos usuários do Control Room.
-                        */}
-                        <Route
-                            path="/users"
-                            element={<Users />}
-                        />
-                    </Route>
-
-                </Routes>
-
-            </BrowserRouter>
-        </AuthProvider>                  
-    );
-
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/development/:projectId/studio" element={<ProtectedRoute><RobotStudio /></ProtectedRoute>} />
+            <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/agents" element={<Agents />} />
+              <Route path="/development" element={<Development />} />
+              <Route path="/robots" element={<Robots />} />
+              <Route path="/executions" element={<Executions />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/schedules" element={<Schedules />} />
+              <Route path="/logs" element={<Logs />} />
+              <Route path="/vault" element={<Vault />} />
+              <Route path="/roles" element={<Roles />} />
+              <Route path="/users" element={<Users />} />
+              {ComponentLab && <Route path="/component-lab" element={<ComponentLab />} />}
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </AuthProvider>
+  );
 }
 
 export default App;

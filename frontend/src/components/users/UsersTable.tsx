@@ -22,9 +22,14 @@
 import UserRow
     from "./UserRow";
 
+import { TableSkeleton }
+    from "../ui/Skeletons";
+
 import type {
     User,
 } from "../../types/users";
+import { UsersRound } from "lucide-react";
+import EmptyState from "../ui/EmptyState";
 
 
 // ============================================================
@@ -81,7 +86,7 @@ function UsersTable({
                 <div className="users-panel-heading">
 
                     <div className="users-panel-icon">
-                        👥
+                        <UsersRound size={18} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
                     <div>
@@ -111,28 +116,15 @@ function UsersTable({
                 ================================================== */}
 
             {loading ? (
-
-                <div className="users-empty-state">
-
-                    <div className="users-empty-icon">
-                        ⏳
-                    </div>
-
-                    Carregando usuários...
-
-                </div>
+                <TableSkeleton rows={4} columns={5} />
 
             ) : users.length === 0 ? (
 
-                <div className="users-empty-state">
-
-                    <div className="users-empty-icon">
-                        👥
-                    </div>
-
-                    Nenhum usuário cadastrado.
-
-                </div>
+                <EmptyState
+                    icon={<UsersRound />}
+                    title="Nenhum usuário cadastrado"
+                    description="As contas autorizadas a acessar o Control Room aparecerão aqui."
+                />
 
             ) : (
 
@@ -153,11 +145,11 @@ function UsersTable({
                                 </th>
 
                                 <th>
-                                    Roles
+                                    Perfis
                                 </th>
 
                                 <th>
-                                    Status
+                                    Situação
                                 </th>
 
                                 <th>

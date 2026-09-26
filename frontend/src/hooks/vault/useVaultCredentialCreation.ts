@@ -27,6 +27,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     NewCredentialField,
@@ -364,7 +365,7 @@ export function useVaultCredentialCreation({
                     selectedFolder.id
                 );
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao criar credencial:",
@@ -372,11 +373,7 @@ export function useVaultCredentialCreation({
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível criar a credencial."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível criar a credencial."));
 
             } finally {
 

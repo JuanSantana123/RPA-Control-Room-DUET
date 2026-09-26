@@ -170,16 +170,24 @@ function RobotFolderNode({
                         }}
                         aria-label={`Ações da pasta ${folder.name}`}
                         title="Ações da pasta"
+                        aria-expanded={openFolderMenu === folder.id}
+                        aria-controls={`robot-folder-menu-${folder.id}`}
                     >
                         <MoreVertical
                             size={17}
                             strokeWidth={1.8}
+                            aria-hidden="true"
                         />
                     </button>
 
 
                     {openFolderMenu === folder.id && (
-                        <div className="robot-folder-context-menu">
+                        <div
+                            id={`robot-folder-menu-${folder.id}`}
+                            className="robot-folder-context-menu"
+                            role="group"
+                            aria-label={`Ações da pasta ${folder.name}`}
+                        >
 
                             {/* Adiciona Robot à pasta atual. */}
                             <button

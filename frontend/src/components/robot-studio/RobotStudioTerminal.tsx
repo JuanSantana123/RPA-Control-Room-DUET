@@ -132,6 +132,11 @@ export default function RobotStudioTerminal({
       container,
     );
 
+    const terminalInput = container.querySelector<HTMLTextAreaElement>(
+      ".xterm-helper-textarea",
+    );
+    terminalInput?.setAttribute("aria-label", "Entrada do terminal");
+
 
     /*
      * Registra primeiro a instância ativa.

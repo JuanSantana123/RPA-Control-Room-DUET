@@ -19,6 +19,8 @@
 import type {
     VaultCredential,
 } from "../../types/vault";
+import { LockKeyhole } from "lucide-react";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -55,15 +57,18 @@ function VaultCredentialCard({
             <div className="vault-credential-header">
 
                 <h3>
+                    <span className="vault-credential-title-icon">
+                        <LockKeyhole size={16} strokeWidth={1.8} aria-hidden="true" />
+                    </span>
                     {credential.name}
                 </h3>
 
 
                 <div className="vault-credential-actions">
 
-                    <button
-                        type="button"
-                        className="secondary-button"
+                    <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() =>
                             onEdit(
                                 credential
@@ -71,12 +76,12 @@ function VaultCredentialCard({
                         }
                     >
                         Editar
-                    </button>
+                    </Button>
 
 
-                    <button
-                        type="button"
-                        className="secondary-button"
+                    <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() =>
                             onDelete(
                                 credential
@@ -84,7 +89,7 @@ function VaultCredentialCard({
                         }
                     >
                         Excluir
-                    </button>
+                    </Button>
 
                 </div>
 

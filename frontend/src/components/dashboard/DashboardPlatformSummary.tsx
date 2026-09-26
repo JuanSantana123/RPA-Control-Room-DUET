@@ -66,7 +66,7 @@ function DashboardPlatformSummary({
                 <div className="summary-item">
 
                     <span>
-                        Agents cadastrados
+                        Dispositivos cadastrados
                     </span>
 
                     <strong>
@@ -79,7 +79,7 @@ function DashboardPlatformSummary({
                 <div className="summary-item">
 
                     <span>
-                        Agents disponíveis
+                        Dispositivos disponíveis
                     </span>
 
                     <strong>

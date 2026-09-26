@@ -27,6 +27,12 @@ import type {
     Role,
 } from "../../types/roles";
 
+import { PanelSkeleton }
+    from "../ui/Skeletons";
+import { LockKeyhole, ShieldCheck } from "lucide-react";
+import { Button } from "../ui/Button";
+import EmptyState from "../ui/EmptyState";
+
 
 // ============================================================
 // PROPS
@@ -86,21 +92,11 @@ function RolePermissionsPanel({
         return (
             <section className="roles-panel permissions-panel">
 
-                <div className="roles-empty-state">
-
-                    <div className="roles-empty-icon">
-                        🔐
-                    </div>
-
-                    <strong>
-                        Selecione uma Role
-                    </strong>
-
-                    <span>
-                        Escolha um perfil à esquerda para configurar suas permissões.
-                    </span>
-
-                </div>
+                <EmptyState
+                    icon={<ShieldCheck />}
+                    title="Selecione um perfil"
+                    description="Escolha um perfil para consultar e configurar suas permissões."
+                />
 
             </section>
         );
@@ -123,7 +119,7 @@ function RolePermissionsPanel({
                 <div className="permissions-panel-heading">
 
                     <div className="permissions-panel-icon">
-                        🔐
+                        <ShieldCheck size={18} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
 
@@ -144,16 +140,14 @@ function RolePermissionsPanel({
 
                 {permissions.length > 0 && (
 
-                    <button
-                        className="permissions-save-button"
+                    <Button
+                        variant="primary"
+                        busy={savingPermissions}
+                        loadingLabel="Salvando permissões"
                         onClick={onSave}
-                        disabled={savingPermissions}
                     >
-                        {savingPermissions
-                            ? "Salvando..."
-                            : "Salvar permissões"
-                        }
-                    </button>
+                        Salvar permissões
+                    </Button>
 
                 )}
 
@@ -165,28 +159,15 @@ function RolePermissionsPanel({
                 ================================================== */}
 
             {loadingPermissions ? (
-
-                <div className="roles-empty-state">
-
-                    <div className="roles-empty-icon">
-                        ⏳
-                    </div>
-
-                    Carregando permissões...
-
-                </div>
+                <PanelSkeleton lines={5} />
 
             ) : permissions.length === 0 ? (
 
-                <div className="roles-empty-state">
-
-                    <div className="roles-empty-icon">
-                        🔒
-                    </div>
-
-                    Nenhuma permissão disponível.
-
-                </div>
+                <EmptyState
+                    icon={<LockKeyhole />}
+                    title="Nenhuma permissão disponível"
+                    description="O Control Room não retornou permissões configuráveis para este perfil."
+                />
 
             ) : (
 

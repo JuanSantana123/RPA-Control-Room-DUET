@@ -1,4 +1,7 @@
 // ============================================================
+
+import { FolderPlus } from "lucide-react";
+import { Button } from "../ui/Button";
 // DUET CORE - VAULT - HEADER
 // ============================================================
 //
@@ -40,7 +43,7 @@ function VaultHeader({
             <div>
 
                 <div className="page-eyebrow">
-                    CREDENTIAL VAULT
+                    GESTÃO DE CREDENCIAIS
                 </div>
 
                 <h1>
@@ -54,13 +57,12 @@ function VaultHeader({
             </div>
 
 
-            <button
-                type="button"
-                className="primary-button"
+            <Button
                 onClick={onNewFolder}
             >
-                + Nova pasta
-            </button>
+                <FolderPlus size={17} strokeWidth={1.9} aria-hidden="true" />
+                Nova pasta
+            </Button>
 
         </section>
     );

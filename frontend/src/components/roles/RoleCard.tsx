@@ -22,6 +22,8 @@
 import type {
     Role,
 } from "../../types/roles";
+import { UserRound } from "lucide-react";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -68,6 +70,9 @@ function RoleCard({
             <div className="role-card-info">
 
                 <h3 className="role-card-title">
+                    <span className="role-card-title-icon">
+                        <UserRound size={16} strokeWidth={1.8} aria-hidden="true" />
+                    </span>
                     {role.name}
                 </h3>
 
@@ -85,24 +90,26 @@ function RoleCard({
 
             <div className="role-card-actions">
 
-                <button
+                <Button
+                    size="sm"
                     className="role-card-configure"
                     onClick={() =>
                         onConfigure(role)
                     }
                 >
                     Configurar
-                </button>
+                </Button>
 
 
-                <button
-                    className="roles-danger-button"
+                <Button
+                    size="sm"
+                    variant="danger"
                     onClick={() =>
                         onDelete(role.id)
                     }
                 >
                     Excluir
-                </button>
+                </Button>
 
             </div>
 

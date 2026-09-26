@@ -24,6 +24,7 @@
 import type {
     User,
 } from "../../types/users";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -145,7 +146,7 @@ function UserRow({
                 ) : (
 
                     <span className="users-no-role">
-                        Nenhuma Role
+                        Nenhum perfil
                     </span>
 
                 )}
@@ -187,16 +188,17 @@ function UserRow({
                         "Users:edit"
                     ) && (
 
-                        <button
-                            className="users-action-button"
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() =>
                                 onEditRoles(
                                     user
                                 )
                             }
                         >
-                            Editar Roles
-                        </button>
+                            Editar perfis
+                        </Button>
 
                     )}
 
@@ -205,8 +207,9 @@ function UserRow({
                         "Users:edit"
                     ) && (
 
-                        <button
-                            className="users-action-button"
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() =>
                                 onChangePassword(
                                     user
@@ -214,7 +217,7 @@ function UserRow({
                             }
                         >
                             Alterar senha
-                        </button>
+                        </Button>
 
                     )}
 
@@ -223,8 +226,9 @@ function UserRow({
                         "Users:delete"
                     ) && (
 
-                        <button
-                            className="users-action-button users-action-danger"
+                        <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() =>
                                 onDelete(
                                     user.id
@@ -232,7 +236,7 @@ function UserRow({
                             }
                         >
                             Excluir
-                        </button>
+                        </Button>
 
                     )}
 
@@ -241,12 +245,9 @@ function UserRow({
                         "Users:edit"
                     ) && (
 
-                        <button
-                            className={
-                                user.is_active === 1
-                                    ? "users-action-button users-action-warning"
-                                    : "users-action-button users-action-success"
-                            }
+                        <Button
+                            variant={user.is_active === 1 ? "secondary" : "primary"}
+                            size="sm"
                             onClick={() =>
                                 onChangeStatus(
                                     user
@@ -257,7 +258,7 @@ function UserRow({
                                 ? "Desativar"
                                 : "Ativar"
                             }
-                        </button>
+                        </Button>
 
                     )}
 

@@ -44,7 +44,7 @@ import {
 
 import {
     useAuth,
-} from "../../context/AuthContext";
+} from "../../context/useAuth";
 
 
 // ============================================================
@@ -77,6 +77,11 @@ export function useLogin() {
         errorMessage,
         setErrorMessage,
     ] = useState("");
+
+    const [
+        isSubmitting,
+        setIsSubmitting,
+    ] = useState(false);
 
 
     // ========================================================
@@ -111,6 +116,12 @@ export function useLogin() {
 
             // Limpa qualquer erro apresentado anteriormente.
             setErrorMessage("");
+
+            if (isSubmitting) {
+                return;
+            }
+
+            setIsSubmitting(true);
 
 
             try {
@@ -168,6 +179,8 @@ export function useLogin() {
                 setErrorMessage(
                     "Não foi possível conectar ao Control Room."
                 );
+            } finally {
+                setIsSubmitting(false);
             }
         };
 
@@ -184,6 +197,7 @@ export function useLogin() {
         setPassword,
 
         errorMessage,
+        isSubmitting,
 
         handleLogin,
     };

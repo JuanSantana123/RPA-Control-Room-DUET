@@ -71,6 +71,7 @@ import {
 import {
     useUserPassword,
 } from "../hooks/users/useUserPassword";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 
 
 // ============================================================
@@ -218,9 +219,7 @@ function Users() {
 
                 <div className="users-alert users-alert-error">
 
-                    <span>
-                        ⚠
-                    </span>
+                    <TriangleAlert size={18} strokeWidth={1.8} aria-hidden="true" />
 
                     <span>
                         {error}
@@ -235,9 +234,7 @@ function Users() {
 
                 <div className="users-alert users-alert-success">
 
-                    <span>
-                        ✓
-                    </span>
+                    <CircleCheck size={18} strokeWidth={1.8} aria-hidden="true" />
 
                     <span>
                         {success}

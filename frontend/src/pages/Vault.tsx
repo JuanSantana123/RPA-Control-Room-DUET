@@ -56,6 +56,8 @@
 import {
     useState,
 } from "react";
+import { LockKeyhole } from "lucide-react";
+import { useAuth } from "../context/useAuth";
 
 import VaultHeader
     from "../components/vault/VaultHeader";
@@ -110,6 +112,9 @@ import type {
 // ============================================================
 
 function Vault() {
+
+    const { can } = useAuth();
+    const canViewDeviceCredentials = can("DeviceCredentials:view");
 
     // ========================================================
     // MENSAGENS GLOBAIS
@@ -700,14 +705,23 @@ function Vault() {
                         globais compartilhadas pelo Vault.
                         ================================================== */}
 
-                    <DeviceCredentialsPanel
-                        setError={
-                            setError
-                        }
-                        setSuccessMessage={
-                            setSuccessMessage
-                        }
-                    />
+                    {canViewDeviceCredentials ? (
+                        <DeviceCredentialsPanel
+                            setError={setError}
+                            setSuccessMessage={setSuccessMessage}
+                        />
+                    ) : (
+                        <section className="device-credentials-panel device-credentials-access-state">
+                            <div className="device-credentials-state" role="status">
+                                <LockKeyhole size={26} strokeWidth={1.7} aria-hidden="true" />
+                                <strong>Acesso restrito</strong>
+                                <span>
+                                    Seu perfil não possui permissão para consultar credenciais de dispositivo.
+                                    Solicite a permissão DeviceCredentials:view a um administrador.
+                                </span>
+                            </div>
+                        </section>
+                    )}
 
                 </div>
 

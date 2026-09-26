@@ -8,6 +8,9 @@ import {
     Search,
     X,
 } from "lucide-react";
+import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
+import { Button, IconButton } from "../ui/Button";
+import { TextField } from "../ui/TextField";
 
 // ============================================================
 // TIPO - PASTA UTILIZADA PELO SELETOR
@@ -130,6 +133,11 @@ function LibraryFolderPicker({
     onCancel,
     onConfirm,
 }: LibraryFolderPickerProps) {
+    const dialogRef = useDialogFocus<HTMLDivElement>({
+        open,
+        onClose: onCancel,
+        closeOnEscape: !busy,
+    });
     // Texto de busca local do seletor.
     const [search, setSearch] = useState("");
 
@@ -143,8 +151,12 @@ function LibraryFolderPicker({
             return;
         }
 
-        setSearch("");
-        setExpandedFolders(obterIdsRaiz(folders));
+        const resetPicker = window.setTimeout(() => {
+            setSearch("");
+            setExpandedFolders(obterIdsRaiz(folders));
+        }, 0);
+
+        return () => window.clearTimeout(resetPicker);
     }, [open, folders]);
 
     const visibleFolders = useMemo(
@@ -286,10 +298,12 @@ function LibraryFolderPicker({
             }}
         >
             <div
+                ref={dialogRef}
                 className="library-picker-modal"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="library-folder-picker-title"
+                tabIndex={-1}
             >
                 <div className="library-picker-header">
                     <div>
@@ -306,15 +320,13 @@ function LibraryFolderPicker({
                         )}
                     </div>
 
-                    <button
-                        type="button"
+                    <IconButton
+                        label="Fechar seletor de pasta"
+                        icon={<X size={18} aria-hidden="true" />}
                         className="library-picker-close"
                         disabled={busy}
                         onClick={onCancel}
-                        aria-label="Fechar seletor de pasta"
-                    >
-                        <X size={18} />
-                    </button>
+                    />
                 </div>
 
                 <div className="library-picker-body">
@@ -325,34 +337,26 @@ function LibraryFolderPicker({
                         </strong>
                     </div>
 
-                    <div className="library-picker-search">
-                        <Search
-                            size={15}
-                            strokeWidth={1.8}
-                        />
-
-                        <input
-                            type="search"
-                            value={search}
-                            placeholder="Buscar pasta..."
-                            disabled={busy}
-                            onChange={(event) =>
-                                setSearch(event.target.value)
-                            }
-                            aria-label="Buscar pasta"
-                        />
-
-                        {search && (
-                            <button
-                                type="button"
+                    <TextField
+                        label="Buscar pasta"
+                        labelHidden
+                        containerClassName="library-picker-search-field"
+                        type="search"
+                        value={search}
+                        placeholder="Buscar pasta por nome"
+                        disabled={busy}
+                        leadingIcon={<Search size={15} strokeWidth={1.8} />}
+                        trailingAction={search ? (
+                            <IconButton
+                                label="Limpar busca de pasta"
+                                icon={<X size={14} aria-hidden="true" />}
+                                size="sm"
                                 disabled={busy}
                                 onClick={() => setSearch("")}
-                                aria-label="Limpar busca"
-                            >
-                                <X size={14} />
-                            </button>
-                        )}
-                    </div>
+                            />
+                        ) : undefined}
+                        onChange={(event) => setSearch(event.target.value)}
+                    />
 
                     <div className="library-picker-tree">
                         <div
@@ -401,23 +405,22 @@ function LibraryFolderPicker({
                 </div>
 
                 <div className="library-picker-footer">
-                    <button
-                        type="button"
-                        className="library-button library-button-secondary"
+                    <Button
+                        variant="secondary"
                         disabled={busy}
                         onClick={onCancel}
                     >
                         Cancelar
-                    </button>
+                    </Button>
 
-                    <button
-                        type="button"
-                        className="library-button library-button-primary"
-                        disabled={busy}
+                    <Button
+                        variant="primary"
+                        busy={busy}
+                        loadingLabel="Salvando seleção"
                         onClick={onConfirm}
                     >
-                        {busy ? "Salvando..." : confirmLabel}
-                    </button>
+                        {confirmLabel}
+                    </Button>
                 </div>
             </div>
         </div>

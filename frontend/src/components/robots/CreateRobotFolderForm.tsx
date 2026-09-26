@@ -26,11 +26,14 @@
 import {
     FolderPlus,
     Plus,
+    X,
 } from "lucide-react";
 
 import type {
     RobotFolder,
 } from "../../types/robots";
+import { Button, IconButton } from "../ui/Button";
+import { TextField } from "../ui/TextField";
 
 
 interface CreateRobotFolderFormProps {
@@ -46,6 +49,7 @@ interface CreateRobotFolderFormProps {
     ) => void;
 
     onCreateFolder: () => void;
+    onCancel: () => void;
 }
 
 
@@ -56,6 +60,7 @@ function CreateRobotFolderForm({
     creatingFolder,
     onFolderNameChange,
     onCreateFolder,
+    onCancel,
 }: CreateRobotFolderFormProps) {
 
     // --------------------------------------------------------
@@ -73,41 +78,45 @@ function CreateRobotFolderForm({
 
 
     return (
-        <section className="content-panel">
+        <section className="content-panel robot-folder-create-panel">
             <div className="content-panel-header">
 
-                <div className="section-icon">
-                    <FolderPlus
-                        size={18}
-                        strokeWidth={1.8}
-                    />
+                <div className="section-heading-group">
+                    <div className="section-icon">
+                        <FolderPlus
+                            size={18}
+                            strokeWidth={1.8}
+                        />
+                    </div>
+
+                    <div>
+                        <h2>
+                            {newFolderParentId !== null
+                                ? "Criar subpasta"
+                                : "Nova pasta"}
+                        </h2>
+
+                        <p>
+                            {newFolderParentId !== null
+                                ? "A nova pasta será criada dentro da pasta selecionada."
+                                : "Crie uma pasta raiz para organizar seus robôs."}
+                        </p>
+                    </div>
                 </div>
 
-                <div>
-                    <h2>
-                        {newFolderParentId !== null
-                            ? "Criar subpasta"
-                            : "Nova pasta"}
-                    </h2>
-
-                    <p>
-                        {newFolderParentId !== null
-                            ? "A nova pasta será criada dentro da pasta selecionada."
-                            : "Crie uma pasta raiz para organizar seus robôs."}
-                    </p>
-                </div>
+                <IconButton
+                    label="Cancelar criação da pasta"
+                    icon={<X size={16} aria-hidden="true" />}
+                    disabled={creatingFolder}
+                    onClick={onCancel}
+                />
             </div>
 
 
             <div className="robot-form">
-                <div className="form-field">
-
-                    <label htmlFor="new-folder-name">
-                        Nome da pasta
-                    </label>
-
-                    <input
+                <TextField
                         id="new-folder-name"
+                        label="Nome da pasta"
                         type="text"
                         placeholder="Ex.: Financeiro"
                         value={newFolderName}
@@ -124,8 +133,7 @@ function CreateRobotFolderForm({
                                 onCreateFolder();
                             }
                         }}
-                    />
-                </div>
+                />
 
 
                 {/* Contexto exibido somente para subpastas. */}
@@ -144,24 +152,19 @@ function CreateRobotFolderForm({
                 )}
 
 
-                <button
-                    type="button"
-                    className="primary-button"
-                    onClick={onCreateFolder}
-                    disabled={
-                        creatingFolder ||
-                        !newFolderName.trim()
-                    }
-                >
-                    <Plus
-                        size={16}
-                        strokeWidth={2}
-                    />
-
-                    {creatingFolder
-                        ? "Criando..."
-                        : "Criar pasta"}
-                </button>
+                <div className="robot-folder-create-actions">
+                    <Button variant="ghost" onClick={onCancel} disabled={creatingFolder}>Cancelar</Button>
+                    <Button
+                        variant="primary"
+                        onClick={onCreateFolder}
+                        busy={creatingFolder}
+                        loadingLabel="Criando pasta"
+                        disabled={!newFolderName.trim()}
+                    >
+                        <Plus size={16} strokeWidth={2} />
+                        Criar pasta
+                    </Button>
+                </div>
             </div>
         </section>
     );

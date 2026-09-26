@@ -1,0 +1,103 @@
+.robot-studio {
+    min-width: 320px;
+    --studio-canvas: #181818;
+    --studio-surface: #1e1e1e;
+    --studio-surface-raised: #252526;
+    --studio-surface-hover: #2d2d30;
+    --studio-border: #3a3a3a;
+    --studio-border-strong: #474b52;
+    --studio-text: #e2e5e9;
+    --studio-text-secondary: #bfc3c8;
+    --studio-text-muted: #8f97a2;
+    --studio-accent: #4c8bf5;
+    --studio-accent-hover: #79aef8;
+    --studio-accent-soft: #25354b;
+    --studio-danger: #f0b8b8;
+    --studio-danger-soft: #352323;
+    --studio-warning: #e5c882;
+    --studio-warning-soft: #332c1c;
+    --studio-text-on-accent: #ffffff;
+    --studio-overlay: rgba(0, 0, 0, 0.62);
+    --studio-shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.48);
+}
+
+@media (max-width: 700px) {
+    .robot-studio {
+        height: 100dvh !important;
+    }
+
+    .robot-studio__topbar {
+        height: auto !important;
+        min-height: 104px !important;
+        align-items: stretch !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 9px 10px !important;
+    }
+
+    .robot-studio__topbar-left {
+        width: 100%;
+    }
+
+    .robot-studio__topbar-left > div:last-child {
+        min-width: 0;
+    }
+
+    .robot-studio__topbar-right {
+        width: 100%;
+        gap: 7px !important;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+    }
+
+    .robot-studio__topbar-right > * {
+        flex: 0 0 auto;
+    }
+
+    .robot-studio__workspace {
+        min-height: 0 !important;
+        flex-direction: column !important;
+    }
+
+    .robot-studio__explorer {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 205px;
+        min-height: 160px !important;
+        flex: 0 0 205px;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--studio-border);
+    }
+
+    .robot-studio__explorer > div:last-child {
+        display: none !important;
+    }
+
+    .robot-studio__center {
+        width: 100%;
+        min-height: 0 !important;
+    }
+
+    .robot-studio__center .monaco-editor .minimap {
+        display: none;
+    }
+
+    .robot-studio__center section {
+        height: 105px !important;
+        min-height: 80px !important;
+    }
+
+    .robot-studio__center .studio-terminal {
+        height: 115px;
+        min-height: 88px;
+    }
+}
+
+@media (max-width: 420px) {
+    .robot-studio__topbar-right > span:nth-last-of-type(1) {
+        display: none !important;
+    }
+}

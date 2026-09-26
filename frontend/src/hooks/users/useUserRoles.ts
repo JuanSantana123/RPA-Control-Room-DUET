@@ -29,6 +29,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     User,
@@ -197,7 +198,7 @@ export function useUserRoles({
 
                 await reloadUsers();
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao atualizar Roles do usuário:",
@@ -205,11 +206,7 @@ export function useUserRoles({
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível atualizar as Roles do usuário."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível atualizar as Roles do usuário."));
             }
         };
 

@@ -34,6 +34,8 @@
 // ============================================================
 
 import {
+    useCallback,
+    useEffect,
     useRef,
     useState,
 } from "react";
@@ -147,7 +149,7 @@ export function useRobotsData({
     const [
         uploadTargetFolderId,
         setUploadTargetFolderId,
-    ] = useState<number | null>(
+    ] = useState<number | "root" | null>(
         null
     );
 
@@ -164,7 +166,7 @@ export function useRobotsData({
     // ========================================================
 
     const carregarRobosRaiz =
-        async () => {
+        useCallback(async () => {
 
             // Mantém a seleção existente no fluxo original.
             setRootSelected(true);
@@ -202,14 +204,26 @@ export function useRobotsData({
 
 
                 setError(
-                    "Não foi possível carregar os robôs da Raiz de Robôs."
+                    obterMensagemErro(err, "Não foi possível carregar os robôs da Raiz de Robôs.")
                 );
 
             } finally {
 
                 setLoadingRobots(false);
             }
-        };
+        }, [setError, setRootSelected, setSelectedFolder]);
+
+
+    // A raiz é o ponto de entrada do catálogo. O agendamento evita
+    // atualizar estado durante a renderização inicial e é cancelado
+    // caso a tela seja desmontada antes da primeira consulta.
+    useEffect(() => {
+        const initialLoad = window.setTimeout(() => {
+            void carregarRobosRaiz();
+        }, 0);
+
+        return () => window.clearTimeout(initialLoad);
+    }, [carregarRobosRaiz]);
 
 
     // ========================================================
@@ -254,7 +268,7 @@ export function useRobotsData({
 
 
             setError(
-                "Não foi possível carregar os robôs desta pasta."
+                obterMensagemErro(err, `Não foi possível carregar os robôs da pasta "${folder.name}".`)
             );
 
         } finally {
@@ -289,12 +303,12 @@ export function useRobotsData({
     // ========================================================
 
     const abrirUploadParaPasta = (
-        folderId: number
+        folderId: number | null
     ) => {
 
         // Guarda a pasta que receberá o ZIP.
         setUploadTargetFolderId(
-            folderId
+            folderId ?? "root"
         );
 
 
@@ -309,33 +323,11 @@ export function useRobotsData({
 
     const enviarRobo = async (
         file: File,
-        folderId: number
+        folderId: number | null
     ) => {
-
-        console.log(
-            "enviarRobo foi chamado:",
-            file.name
-        );
-
-        console.log(
-            "PASTA DE DESTINO:",
-            folderId
-        );
-
-
         setError("");
 
         setSuccess("");
-
-
-        if (!folderId) {
-
-            setError(
-                "Não foi possível identificar a pasta de destino."
-            );
-
-            return;
-        }
 
 
         setUploading(true);
@@ -355,10 +347,12 @@ export function useRobotsData({
             );
 
 
-            formData.append(
-                "folder_id",
-                String(folderId)
-            );
+            if (folderId !== null) {
+                formData.append(
+                    "folder_id",
+                    String(folderId)
+                );
+            }
 
 
             const response =
@@ -374,29 +368,6 @@ export function useRobotsData({
                 );
 
 
-            console.log(
-                "Upload realizado com sucesso:",
-                response.data
-            );
-
-
-            // Mantido exatamente como no Robots.tsx atual.
-            window.alert(
-                response.data?.message ||
-                "Operação concluída."
-            );
-
-
-            // IMPORTANTE:
-            // Esta duplicidade existe no fluxo atual.
-            // Não estamos corrigindo comportamento durante
-            // a modularização.
-            setSuccess(
-                response.data?.message ||
-                "Robô processado com sucesso."
-            );
-
-
             setSuccess(
                 response.data?.message ||
                 "Robô processado com sucesso."
@@ -405,10 +376,10 @@ export function useRobotsData({
 
             // Atualiza a pasta que efetivamente recebeu
             // o novo pacote.
-            const pastaDestino =
-                folders.find(
-                    (folder) =>
-                        folder.id === folderId
+            const pastaDestino = folderId === null
+                ? null
+                : folders.find(
+                    (folder) => folder.id === folderId
                 );
 
 
@@ -417,9 +388,11 @@ export function useRobotsData({
                 await carregarRobos(
                     pastaDestino
                 );
+            } else if (folderId === null) {
+                await carregarRobosRaiz();
             }
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao fazer upload do robô:",
@@ -427,18 +400,10 @@ export function useRobotsData({
             );
 
 
-            const mensagemBackend =
-                err.response?.data?.detail ||
-                err.response?.data?.message ||
-                "Não foi possível fazer o upload do robô.";
-
-
-            setError(
-                typeof mensagemBackend ===
-                    "string"
-                    ? mensagemBackend
-                    : "Não foi possível fazer o upload do robô."
-            );
+            setError(obterMensagemErro(
+                err,
+                "O pacote não pôde ser enviado. Confirme se o arquivo é um ZIP válido e se a pasta de destino ainda existe."
+            ));
 
         } finally {
 
@@ -625,9 +590,10 @@ export function useRobotsData({
             );
 
 
-            alert(
-                "Não foi possível baixar o robô."
-            );
+            setError(obterMensagemErro(
+                err,
+                `Não foi possível baixar o robô "${robot.name}". Confirme se o pacote ainda está disponível e tente novamente.`
+            ));
         }
     };
 
@@ -697,7 +663,7 @@ export function useRobotsData({
                     }
                 );
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao criar projeto de alteração:",
@@ -705,19 +671,10 @@ export function useRobotsData({
                 );
 
 
-                const mensagem =
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    err.message ||
-                    "Não foi possível criar o projeto de alteração.";
-
-
-                setError(
-                    typeof mensagem ===
-                        "string"
-                        ? mensagem
-                        : "Não foi possível criar o projeto de alteração."
-                );
+                setError(obterMensagemErro(
+                    err,
+                    "Não foi possível criar o projeto de alteração a partir deste robô."
+                ));
             }
         };
 

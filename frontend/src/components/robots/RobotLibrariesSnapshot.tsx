@@ -30,6 +30,9 @@ import type {
     RobotLibraryDependency,
 } from "../../types/robots";
 
+import { PanelSkeleton }
+    from "../ui/Skeletons";
+
 
 interface RobotLibrariesSnapshotProps {
     libraries: RobotLibraryDependency[];
@@ -46,9 +49,7 @@ function RobotLibrariesSnapshot({
         <div className="robot-card-libraries-panel">
 
             {loading ? (
-                <div className="robot-library-loading">
-                    Carregando bibliotecas...
-                </div>
+                <PanelSkeleton lines={2} />
             ) : (
                 <>
                     {libraries.length === 0 ? (

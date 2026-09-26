@@ -98,7 +98,7 @@ function DashboardOperationalStatus({
                         />
 
                         <span>
-                            Agents conectados
+                            Dispositivos conectados
                         </span>
 
                     </div>

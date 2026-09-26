@@ -33,9 +33,11 @@ import {
     Plus,
     X,
 } from "lucide-react";
+import { useDialogFocus } from "../../../hooks/ui/useDialogFocus";
+import { Button, IconButton } from "../../ui/Button";
 
 
-interface LibraryActionsModalStyles {
+export interface LibraryActionsModalStyles {
     modalBackdrop: CSSProperties;
     modalCard: CSSProperties;
     modalHeader: CSSProperties;
@@ -74,6 +76,10 @@ function LibraryActionsModal({
     onCreateLibrary,
     onAddExistingLibraries,
 }: LibraryActionsModalProps) {
+    const dialogRef = useDialogFocus<HTMLDivElement>({
+        open,
+        onClose,
+    });
 
     if (!open) {
         return null;
@@ -98,7 +104,14 @@ function LibraryActionsModal({
             style={styles.modalBackdrop}
             onMouseDown={handleBackdropMouseDown}
         >
-            <div style={styles.modalCard}>
+            <div
+                ref={dialogRef}
+                style={styles.modalCard}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="studio-library-actions-title"
+                tabIndex={-1}
+            >
 
                 <div style={styles.modalHeader}>
 
@@ -107,7 +120,7 @@ function LibraryActionsModal({
                             PROJECT LIBRARIES
                         </div>
 
-                        <h2 style={styles.modalTitle}>
+                        <h2 id="studio-library-actions-title" style={styles.modalTitle}>
                             Bibliotecas
                         </h2>
 
@@ -118,14 +131,12 @@ function LibraryActionsModal({
                     </div>
 
 
-                    <button
-                        type="button"
+                    <IconButton
+                        label="Fechar"
+                        icon={<X size={16} aria-hidden="true" />}
                         onClick={onClose}
                         style={styles.modalClose}
-                        aria-label="Fechar"
-                    >
-                        <X size={16} />
-                    </button>
+                    />
 
                 </div>
 
@@ -136,8 +147,8 @@ function LibraryActionsModal({
                         CRIAR NOVA
                     ========================================= */}
 
-                    <button
-                        type="button"
+                    <Button
+                        variant="secondary"
                         onClick={onCreateLibrary}
                         disabled={!canCreateLibrary}
                         style={{
@@ -174,15 +185,15 @@ function LibraryActionsModal({
                                 </small>
                             )}
                         </div>
-                    </button>
+                    </Button>
 
 
                     {/* =========================================
                         USAR EXISTENTE
                     ========================================= */}
 
-                    <button
-                        type="button"
+                    <Button
+                        variant="secondary"
                         onClick={onAddExistingLibraries}
                         disabled={
                             !canViewLibraries ||
@@ -227,7 +238,7 @@ function LibraryActionsModal({
                                 </small>
                             )}
                         </div>
-                    </button>
+                    </Button>
 
                 </div>
             </div>

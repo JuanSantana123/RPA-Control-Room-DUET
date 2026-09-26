@@ -25,11 +25,13 @@
 // ============================================================
 
 import {
+    useCallback,
     useEffect,
     useState,
 } from "react";
 
 import api from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     ProjectCheckoutState,
@@ -58,47 +60,6 @@ interface UseRobotStudioCheckoutParams {
 //
 // Mesma interpretação utilizada atualmente no RobotStudio.
 // ============================================================
-
-const getApiErrorMessage = (
-    err: any,
-    fallback: string
-): string => {
-
-    const detail =
-        err?.response?.data?.detail;
-
-
-    if (typeof detail === "string") {
-        return detail;
-    }
-
-
-    if (
-        detail &&
-        typeof detail === "object" &&
-        typeof detail.message === "string"
-    ) {
-        return detail.message;
-    }
-
-
-    const message =
-        err?.response?.data?.message;
-
-
-    if (typeof message === "string") {
-        return message;
-    }
-
-
-    if (typeof err?.message === "string") {
-        return err.message;
-    }
-
-
-    return fallback;
-};
-
 
 export function useRobotStudioCheckout({
     projectId,
@@ -199,7 +160,7 @@ export function useRobotStudioCheckout({
     // CARREGAR CHECKOUT
     // ========================================================
 
-    const carregarCheckout =
+    const carregarCheckout = useCallback(
         async (
             registrarOutput = false
         ) => {
@@ -295,7 +256,7 @@ export function useRobotStudioCheckout({
                     }
                 }
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao consultar Checkout:",
@@ -330,7 +291,9 @@ export function useRobotStudioCheckout({
                     false
                 );
             }
-        };
+        },
+        [canViewDevelopment, permissionsLoaded, projectId]
+    );
 
 
     // ========================================================
@@ -347,14 +310,18 @@ export function useRobotStudioCheckout({
         }
 
 
-        carregarCheckout(
-            true
+        const initialLoad = window.setTimeout(
+            () => void carregarCheckout(true),
+            0
         );
+
+        return () => window.clearTimeout(initialLoad);
 
     }, [
         projectId,
         permissionsLoaded,
         canViewDevelopment,
+        carregarCheckout,
     ]);
 
 
@@ -399,7 +366,7 @@ export function useRobotStudioCheckout({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao realizar Checkout:",
@@ -497,7 +464,7 @@ export function useRobotStudioCheckout({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao realizar Checkin:",
@@ -594,7 +561,7 @@ export function useRobotStudioCheckout({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao realizar Force Release:",

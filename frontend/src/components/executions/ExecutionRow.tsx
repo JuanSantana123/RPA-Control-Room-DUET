@@ -32,7 +32,6 @@
 import {
     CircleStop,
     Eye,
-    Loader2,
     Server,
     Clock3,
 } from "lucide-react";
@@ -47,6 +46,7 @@ import {
 } from "../../utils/executionFormatters";
 
 import ExecutionStatusBadge from "./ExecutionStatusBadge";
+import { Button, IconButton } from "../ui/Button";
 
 
 // ============================================================
@@ -187,13 +187,7 @@ function ExecutionRow({
                             {execution.agent_name}
                         </strong>
 
-                        <div
-                            style={{
-                                fontSize: "11px",
-                                color: "#94a3b8",
-                                marginTop: "2px",
-                            }}
-                        >
+                        <div className="execution-agent-id">
                             {execution.agent_id}
                         </div>
 
@@ -262,62 +256,38 @@ function ExecutionRow({
                 <div className="execution-actions">
 
                     {/* Detalhes */}
-                    <button
-                        type="button"
-                        className="icon-button"
-                        title="Ver detalhes"
+                    <IconButton
+                        size="sm"
+                        label={`Ver detalhes da execução ${execution.id}`}
+                        tooltip="Ver detalhes"
+                        icon={<Eye size={16} aria-hidden="true" />}
                         onClick={() =>
                             onViewDetails(
                                 execution
                             )
                         }
-                    >
-                        <Eye size={16} />
-                    </button>
+                    />
 
 
                     {/* Stop disponível somente durante running. */}
                     {execution.status ===
                         "running" && (
 
-                        <button
-                            type="button"
-                            className="danger-outline-button"
+                        <Button
+                            size="sm"
+                            variant="danger"
                             onClick={() =>
                                 onStopExecution(
                                     execution.id,
                                     execution.agent_id
                                 )
                             }
-                            disabled={
-                                parandoExecucao ===
-                                execution.id
-                            }
+                            busy={parandoExecucao === execution.id}
+                            loadingLabel="Parando execução"
                         >
-
-                            {parandoExecucao ===
-                            execution.id ? (
-
-                                <Loader2
-                                    size={14}
-                                    className="spin"
-                                />
-
-                            ) : (
-
-                                <CircleStop
-                                    size={14}
-                                />
-
-                            )}
-
-
-                            {parandoExecucao ===
-                            execution.id
-                                ? "Parando"
-                                : "Parar"}
-
-                        </button>
+                            <CircleStop size={14} aria-hidden="true" />
+                            Parar
+                        </Button>
                     )}
 
 
@@ -326,24 +296,19 @@ function ExecutionRow({
                     {execution.status ===
                         "queued" && (
 
-                        <button
-                            type="button"
-                            className="danger-outline-button"
+                        <Button
+                            size="sm"
+                            variant="danger"
                             onClick={() =>
                                 onCancelExecution(
                                     execution.id
                                 )
                             }
-                            disabled={
-                                cancelandoExecucao ===
-                                execution.id
-                            }
+                            busy={cancelandoExecucao === execution.id}
+                            loadingLabel="Cancelando execução"
                         >
-                            {cancelandoExecucao ===
-                            execution.id
-                                ? "Cancelando"
-                                : "Cancelar"}
-                        </button>
+                            Cancelar
+                        </Button>
                     )}
 
                 </div>

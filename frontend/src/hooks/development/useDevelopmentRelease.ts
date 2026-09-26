@@ -427,19 +427,21 @@ function useDevelopmentRelease({
         name: string
     ) => {
 
-        setNewReleaseLibraries(
-            (current) => ({
+        setNewReleaseLibraries((current) => {
+            const library = current[namespace];
+
+            if (!library) {
+                return current;
+            }
+
+            return {
                 ...current,
-
                 [namespace]: {
-                    ...current[
-                        namespace
-                    ],
-
+                    ...library,
                     name,
                 },
-            })
-        );
+            };
+        });
     };
 
 
@@ -452,19 +454,21 @@ function useDevelopmentRelease({
         version: string
     ) => {
 
-        setNewReleaseLibraries(
-            (current) => ({
+        setNewReleaseLibraries((current) => {
+            const library = current[namespace];
+
+            if (!library) {
+                return current;
+            }
+
+            return {
                 ...current,
-
                 [namespace]: {
-                    ...current[
-                        namespace
-                    ],
-
+                    ...library,
                     version,
                 },
-            })
-        );
+            };
+        });
     };
 
 
@@ -579,7 +583,7 @@ function useDevelopmentRelease({
                 )
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             if (
                 loadId !==
@@ -770,7 +774,7 @@ function useDevelopmentRelease({
             // Atualiza o Workflow para refletir a publicação.
             await onRefreshKanban();
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao publicar projeto:",

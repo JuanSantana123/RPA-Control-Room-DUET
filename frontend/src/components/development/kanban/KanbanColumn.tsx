@@ -239,6 +239,7 @@ function KanbanColumn({
     return (
 
         <section
+            className="kanban-column"
 
             // ====================================================
             // DRAG OVER
@@ -321,8 +322,8 @@ function KanbanColumn({
                 // é um destino válido do projeto arrastado.
                 border:
                     isDropTarget
-                        ? "1px solid var(--accent-color, #2563eb)"
-                        : "1px solid var(--border-color, #dfe3ea)",
+                        ? "1px solid var(--color-primary)"
+                        : "1px solid var(--color-border)",
 
 
                 borderRadius:
@@ -331,8 +332,8 @@ function KanbanColumn({
 
                 background:
                     isDropTarget
-                        ? "var(--surface-hover, rgba(37, 99, 235, 0.06))"
-                        : "var(--surface-color, #ffffff)",
+                        ? "var(--color-surface-subtle)"
+                        : "var(--color-surface-raised)",
 
 
                 boxSizing:
@@ -365,7 +366,7 @@ function KanbanColumn({
                         10,
 
                     borderBottom:
-                        "1px solid var(--border-color, #dfe3ea)",
+                        "1px solid var(--color-border)",
                 }}
             >
 
@@ -459,7 +460,7 @@ function KanbanColumn({
                             999,
 
                         background:
-                            "var(--surface-hover, rgba(100, 116, 139, 0.12))",
+                            "var(--color-surface-subtle)",
 
                         fontSize:
                             11,
@@ -535,7 +536,7 @@ function KanbanColumn({
                                 16,
 
                             border:
-                                "1px dashed var(--border-color, #dfe3ea)",
+                                "1px dashed var(--color-border)",
 
                             borderRadius:
                                 8,

@@ -34,6 +34,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     Permission,
@@ -167,7 +168,12 @@ export function useRolePermissions({
 
     useEffect(() => {
 
-        carregarPermissoes();
+        const initialLoad = window.setTimeout(
+            carregarPermissoes,
+            0
+        );
+
+        return () => window.clearTimeout(initialLoad);
 
     }, [
         carregarPermissoes,
@@ -339,7 +345,7 @@ export function useRolePermissions({
                     );
                 }
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao salvar permissões:",
@@ -347,10 +353,7 @@ export function useRolePermissions({
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    "Não foi possível salvar as permissões."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível salvar as permissões."));
             }
         };
 

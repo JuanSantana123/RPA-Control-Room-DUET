@@ -59,6 +59,7 @@ import {
 import {
     useScheduleForm,
 } from "../hooks/schedules/useScheduleForm";
+import FeedbackBanner from "../components/ui/FeedbackBanner";
 
 
 // ============================================================
@@ -136,6 +137,10 @@ function Schedules() {
         setHorarioFim,
 
         salvando,
+        loadingOptions,
+        formError,
+        successMessage,
+        clearSuccessMessage,
 
         novoAgendamento,
         fecharModal,
@@ -143,6 +148,7 @@ function Schedules() {
         alterarTipoAgendamento,
         salvarAgendamento,
         editarAgendamento,
+        recarregarOpcoes,
     } = useScheduleForm({
         onScheduleSaved:
             carregarAgendamentos,
@@ -172,11 +178,21 @@ function Schedules() {
                 ================================================== */}
 
             {error && (
+                <FeedbackBanner
+                    tone="error"
+                    title="Não foi possível atualizar os agendamentos"
+                    message={error}
+                    hint="Os dados exibidos podem estar desatualizados. Tente novamente em instantes."
+                />
+            )}
 
-                <p>
-                    {error}
-                </p>
-
+            {successMessage && (
+                <FeedbackBanner
+                    tone="success"
+                    title="Agendamento salvo"
+                    message={successMessage}
+                    onDismiss={clearSuccessMessage}
+                />
             )}
 
 
@@ -288,6 +304,8 @@ function Schedules() {
                     salvando={
                         salvando
                     }
+                    loadingOptions={loadingOptions}
+                    formError={formError}
 
                     onClose={
                         fecharModal
@@ -301,6 +319,7 @@ function Schedules() {
                     onSave={
                         salvarAgendamento
                     }
+                    onRetryOptions={recarregarOpcoes}
                 />
 
             )}

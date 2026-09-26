@@ -35,6 +35,8 @@
 import {
     X,
 } from "lucide-react";
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { IconButton } from "../ui/Button";
 
 import type {
     Execution,
@@ -105,14 +107,68 @@ function ExecutionDetailsModal({
     onClose,
 }: ExecutionDetailsModalProps) {
 
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        const previouslyFocused = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+
+        closeButtonRef.current?.focus();
+
+        return () => {
+            previouslyFocused?.focus();
+        };
+    }, []);
+
+    const handleDialogKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+            return;
+        }
+
+        if (event.key !== "Tab") return;
+
+        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+            'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+        );
+
+        if (!focusable?.length) {
+            event.preventDefault();
+            dialogRef.current?.focus();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
+
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    };
+
     return (
         <div
             className="execution-modal-overlay"
+            role="presentation"
             onClick={onClose}
         >
 
             <div
+                ref={dialogRef}
                 className="execution-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="execution-details-title"
+                tabIndex={-1}
+                onKeyDown={handleDialogKeyDown}
                 onClick={(event) =>
                     event.stopPropagation()
                 }
@@ -130,20 +186,19 @@ function ExecutionDetailsModal({
                             DETALHES DA EXECUÇÃO
                         </span>
 
-                        <h2>
+                        <h2 id="execution-details-title">
                             Execução #{execution.id}
                         </h2>
 
                     </div>
 
 
-                    <button
-                        type="button"
-                        className="icon-button"
+                    <IconButton
+                        ref={closeButtonRef}
+                        label="Fechar detalhes da execução"
+                        icon={<X size={18} aria-hidden="true" />}
                         onClick={onClose}
-                    >
-                        <X size={18} />
-                    </button>
+                    />
 
                 </div>
 
@@ -188,7 +243,7 @@ function ExecutionDetailsModal({
 
 
                         <Detail
-                            label="Agent"
+                            label="Dispositivo"
                             value={
                                 execution.agent_name
                             }
@@ -196,7 +251,7 @@ function ExecutionDetailsModal({
 
 
                         <Detail
-                            label="Status"
+                            label="Situação"
                             value={
                                 formatarStatus(
                                     execution.status
@@ -247,7 +302,7 @@ function ExecutionDetailsModal({
 
 
                         <Detail
-                            label="Robot ID"
+                            label="ID do robô"
                             value={
                                 String(
                                     execution.robot_id
@@ -265,7 +320,7 @@ function ExecutionDetailsModal({
                     <div className="execution-detail-section">
 
                         <span className="execution-detail-label">
-                            Agent ID
+                            ID do dispositivo
                         </span>
 
                         <strong className="execution-detail-value break-word">

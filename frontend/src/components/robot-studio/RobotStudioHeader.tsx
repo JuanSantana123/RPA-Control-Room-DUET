@@ -262,8 +262,8 @@ function RobotStudioHeader({
 
                         color:
                             dirty
-                                ? "#e2c08d"
-                                : "#9aa0a6",
+                                ? "var(--studio-warning)"
+                                : "var(--studio-text-muted)",
                     }}
                 >
                     {dirty

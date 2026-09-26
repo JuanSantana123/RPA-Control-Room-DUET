@@ -1,0 +1,115 @@
+:root {
+  --ease-smooth: cubic-bezier(.22, 1, .36, 1);
+  --ease-spring: cubic-bezier(.16, 1.35, .34, 1);
+  --transition-page: 440ms var(--ease-smooth);
+}
+
+.app-main { position: relative; isolation: isolate; }
+.app-main::before {
+  position: fixed;
+  inset: var(--header-height) 0 0 var(--sidebar-width);
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--color-primary) 8%, transparent), transparent 32%),
+    linear-gradient(color-mix(in srgb, var(--color-primary) 3.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 3.5%, transparent) 1px, transparent 1px);
+  background-size: auto, 34px 34px, 34px 34px;
+  content: "";
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+  animation: ambient-grid 24s linear infinite;
+}
+
+.content { position: relative; }
+.route-transition { min-width: 0; animation: route-enter var(--transition-page) both; }
+
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  transform: translateZ(0);
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-normal), transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+button:not(:disabled):hover { transform: translateY(-1px); }
+button:not(:disabled):active { transform: translateY(0) scale(.975); transition-duration: 70ms; }
+button svg { transition: transform var(--transition-normal), opacity var(--transition-fast); }
+button:not(:disabled):hover svg { transform: translateY(-1px) scale(1.06); }
+button[aria-busy="true"] { cursor: progress; background-image: linear-gradient(105deg, transparent 25%, rgba(255,255,255,.16) 48%, transparent 70%) !important; background-size: 220% 100% !important; animation: button-busy 1.25s linear infinite; }
+
+.ui-button--primary {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary) 18%, transparent) !important;
+}
+
+.ui-button--primary::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,.24) 48%, transparent 70%);
+  content: "";
+  pointer-events: none;
+  opacity: 0;
+  transform: none;
+  transition: opacity 220ms var(--ease-smooth);
+}
+
+.ui-button--primary:hover::after { opacity: .72; }
+
+.card, .agent-card, .robot-card, .role-card, .vault-credential-card, .device-credential-card, .folder-card, .library-card {
+  transform: translateZ(0);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal), background var(--transition-normal) !important;
+}
+
+.card:hover, .agent-card:hover, .robot-card:hover, .role-card:hover, .vault-credential-card:hover, .device-credential-card:hover, .folder-card:hover, .library-card:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border)) !important;
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--color-primary) 9%, transparent) !important;
+  transform: translateY(-3px);
+}
+
+.nav-item .nav-icon { transition: color var(--transition-fast), transform var(--transition-normal); }
+.nav-item:hover .nav-icon { transform: translateX(2px) scale(1.04); }
+.nav-item.active .nav-icon { animation: nav-icon-in 420ms var(--ease-spring); }
+.status-dot, .execution-live-indicator > span { animation: status-pulse 2.2s ease-in-out infinite; }
+.section-icon, .card-icon { animation: icon-arrive 520ms var(--ease-spring) both; }
+
+.execution-modal, .schedule-modal, .library-modal, .library-picker-modal, [role="dialog"] { animation: modal-enter 260ms var(--ease-spring) both; }
+.execution-modal-overlay, .schedule-modal-overlay, .library-modal-backdrop, .library-picker-backdrop { animation: overlay-enter 180ms ease both; }
+.alert, .roles-alert, .users-alert, .logs-alert, .execution-error-alert, .alert-message { animation: notice-enter 300ms var(--ease-spring) both; }
+
+.cards > *, .agents-grid > *, .robots-grid > *, .roles-list > *, .vault-credentials-list > *, .device-credentials-grid > *, tbody > tr {
+  animation: surface-enter 420ms var(--ease-smooth) both;
+}
+.cards > :nth-child(2), .agents-grid > :nth-child(2), .robots-grid > :nth-child(2), .roles-list > :nth-child(2), tbody > tr:nth-child(2) { animation-delay: 45ms; }
+.cards > :nth-child(3), .agents-grid > :nth-child(3), .robots-grid > :nth-child(3), .roles-list > :nth-child(3), tbody > tr:nth-child(3) { animation-delay: 90ms; }
+.cards > :nth-child(4), .agents-grid > :nth-child(4), .robots-grid > :nth-child(4), .roles-list > :nth-child(4), tbody > tr:nth-child(4) { animation-delay: 135ms; }
+.cards > :nth-child(n + 5), .agents-grid > :nth-child(n + 5), .robots-grid > :nth-child(n + 5), .roles-list > :nth-child(n + 5), tbody > tr:nth-child(n + 5) { animation-delay: 180ms; }
+
+@keyframes route-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modal-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes overlay-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes notice-enter { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: none; } }
+@keyframes surface-enter { from { opacity: 0; transform: translateY(9px) scale(.992); } to { opacity: 1; transform: none; } }
+@keyframes nav-icon-in { from { transform: scale(.74) rotate(-8deg); } to { transform: none; } }
+@keyframes icon-arrive { from { opacity: 0; transform: scale(.82) rotate(-5deg); } to { opacity: 1; transform: none; } }
+@keyframes status-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 0%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-success) 14%, transparent); } }
+@keyframes ambient-grid { to { background-position: 0 0, 34px 34px, 34px 34px; } }
+@keyframes button-busy { to { background-position: -220% 0; } }
+
+@media (max-width: 1024px) { .app-main::before { left: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .app-main::before, .route-transition, .status-dot, .execution-live-indicator > span, .section-icon, .card-icon, .robot-card-context-menu, .robot-folder-context-menu, .libraries-module .library-catalog-context-menu, [role="menu"] { animation: none !important; }
+  button:not(:disabled):hover, button:not(:disabled):active, .card:hover, .agent-card:hover, .robot-card:hover, .role-card:hover, .vault-credential-card:hover, .device-credential-card:hover, .folder-card:hover, .library-card:hover { transform: none; }
+  .ui-button--primary::after { display: none; }
+}

@@ -29,7 +29,7 @@ function HistoryHeader() {
             <div>
 
                 <div className="page-eyebrow">
-                    EXECUTION HISTORY
+                    HISTÓRICO DE EXECUÇÕES
                 </div>
 
                 <h1>

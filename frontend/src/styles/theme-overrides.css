@@ -1,0 +1,331 @@
+/*
+ * Compatibility layer for legacy feature styles.
+ * New surfaces should consume the semantic tokens directly; these selectors
+ * keep the existing modules visually coherent while their business contracts
+ * remain untouched.
+ */
+
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+    color: var(--color-text-primary) !important;
+    background-color: var(--color-surface-raised) !important;
+    border-color: var(--color-border) !important;
+}
+
+:root[data-theme="dark"] .executions-page-header h1,
+:root[data-theme="dark"] .executions-table-header h2,
+:root[data-theme="dark"] .execution-summary-card strong,
+:root[data-theme="dark"] .vault-page .page-heading h1,
+:root[data-theme="dark"] .vault-panel-header h2,
+:root[data-theme="dark"] .vault-credential-header h3,
+:root[data-theme="dark"] .roles-page .roles-page-header h1,
+:root[data-theme="dark"] .roles-page .roles-panel-title h2,
+:root[data-theme="dark"] .roles-page .roles-create-header h2,
+:root[data-theme="dark"] .roles-page .role-card-title,
+:root[data-theme="dark"] .users-page-header h1,
+:root[data-theme="dark"] .users-panel-heading h2,
+:root[data-theme="dark"] .users-identity-name,
+:root[data-theme="dark"] .logs-page-header h1,
+:root[data-theme="dark"] .logs-panel-heading h2 {
+    color: var(--color-text-primary) !important;
+}
+
+:root[data-theme="dark"] .executions-page-header p,
+:root[data-theme="dark"] .executions-table-header p,
+:root[data-theme="dark"] .execution-summary-card span,
+:root[data-theme="dark"] .execution-filter-group label,
+:root[data-theme="dark"] .executions-toolbar-title,
+:root[data-theme="dark"] .vault-page .page-heading p,
+:root[data-theme="dark"] .vault-folder-select-button,
+:root[data-theme="dark"] .roles-page .roles-page-header p,
+:root[data-theme="dark"] .roles-page .role-card-description,
+:root[data-theme="dark"] .users-page-header p,
+:root[data-theme="dark"] .users-panel-heading p,
+:root[data-theme="dark"] .users-identity-username,
+:root[data-theme="dark"] .logs-page-header p,
+:root[data-theme="dark"] .logs-panel-heading p,
+:root[data-theme="dark"] .logs-message,
+:root[data-theme="dark"] .logs-timestamp {
+    color: var(--color-text-secondary) !important;
+}
+
+:root[data-theme="dark"] .execution-summary-card,
+:root[data-theme="dark"] .executions-toolbar,
+:root[data-theme="dark"] .vault-folders-panel,
+:root[data-theme="dark"] .vault-credentials-panel,
+:root[data-theme="dark"] .vault-panel-header,
+:root[data-theme="dark"] .vault-credential-tabs,
+:root[data-theme="dark"] .vault-credential-tab,
+:root[data-theme="dark"] .vault-credentials-list,
+:root[data-theme="dark"] .roles-page .roles-create-panel,
+:root[data-theme="dark"] .roles-page .roles-panel,
+:root[data-theme="dark"] .roles-page .role-card,
+:root[data-theme="dark"] .roles-page .permissions-panel,
+:root[data-theme="dark"] .users-panel,
+:root[data-theme="dark"] .users-form-content,
+:root[data-theme="dark"] .users-role-option,
+:root[data-theme="dark"] .logs-panel,
+:root[data-theme="dark"] .logs-panel-header,
+:root[data-theme="dark"] .logs-panel-footer,
+:root[data-theme="dark"] .logs-list,
+:root[data-theme="dark"] .logs-entry {
+    color: var(--color-text-primary) !important;
+    background: var(--color-surface-raised) !important;
+    border-color: var(--color-border) !important;
+}
+
+:root[data-theme="dark"] .execution-summary-icon,
+:root[data-theme="dark"] .users-panel-icon,
+:root[data-theme="dark"] .logs-panel-icon,
+:root[data-theme="dark"] .logs-state-icon,
+:root[data-theme="dark"] .roles-page .roles-panel-count,
+:root[data-theme="dark"] .users-panel-count {
+    color: var(--color-primary) !important;
+    background: var(--color-primary-soft) !important;
+}
+
+:root[data-theme="dark"] .roles-page .role-card:hover,
+:root[data-theme="dark"] .users-role-option:hover,
+:root[data-theme="dark"] .logs-entry:hover,
+:root[data-theme="dark"] .vault-folder-select-button:hover {
+    color: var(--color-text-primary) !important;
+    background: var(--color-surface-subtle) !important;
+}
+
+:root[data-theme="dark"] .roles-page .role-card.role-card-selected,
+:root[data-theme="dark"] .users-role-option:has(input:checked),
+:root[data-theme="dark"] .vault-folder-select-button.selected {
+    color: var(--color-primary) !important;
+    background: var(--color-primary-soft) !important;
+    border-color: var(--color-border-focus) !important;
+}
+
+:root[data-theme="dark"] .execution-live-indicator,
+:root[data-theme="dark"] .logs-live-indicator:not(.logs-live-indicator--error) {
+    color: var(--color-success) !important;
+    background: var(--color-success-soft) !important;
+    border-color: color-mix(in srgb, var(--color-success) 30%, var(--color-border)) !important;
+}
+
+:root[data-theme="dark"] .logs-live-indicator--error {
+    color: var(--color-danger) !important;
+    background: var(--color-danger-soft) !important;
+    border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border)) !important;
+}
+
+:root[data-theme="dark"] .logs-level-info {
+    color: var(--color-info) !important;
+    background: var(--color-info-soft) !important;
+}
+
+:root[data-theme="dark"] .logs-level-success {
+    color: var(--color-success) !important;
+    background: var(--color-success-soft) !important;
+}
+
+:root[data-theme="dark"] .logs-level-warning {
+    color: var(--color-warning) !important;
+    background: var(--color-warning-soft) !important;
+}
+
+:root[data-theme="dark"] .logs-level-error,
+:root[data-theme="dark"] .logs-level-critical {
+    color: var(--color-danger) !important;
+    background: var(--color-danger-soft) !important;
+}
+
+:root[data-theme="dark"] .logs-level-debug {
+    color: var(--color-text-secondary) !important;
+    background: var(--color-surface-subtle) !important;
+}
+
+:root[data-theme="dark"] .robot-card-body h3,
+:root[data-theme="dark"] .robot-card-meta strong,
+:root[data-theme="dark"] .vault-create-folder-panel > h2 {
+    color: var(--color-text-primary) !important;
+}
+
+:root[data-theme="dark"] .robot-card-meta span,
+:root[data-theme="dark"] .robot-filename,
+:root[data-theme="dark"] .vault-create-folder-panel .vault-form-group label {
+    color: var(--color-text-secondary) !important;
+}
+
+:root[data-theme="dark"] .robot-card-actions,
+:root[data-theme="dark"] .robot-card-context-menu,
+:root[data-theme="dark"] .vault-create-folder-panel {
+    color: var(--color-text-primary) !important;
+    background: var(--color-surface-raised) !important;
+    border-color: var(--color-border) !important;
+}
+
+:root[data-theme="dark"] .robot-card-context-menu button {
+    color: var(--color-text-secondary) !important;
+}
+
+:root[data-theme="dark"] .robot-card-context-menu button:hover,
+:root[data-theme="dark"] .robot-card-menu:hover {
+    color: var(--color-text-primary) !important;
+    background: var(--color-surface-subtle) !important;
+    border-color: var(--color-border) !important;
+}
+
+/* Empty rows must not inherit the desktop table minimum width on small screens. */
+.executions-table-wrapper:has(.ui-empty-state) .executions-table,
+.history-table-wrapper:has(td[colspan]) .history-table,
+.schedules-table-wrapper:has(.table-loading-state, .ui-empty-state) .schedules-table {
+    min-width: 0;
+}
+
+.executions-table-wrapper:has(.ui-empty-state) thead,
+.history-table-wrapper:has(td[colspan]) thead,
+.schedules-table-wrapper:has(.table-loading-state, .ui-empty-state) thead {
+    display: none;
+}
+
+.history-table-wrapper:has(td[colspan]) td,
+.schedules-table-wrapper:has(.table-loading-state, .ui-empty-state) td {
+    display: table-cell;
+    width: 100%;
+    min-width: 0 !important;
+}
+
+@media (max-width: 640px) {
+    .table-loading-state {
+        min-height: 190px;
+        padding: 36px 18px !important;
+    }
+
+    .schedules-page .page-heading,
+    .vault-page .page-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .schedules-page .page-heading > button,
+    .vault-page .page-heading > button {
+        width: 100%;
+    }
+
+    .users-table,
+    .executions-table-wrapper:not(:has(.ui-empty-state)) .executions-table,
+    .history-table-wrapper:not(:has(td[colspan])) .history-table,
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) .schedules-table {
+        min-width: 0;
+    }
+
+    .users-table thead,
+    .executions-table-wrapper:not(:has(.ui-empty-state)) thead,
+    .history-table-wrapper:not(:has(td[colspan])) thead,
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) thead {
+        display: none;
+    }
+
+    .users-table tbody,
+    .executions-table-wrapper:not(:has(.ui-empty-state)) tbody,
+    .history-table-wrapper:not(:has(td[colspan])) tbody,
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) tbody {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .users-table tbody tr,
+    .executions-table-wrapper:not(:has(.ui-empty-state)) tbody tr,
+    .history-table-wrapper:not(:has(td[colspan])) tbody tr,
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) tbody tr {
+        display: grid;
+        overflow: hidden;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-raised);
+    }
+
+    .users-table tbody td,
+    .executions-table-wrapper:not(:has(.ui-empty-state)) tbody td,
+    .history-table-wrapper:not(:has(td[colspan])) tbody td,
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) tbody td {
+        display: grid;
+        width: 100%;
+        min-width: 0 !important;
+        min-height: 48px;
+        height: auto;
+        grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+        padding: 11px 13px !important;
+        white-space: normal !important;
+        border-bottom: 1px solid var(--color-border-light) !important;
+    }
+
+    .users-table tbody td:last-child,
+    .executions-table-wrapper:not(:has(.ui-empty-state)) tbody td:last-child,
+    .history-table-wrapper:not(:has(td[colspan])) tbody td:last-child,
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) tbody td:last-child {
+        border-bottom: 0 !important;
+    }
+
+    .users-table tbody td::before,
+    .executions-table-wrapper:not(:has(.ui-empty-state)) tbody td::before,
+    .history-table-wrapper:not(:has(td[colspan])) tbody td::before,
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) tbody td::before {
+        color: var(--color-text-muted);
+        font-size: .64rem;
+        font-weight: 750;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+    }
+
+    .users-table td:nth-child(1)::before { content: "Usuário"; }
+    .users-table td:nth-child(2)::before { content: "ID"; }
+    .users-table td:nth-child(3)::before { content: "Roles"; }
+    .users-table td:nth-child(4)::before { content: "Status"; }
+    .users-table td:nth-child(5)::before { content: "Ações"; }
+
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(1)::before { content: "ID"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(2)::before { content: "Robô"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(3)::before { content: "Pasta"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(4)::before { content: "Usuário"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(5)::before { content: "Agent"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(6)::before { content: "PID"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(7)::before { content: "Início"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(8)::before { content: "Duração"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(9)::before { content: "Status"; }
+    .executions-table-wrapper:not(:has(.ui-empty-state)) td:nth-child(10)::before { content: "Ações"; }
+
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(1)::before { content: "ID"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(2)::before { content: "Robô"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(3)::before { content: "Pasta"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(4)::before { content: "Usuário"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(5)::before { content: "Agent"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(6)::before { content: "Início"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(7)::before { content: "Fim"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(8)::before { content: "Duração"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(9)::before { content: "Status"; }
+    .history-table-wrapper:not(:has(td[colspan])) td:nth-child(10)::before { content: "Erro"; }
+
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) td:nth-child(1)::before { content: "Robô"; }
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) td:nth-child(2)::before { content: "Agent"; }
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) td:nth-child(3)::before { content: "Tipo"; }
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) td:nth-child(4)::before { content: "Horário"; }
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) td:nth-child(5)::before { content: "Próxima execução"; }
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) td:nth-child(6)::before { content: "Status"; }
+    .schedules-table-wrapper:not(:has(.table-loading-state, .ui-empty-state)) td:nth-child(7)::before { content: "Ações"; }
+
+    .users-identity,
+    .history-folder-cell,
+    .history-user-cell {
+        min-width: 0;
+        white-space: normal;
+    }
+
+    .users-actions,
+    .execution-actions,
+    .schedule-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        white-space: normal;
+    }
+}

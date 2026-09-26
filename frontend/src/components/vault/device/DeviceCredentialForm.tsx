@@ -41,6 +41,7 @@ import type {
 import type {
     DeviceCredentialFormData,
 } from "../../../types/deviceCredentials";
+import { Button } from "../../ui/Button";
 
 
 // ============================================================
@@ -410,9 +411,8 @@ function DeviceCredentialForm({
 
             <div className="vault-form-actions">
 
-                <button
-                    type="button"
-                    className="secondary-button"
+                <Button
+                    variant="secondary"
                     disabled={
                         saving
                     }
@@ -421,18 +421,16 @@ function DeviceCredentialForm({
                     }
                 >
                     Cancelar
-                </button>
+                </Button>
 
 
-                <button
+                <Button
                     type="submit"
-                    className="primary-button"
-                    disabled={
-                        saving
-                    }
+                    busy={saving}
+                    loadingLabel="Salvando credencial"
                 >
                     {submitLabel}
-                </button>
+                </Button>
 
             </div>
 

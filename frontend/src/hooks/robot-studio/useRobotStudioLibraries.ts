@@ -26,6 +26,10 @@ import {
 
 import api
     from "../../services/api";
+import {
+    getApiErrorMessage,
+    getApiErrorStatus,
+} from "../../utils/apiErrors";
 
 import type {
     Dispatch,
@@ -105,16 +109,21 @@ interface UseRobotStudioLibrariesParams {
 }
 
 
-function getApiErrorMessage(
-    error: any,
-    fallback: string
-): string {
+interface ProjectLibraryDependency {
+    import_name: string;
+    library_id: number;
+}
 
-    return (
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        fallback
-    );
+function isProjectLibraryDependency(
+    value: unknown
+): value is ProjectLibraryDependency {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    return typeof candidate.import_name === "string" &&
+        typeof candidate.library_id === "number";
 }
 
 
@@ -515,7 +524,7 @@ export function useRobotStudioLibraries({
                     );
                 }
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao criar biblioteca no projeto:",
@@ -524,8 +533,7 @@ export function useRobotStudioLibraries({
 
 
                 if (
-                    err?.response
-                        ?.status === 423
+                    getApiErrorStatus(err) === 423
                 ) {
 
                     await carregarCheckout(
@@ -636,7 +644,7 @@ export function useRobotStudioLibraries({
                     defaultVersions
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao carregar Bibliotecas disponíveis:",
@@ -882,7 +890,7 @@ export function useRobotStudioLibraries({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao adicionar Bibliotecas:",
@@ -891,8 +899,7 @@ export function useRobotStudioLibraries({
 
 
                 if (
-                    err?.response
-                        ?.status === 423
+                    getApiErrorStatus(err) === 423
                 ) {
 
                     await carregarCheckout(
@@ -968,19 +975,20 @@ export function useRobotStudioLibraries({
                     );
 
 
-                const dependencies =
+                const dependencies: ProjectLibraryDependency[] =
                     Array.isArray(
                         dependenciesResponse
                             .data?.dependencies
                     )
                         ? dependenciesResponse
                             .data.dependencies
+                            .filter(isProjectLibraryDependency)
                         : [];
 
 
                 const dependency =
                     dependencies.find(
-                        (item: any) =>
+                        (item) =>
                             item.import_name ===
                             importName
                     );
@@ -1140,7 +1148,7 @@ export function useRobotStudioLibraries({
                     ]
                 );
 
-            } catch (err: any) {
+            } catch (err: unknown) {
 
                 console.error(
                     "Erro ao remover biblioteca do projeto:",
@@ -1149,8 +1157,7 @@ export function useRobotStudioLibraries({
 
 
                 if (
-                    err?.response
-                        ?.status === 423
+                    getApiErrorStatus(err) === 423
                 ) {
 
                     await carregarCheckout(

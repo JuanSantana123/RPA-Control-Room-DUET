@@ -52,6 +52,8 @@ import {
     formatCardDate,
     parseApiDateTime,
 } from "../../../utils/dateTime";
+import { ArrowRight, Clock3, Code2, LockKeyhole, MessageSquare, PanelRightOpen, PackageCheck } from "lucide-react";
+import { Button } from "../../ui/Button";
 
 
 // ============================================================
@@ -178,6 +180,7 @@ function KanbanCard({
     return (
 
         <article
+            className="kanban-card"
             draggable={
                 draggable
             }
@@ -200,18 +203,18 @@ function KanbanCard({
                 padding: 12,
 
                 border:
-                    "1px solid var(--border-color, #dfe3ea)",
+                    "1px solid var(--color-border)",
 
                 borderRadius:
                     8,
 
                 background:
-                    "var(--surface-color, #ffffff)",
+                    "var(--color-surface-raised)",
 
                 boxShadow:
                     dragging
-                        ? "0 8px 20px rgba(15, 23, 42, 0.12)"
-                        : "0 1px 2px rgba(15, 23, 42, 0.05)",
+                        ? "var(--shadow-md)"
+                        : "var(--shadow-xs)",
 
                 opacity:
                     moving
@@ -307,13 +310,13 @@ function KanbanCard({
                             "7px 9px",
 
                         border:
-                            "1px solid rgba(217, 119, 6, 0.22)",
+                            "1px solid color-mix(in srgb, var(--color-warning) 28%, var(--color-border))",
 
                         borderRadius:
                             7,
 
                         background:
-                            "rgba(217, 119, 6, 0.07)",
+                            "var(--color-warning-soft)",
 
                         fontSize:
                             10,
@@ -343,7 +346,7 @@ function KanbanCard({
                             flexShrink: 0,
                         }}
                     >
-                        🔒
+                        <LockKeyhole size={13} strokeWidth={1.8} aria-hidden="true" />
                     </span>
 
 
@@ -435,7 +438,7 @@ function KanbanCard({
                             9,
 
                         borderTop:
-                            "1px solid var(--border-color, #e5e7eb)",
+                            "1px solid var(--color-border)",
 
                         display:
                             "grid",
@@ -558,12 +561,12 @@ function KanbanCard({
                             project.due_date
                         ) && (
 
-                            <span>
+                            <span className="kanban-card-meta-item">
                                 {formatCardDate(
                                     project.start_date
                                 )}
 
-                                {" → "}
+                                <ArrowRight size={12} strokeWidth={1.8} aria-hidden="true" />
 
                                 {formatCardDate(
                                     project.due_date
@@ -574,15 +577,15 @@ function KanbanCard({
 
                         {project.effort_hours != null && (
 
-                            <span>
-                                ⏱{" "}
+                            <span className="kanban-card-meta-item">
+                                <Clock3 size={12} strokeWidth={1.8} aria-hidden="true" />
                                 {project.effort_hours}h
                             </span>
                         )}
 
 
-                        <span>
-                            💬{" "}
+                        <span className="kanban-card-meta-item">
+                            <MessageSquare size={13} strokeWidth={1.8} aria-hidden="true" />
                             {project.comments_count || 0}
                         </span>
 
@@ -627,7 +630,7 @@ function KanbanCard({
                             999,
 
                         background:
-                            "var(--surface-hover, rgba(100, 116, 139, 0.12))",
+                            "var(--color-surface-subtle)",
 
                         fontSize:
                             10,
@@ -680,6 +683,7 @@ function KanbanCard({
             ============================================= */}
 
             <div
+                className="kanban-card-actions"
                 style={{
                     display:
                         "flex",
@@ -696,10 +700,10 @@ function KanbanCard({
             >
 
                 {/* Detalhes do planejamento e comentários. */}
-                <button
-                    type="button"
-
-                    className="secondary-button"
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    className="kanban-card-action"
 
                     disabled={
                         moving
@@ -711,30 +715,17 @@ function KanbanCard({
                         );
                     }}
 
-                    style={{
-                        flex: 1,
-
-                        minWidth: 0,
-
-                        minHeight:
-                            32,
-
-                        padding:
-                            "6px 9px",
-
-                        fontSize:
-                            11,
-                    }}
                 >
+                    <PanelRightOpen size={14} strokeWidth={1.9} aria-hidden="true" />
                     Detalhes
-                </button>
+                </Button>
 
 
                 {/* Abre o workspace no DUET Studio. */}
-                <button
-                    type="button"
-
-                    className="secondary-button"
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    className="kanban-card-action"
 
                     disabled={
                         moving
@@ -746,23 +737,10 @@ function KanbanCard({
                         );
                     }}
 
-                    style={{
-                        flex: 1,
-
-                        minWidth: 0,
-
-                        minHeight:
-                            32,
-
-                        padding:
-                            "6px 9px",
-
-                        fontSize:
-                            11,
-                    }}
                 >
+                    <Code2 size={14} strokeWidth={1.9} aria-hidden="true" />
                     Abrir Studio
-                </button>
+                </Button>
 
 
                 {/* Publicação somente a partir da etapa APPROVED. */}
@@ -770,10 +748,9 @@ function KanbanCard({
                     "APPROVED" &&
                     canPublishDevelopment && (
 
-                    <button
-                        type="button"
-
-                        className="primary-button"
+                    <Button
+                        size="sm"
+                        className="kanban-card-action"
 
                         disabled={
                             moving ||
@@ -787,23 +764,10 @@ function KanbanCard({
                             );
                         }}
 
-                        style={{
-                            flex: 1,
-
-                            minWidth: 0,
-
-                            minHeight:
-                                32,
-
-                            padding:
-                                "6px 9px",
-
-                            fontSize:
-                                11,
-                        }}
                     >
+                        <PackageCheck size={14} strokeWidth={1.9} aria-hidden="true" />
                         Publicar
-                    </button>
+                    </Button>
                 )}
 
             </div>

@@ -45,6 +45,13 @@ import DashboardOperationalStatus
 import DashboardPlatformSummary
     from "../components/dashboard/DashboardPlatformSummary";
 
+import DashboardCommandCenter
+    from "../components/dashboard/DashboardCommandCenter";
+
+import { DashboardSkeleton }
+    from "../components/ui/Skeletons";
+import FeedbackBanner from "../components/ui/FeedbackBanner";
+
 import {
     useDashboardData,
 } from "../hooks/dashboard/useDashboardData";
@@ -82,24 +89,7 @@ function Dashboard() {
     // ========================================================
 
     if (loading) {
-
-        return (
-            <div className="empty-state">
-
-                <div className="empty-icon">
-                    ⏳
-                </div>
-
-                <h3>
-                    Carregando Dashboard...
-                </h3>
-
-                <p>
-                    Buscando informações do Control Room.
-                </p>
-
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
 
@@ -114,20 +104,13 @@ function Dashboard() {
     if (error) {
 
         return (
-            <div className="empty-state">
-
-                <div className="empty-icon">
-                    ⚠️
-                </div>
-
-                <h3>
-                    Erro ao carregar Dashboard
-                </h3>
-
-                <p>
-                    {error}
-                </p>
-
+            <div className="page-container">
+                <FeedbackBanner
+                    tone="error"
+                    title="Não foi possível carregar a visão geral"
+                    message={error}
+                    hint="Verifique a conexão com o Control Room e tente atualizar a página."
+                />
             </div>
         );
     }
@@ -139,6 +122,11 @@ function Dashboard() {
 
     return (
         <div>
+
+            <DashboardCommandCenter
+                stats={stats}
+                activeExecutions={executions.length}
+            />
 
             {/* ==================================================
                 CARDS DE RESUMO

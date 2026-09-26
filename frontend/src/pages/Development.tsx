@@ -237,6 +237,18 @@
     import DevelopmentProjectToolbar
         from "../components/development/projects/DevelopmentProjectToolbar";
 
+    import DevelopmentOverview
+        from "../components/development/DevelopmentOverview";
+
+    import DevelopmentFiltersBar, {
+        type DevelopmentOriginFilter,
+        type DevelopmentSort,
+        type DevelopmentStatusFilter,
+    } from "../components/development/projects/DevelopmentFiltersBar";
+
+    import FeedbackBanner
+        from "../components/ui/FeedbackBanner";
+
     // Menu flutuante responsável pelas ações disponíveis
     // sobre um projeto da lista de Desenvolvimento.
     // O posicionamento e a abertura do menu permanecem como
@@ -262,10 +274,10 @@
 
 
     import {
-        Code2,
     } from "lucide-react";
 
     import {
+        useMemo,
         useState,
 
         type MouseEvent,
@@ -293,6 +305,15 @@
         // Texto usado para filtrar projetos.
         const [search, setSearch] =
             useState("");
+
+        const [statusFilter, setStatusFilter] =
+            useState<DevelopmentStatusFilter>("all");
+
+        const [originFilter, setOriginFilter] =
+            useState<DevelopmentOriginFilter>("all");
+
+        const [projectSort, setProjectSort] =
+            useState<DevelopmentSort>("updated-desc");
 
 
         // Mensagem geral de sucesso da área de Desenvolvimento.
@@ -889,7 +910,6 @@
         const {
             filteredProjects,
             filteredKanbanStages,
-            filteredKanbanProjectCount,
             filteredTrashProjects,
         } = useDevelopmentFilters({
             search,
@@ -897,6 +917,43 @@
             kanbanStages,
             trashProjects,
         });
+
+        const visibleProjects = useMemo(() => {
+            const result = filteredProjects.filter((project) => {
+                const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+                const matchesOrigin = originFilter === "all" || (originFilter === "new" ? project.base_robot_id === null : project.base_robot_id !== null);
+                return matchesStatus && matchesOrigin;
+            });
+
+            return [...result].sort((left, right) => {
+                if (projectSort === "name-asc") return left.name.localeCompare(right.name, "pt-BR");
+                if (projectSort === "created-desc") return Date.parse(right.created_at || "1970-01-01") - Date.parse(left.created_at || "1970-01-01");
+                if (projectSort === "due-asc") {
+                    const leftDue = left.due_date ? Date.parse(left.due_date) : Number.POSITIVE_INFINITY;
+                    const rightDue = right.due_date ? Date.parse(right.due_date) : Number.POSITIVE_INFINITY;
+                    return leftDue - rightDue;
+                }
+                return Date.parse(right.updated_at || right.created_at || "1970-01-01") - Date.parse(left.updated_at || left.created_at || "1970-01-01");
+            });
+        }, [filteredProjects, originFilter, projectSort, statusFilter]);
+
+        const visibleProjectIds = useMemo(
+            () => new Set(visibleProjects.map((project) => project.id)),
+            [visibleProjects]
+        );
+
+        const visibleKanbanStages = useMemo(
+            () => filteredKanbanStages.map((stage) => ({
+                ...stage,
+                projects: stage.projects.filter((project) => visibleProjectIds.has(project.id)),
+            })),
+            [filteredKanbanStages, visibleProjectIds]
+        );
+
+        const visibleKanbanProjectCount = useMemo(
+            () => visibleKanbanStages.reduce((total, stage) => total + stage.projects.length, 0),
+            [visibleKanbanStages]
+        );
 
 
         // ========================================================
@@ -1147,7 +1204,7 @@
                 <div className="page-heading">
                     <div>
                         <div className="page-eyebrow">
-                            AUTOMATION DEVELOPMENT
+                            DESENVOLVIMENTO DE AUTOMAÇÕES
                         </div>
 
                         <h1>
@@ -1160,12 +1217,6 @@
                         </p>
                     </div>
 
-                    <div className="page-heading-icon">
-                        <Code2
-                            size={24}
-                            strokeWidth={1.7}
-                        />
-                    </div>
                 </div>
 
 
@@ -1174,12 +1225,17 @@
                 ================================================= */}
 
                 {permissionsLoaded && !canViewDevelopment && (
-                    <div className="alert alert-error">
-                        Você não possui a permissão Development:view.
-                    </div>
+                    <FeedbackBanner
+                        tone="error"
+                        title="Acesso ao desenvolvimento restrito"
+                        message="Seu perfil não possui a permissão Development:view."
+                        hint="Solicite a vinculação da permissão ao administrador do Control Room."
+                    />
                 )}
 
                 {(!permissionsLoaded || canViewDevelopment) && (
+                <>
+                <DevelopmentOverview projects={projects} stages={kanbanStages} />
                 <section className="content-panel">
 
                     
@@ -1259,7 +1315,7 @@
                             }
 
                             kanbanProjectCount={
-                                filteredKanbanProjectCount
+                                visibleKanbanProjectCount
                             }
 
 
@@ -1294,6 +1350,24 @@
                                 openCreateForm
                             }
                         />
+
+                    {!showTrash && (
+                        <DevelopmentFiltersBar
+                            status={statusFilter}
+                            origin={originFilter}
+                            sort={projectSort}
+                            visibleCount={visibleProjects.length}
+                            totalCount={projects.length}
+                            onStatusChange={setStatusFilter}
+                            onOriginChange={setOriginFilter}
+                            onSortChange={setProjectSort}
+                            onReset={() => {
+                                setStatusFilter("all");
+                                setOriginFilter("all");
+                                setProjectSort("updated-desc");
+                            }}
+                        />
+                    )}
                     {/* =============================================
                         FORMULÁRIO - NOVO PROJETO
                     ============================================= */}
@@ -1514,7 +1588,7 @@
                                 // ====================================================
 
                                 projects={
-                                    filteredProjects
+                                    visibleProjects
                                 }
 
 
@@ -1621,7 +1695,7 @@
                             }
 
                             filteredStages={
-                                filteredKanbanStages
+                                visibleKanbanStages
                             }
 
                             search={
@@ -1726,6 +1800,7 @@
                     )}
 
                 </section>
+                </>
                 )}
                 
 

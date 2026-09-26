@@ -27,6 +27,8 @@
 import {
     Filter,
 } from "lucide-react";
+import PremiumSelect from "../ui/PremiumSelect";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -100,7 +102,7 @@ function ExecutionsFilters({
                 </label>
 
 
-                <select
+                <PremiumSelect
                     id="filtro-robo"
                     value={filtroRobo}
                     onChange={(event) =>
@@ -125,7 +127,7 @@ function ExecutionsFilters({
 
                     ))}
 
-                </select>
+                </PremiumSelect>
 
             </div>
 
@@ -141,7 +143,7 @@ function ExecutionsFilters({
                 </label>
 
 
-                <select
+                <PremiumSelect
                     id="filtro-agent"
                     value={filtroAgent}
                     onChange={(event) =>
@@ -166,7 +168,7 @@ function ExecutionsFilters({
 
                     ))}
 
-                </select>
+                </PremiumSelect>
 
             </div>
 
@@ -175,13 +177,12 @@ function ExecutionsFilters({
                 LIMPAR
             ================================================= */}
 
-            <button
-                type="button"
-                className="secondary-button"
+            <Button
+                size="sm"
                 onClick={onClearFilters}
             >
                 Limpar filtros
-            </button>
+            </Button>
 
         </div>
     );

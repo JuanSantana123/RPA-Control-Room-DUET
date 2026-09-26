@@ -149,7 +149,14 @@ function RobotStudioEditor({
 
                     onChange={onChange}
 
+                    onMount={(editor) => {
+                        editor.getDomNode()
+                            ?.querySelector(".ime-text-area")
+                            ?.setAttribute("aria-hidden", "true");
+                    }}
+
                     options={{
+                        ariaLabel: "Editor de código",
                         // O código somente pode ser alterado
                         // com Development:edit + Checkout próprio.
                         readOnly:

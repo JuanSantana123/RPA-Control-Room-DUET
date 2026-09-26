@@ -27,6 +27,7 @@ import DashboardExecutionRow
 import type {
     DashboardExecution,
 } from "../../types/dashboard";
+import EmptyState from "../ui/EmptyState";
 
 
 // ============================================================
@@ -63,7 +64,7 @@ function DashboardExecutionsPanel({
                     </h2>
 
                     <p>
-                        Execuções atualmente processadas pelos Agents
+                        Execuções atualmente processadas pelos dispositivos
                     </p>
 
                 </div>
@@ -90,24 +91,11 @@ function DashboardExecutionsPanel({
 
             {executions.length === 0 ? (
 
-                <div className="empty-state">
-
-                    <div className="empty-icon">
-                        <Activity
-                            size={28}
-                            strokeWidth={1.6}
-                        />
-                    </div>
-
-                    <h3>
-                        Nenhuma execução em andamento
-                    </h3>
-
-                    <p>
-                        Não existem robôs sendo executados neste momento.
-                    </p>
-
-                </div>
+                <EmptyState
+                    icon={<Activity />}
+                    title="Nenhuma execução em andamento"
+                    description="O ambiente está livre. Novas execuções aparecerão aqui assim que forem iniciadas."
+                />
 
             ) : (
 
@@ -128,7 +116,7 @@ function DashboardExecutionsPanel({
                                 </th>
 
                                 <th>
-                                    Agent
+                                    Dispositivo
                                 </th>
 
                                 <th>
@@ -136,7 +124,7 @@ function DashboardExecutionsPanel({
                                 </th>
 
                                 <th>
-                                    Status
+                                    Situação
                                 </th>
 
                             </tr>

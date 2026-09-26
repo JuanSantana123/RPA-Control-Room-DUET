@@ -33,9 +33,11 @@ import type {
 import {
     X,
 } from "lucide-react";
+import { useDialogFocus } from "../../../hooks/ui/useDialogFocus";
+import { Button, IconButton } from "../../ui/Button";
 
 
-interface CreateLibraryModalStyles {
+export interface CreateLibraryModalStyles {
     modalBackdrop: CSSProperties;
     modalCard: CSSProperties;
     modalHeader: CSSProperties;
@@ -114,6 +116,11 @@ function CreateLibraryModal({
     onSuggestImportName,
     onCreateLibrary,
 }: CreateLibraryModalProps) {
+    const dialogRef = useDialogFocus<HTMLDivElement>({
+        open,
+        onClose,
+        closeOnEscape: !creatingLibrary,
+    });
 
     if (!open) {
         return null;
@@ -139,7 +146,14 @@ function CreateLibraryModal({
             style={styles.modalBackdrop}
             onMouseDown={handleBackdropMouseDown}
         >
-            <div style={styles.modalCard}>
+            <div
+                ref={dialogRef}
+                style={styles.modalCard}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="studio-create-library-title"
+                tabIndex={-1}
+            >
 
                 <div style={styles.modalHeader}>
 
@@ -148,7 +162,7 @@ function CreateLibraryModal({
                             REUSABLE LIBRARY
                         </div>
 
-                        <h2 style={styles.modalTitle}>
+                        <h2 id="studio-create-library-title" style={styles.modalTitle}>
                             Nova biblioteca
                         </h2>
 
@@ -159,18 +173,16 @@ function CreateLibraryModal({
                     </div>
 
 
-                    <button
-                        type="button"
+                    <IconButton
+                        label="Fechar"
+                        icon={<X size={16} aria-hidden="true" />}
                         onClick={() =>
                             !creatingLibrary &&
                             onClose()
                         }
                         style={styles.modalClose}
                         disabled={creatingLibrary}
-                        aria-label="Fechar"
-                    >
-                        <X size={16} />
-                    </button>
+                    />
 
                 </div>
 
@@ -281,21 +293,22 @@ function CreateLibraryModal({
 
                 <div style={styles.modalFooter}>
 
-                    <button
-                        type="button"
+                    <Button
+                        variant="secondary"
                         onClick={onClose}
                         disabled={creatingLibrary}
                         style={styles.modalSecondaryButton}
                     >
                         Cancelar
-                    </button>
+                    </Button>
 
 
-                    <button
-                        type="button"
+                    <Button
+                        variant="primary"
+                        busy={creatingLibrary}
+                        loadingLabel="Criando biblioteca"
                         onClick={onCreateLibrary}
                         disabled={
-                            creatingLibrary ||
                             !libraryName.trim() ||
                             !libraryImportName.trim()
                         }
@@ -313,7 +326,7 @@ function CreateLibraryModal({
                         {creatingLibrary
                             ? "Criando..."
                             : "Criar biblioteca"}
-                    </button>
+                    </Button>
 
                 </div>
 

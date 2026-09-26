@@ -31,6 +31,7 @@ import { Folder } from "lucide-react";
 
 import type { RobotFolder } from "../../types/robots";
 import RobotFolderNode from "./RobotFolderNode";
+import { PanelSkeleton } from "../ui/Skeletons";
 
 
 interface RobotFolderTreeProps {
@@ -74,9 +75,7 @@ function RobotFolderTree({
         <div className="robots-folders-content">
 
             {loadingFolders ? (
-                <div className="panel-loading">
-                    Carregando pastas...
-                </div>
+                <PanelSkeleton lines={3} />
             ) : (
                 <div className="robot-folders-tree">
 

@@ -403,7 +403,7 @@ function useDevelopmentCardDetails({
                 commentsResponse.data?.comments || []
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             if (
                 loadId !==
@@ -635,7 +635,7 @@ function useDevelopmentCardDetails({
             // Atualiza também o resumo apresentado no Kanban.
             await onRefreshKanban();
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao salvar detalhes do card:",
@@ -742,7 +742,7 @@ function useDevelopmentCardDetails({
             // Atualiza o contador apresentado no card do Kanban.
             await onRefreshKanban();
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao adicionar comentário:",

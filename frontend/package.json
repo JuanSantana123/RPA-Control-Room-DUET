@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:visual": "node scripts/visual-check.mjs",
+    "test:live-ui": "node scripts/live-ui-audit.mjs",
+    "test:workflow-ui": "node scripts/workflow-audit.mjs",
+    "test:components": "node scripts/component-audit.mjs",
+    "test:performance": "node scripts/performance-audit.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -15,7 +20,7 @@
     "@xterm/xterm": "^6.0.0",
     "axios": "^1.20.0",
     "lucide-react": "^1.45.0",
-    "monaco-editor": "^0.56.0",
+    "monaco-editor": "^0.57.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"
@@ -26,7 +31,11 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.79.0",
+    "playwright-core": "^1.63.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
+  },
+  "optionalDependencies": {
+    "lightningcss-win32-x64-msvc": "^1.33.0"
   }
 }

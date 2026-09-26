@@ -19,6 +19,10 @@
 // Essas responsabilidades pertencem a useRolesData.
 // ============================================================
 
+import { UserRound } from "lucide-react";
+import { Button } from "../ui/Button";
+import { TextField } from "../ui/TextField";
+
 
 // ============================================================
 // PROPS
@@ -69,14 +73,14 @@ function RoleCreatePanel({
             <div className="roles-create-header">
 
                 <div className="roles-create-icon">
-                    👤
+                    <UserRound size={18} strokeWidth={1.8} aria-hidden="true" />
                 </div>
 
 
                 <div>
 
                     <h2>
-                        Criar nova Role
+                        Criar novo perfil
                     </h2>
 
                     <p>
@@ -94,13 +98,9 @@ function RoleCreatePanel({
 
             <div className="roles-create-fields">
 
-                <div className="roles-field-group">
-
-                    <label>
-                        Nome da Role
-                    </label>
-
-                    <input
+                <TextField
+                        id="new-role-name"
+                        label="Nome do perfil"
                         type="text"
                         placeholder="Ex.: Administrador"
                         value={roleName}
@@ -110,18 +110,12 @@ function RoleCreatePanel({
                                 event.target.value
                             )
                         }
-                    />
-
-                </div>
+                />
 
 
-                <div className="roles-field-group">
-
-                    <label>
-                        Descrição
-                    </label>
-
-                    <input
+                <TextField
+                        id="new-role-description"
+                        label="Descrição"
                         type="text"
                         placeholder="Descreva a finalidade deste perfil"
                         value={roleDescription}
@@ -131,9 +125,7 @@ function RoleCreatePanel({
                                 event.target.value
                             )
                         }
-                    />
-
-                </div>
+                />
 
             </div>
 
@@ -144,25 +136,22 @@ function RoleCreatePanel({
 
             <div className="roles-create-actions">
 
-                <button
-                    className="roles-secondary-button"
+                <Button
                     onClick={onCancel}
                     disabled={creatingRole}
                 >
                     Cancelar
-                </button>
+                </Button>
 
 
-                <button
-                    className="roles-primary-button"
+                <Button
+                    variant="primary"
                     onClick={onCreate}
-                    disabled={creatingRole}
+                    busy={creatingRole}
+                    loadingLabel="Criando perfil"
                 >
-                    {creatingRole
-                        ? "Criando..."
-                        : "Criar Role"
-                    }
-                </button>
+                    Criar perfil
+                </Button>
 
             </div>
 

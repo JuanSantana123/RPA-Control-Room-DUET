@@ -55,6 +55,13 @@ import { useRobotStudioLibraries } from "../hooks/robot-studio/useRobotStudioLib
 
 import RobotStudioTerminal from
     "../components/robot-studio/RobotStudioTerminal";
+import LibraryActionsModal from "../components/robot-studio/libraries/LibraryActionsModal";
+import AddExistingLibrariesModal from "../components/robot-studio/libraries/AddExistingLibrariesModal";
+import CreateLibraryModal from "../components/robot-studio/libraries/CreateLibraryModal";
+import type { LibraryActionsModalStyles } from "../components/robot-studio/libraries/LibraryActionsModal";
+import type { AddExistingLibrariesModalStyles } from "../components/robot-studio/libraries/AddExistingLibrariesModal";
+import type { CreateLibraryModalStyles } from "../components/robot-studio/libraries/CreateLibraryModal";
+import "./RobotStudio.css";
 // ============================================================
 // DUET CORE - ROBOT STUDIO
 // ============================================================
@@ -348,7 +355,7 @@ function RobotStudio() {
 
                             background:
                                 selected
-                                    ? "#252526"
+                                    ? "var(--studio-surface-raised)"
                                     : "transparent",
                         }}
                     >
@@ -645,7 +652,7 @@ function RobotStudio() {
 
                     background:
                         active
-                            ? "#37373d"
+                            ? "var(--studio-border)"
                             : "transparent",
                 }}
             >
@@ -767,6 +774,7 @@ function RobotStudio() {
     if (!permissionsLoaded) {
         return (
             <div
+                className="robot-studio"
                 style={{
                     ...styles.page,
                     alignItems: "center",
@@ -782,6 +790,7 @@ function RobotStudio() {
     if (!canViewDevelopment) {
         return (
             <div
+                className="robot-studio"
                 style={{
                     ...styles.page,
                     alignItems: "center",
@@ -808,12 +817,12 @@ function RobotStudio() {
 
 
     return (
-        <div style={styles.page}>
+        <div className="robot-studio route-transition" style={styles.page}>
             {/* =================================================
                 TOP BAR
             ================================================= */}
-            <header style={styles.topbar}>
-                <div style={styles.topbarLeft}>
+            <header className="robot-studio__topbar" style={styles.topbar}>
+                <div className="robot-studio__topbar-left" style={styles.topbarLeft}>
                     <button
                         type="button"
                         onClick={() => navigate("/development")}
@@ -835,7 +844,7 @@ function RobotStudio() {
                     </div>
                 </div>
 
-                <div style={styles.topbarRight}>
+                <div className="robot-studio__topbar-right" style={styles.topbarRight}>
 
                     {/* Mostra o estado atual do Checkout. */}
                     <span style={styles.checkoutState}>
@@ -959,8 +968,8 @@ function RobotStudio() {
                             ...styles.saveState,
                             color:
                                 dirty
-                                    ? "#e2c08d"
-                                    : "#9aa0a6",
+                                    ? "var(--studio-warning)"
+                                    : "var(--studio-text-muted)",
                         }}
                     >
                         {dirty
@@ -1008,11 +1017,11 @@ function RobotStudio() {
             {/* =================================================
                 WORKSPACE
             ================================================= */}
-            <div style={styles.workspace}>
+            <div className="robot-studio__workspace" style={styles.workspace}>
                 {/* =============================================
                     EXPLORER
                 ============================================= */}
-                <aside style={styles.sidebar}>
+                <aside className="robot-studio__explorer" style={styles.sidebar}>
                     <div style={styles.sidebarHeader}>
                         <span>EXPLORER</span>
 
@@ -1137,7 +1146,7 @@ function RobotStudio() {
                             ...styles.projectRoot,
                             background:
                                 selectedFolderId === null
-                                    ? "#252526"
+                                    ? "var(--studio-surface-raised)"
                                     : "transparent",
                         }}
                     >
@@ -1168,7 +1177,7 @@ function RobotStudio() {
                 {/* =============================================
                     ÁREA CENTRAL
                 ============================================= */}
-                <main style={styles.center}>
+                <main className="robot-studio__center" style={styles.center}>
                     {/* =========================================
                         ABAS
                     ========================================= */}
@@ -1182,10 +1191,10 @@ function RobotStudio() {
                                     style={{
                                         ...styles.tab,
                                         background: active
-                                            ? "#1e1e1e"
-                                            : "#2d2d30",
+                                            ? "var(--studio-surface)"
+                                            : "var(--studio-surface-hover)",
                                         borderTop: active
-                                            ? "1px solid #4c8bf5"
+                                            ? "1px solid var(--studio-accent)"
                                             : "1px solid transparent",
                                     }}
                                 >
@@ -1229,7 +1238,13 @@ function RobotStudio() {
                                 language={languageFromFilename(activeFile.name)}
                                 value={activeFile.content || ""}
                                 onChange={handleEditorChange}
+                                onMount={(editor) => {
+                                    editor.getDomNode()
+                                        ?.querySelector(".ime-text-area")
+                                        ?.setAttribute("aria-hidden", "true");
+                                }}
                                 options={{
+                                    ariaLabel: "Editor de código",
                                     // O código somente pode ser alterado
                                     // com Development:edit + Checkout próprio.
                                     readOnly: !canWriteWorkspace,
@@ -1282,6 +1297,7 @@ function RobotStudio() {
                                     onClick={() => setShowOutput(false)}
                                     style={styles.smallIconButton}
                                     title="Fechar output"
+                                    aria-label="Fechar output"
                                 >
                                     <X size={14} />
                                 </button>
@@ -1335,663 +1351,50 @@ function RobotStudio() {
                 </main>
             </div>
 
-            {/* =================================================
-                    MODAL - AÇÕES DE BIBLIOTECA
-                ================================================= */}
-                {showLibraryActions && (
-                    <div
-                        style={styles.modalBackdrop}
-                        onMouseDown={(event) => {
-
-                            if (
-                                event.target ===
-                                    event.currentTarget
-                            ) {
-                                setShowLibraryActions(
-                                    false
-                                );
-                            }
-                        }}
-                    >
-                        <div style={styles.modalCard}>
-                            <div style={styles.modalHeader}>
-                                <div>
-                                    <div style={styles.modalEyebrow}>
-                                        PROJECT LIBRARIES
-                                    </div>
-
-                                    <h2 style={styles.modalTitle}>
-                                        Bibliotecas
-                                    </h2>
-
-                                    <p style={styles.modalSubtitle}>
-                                        Crie uma nova Working Copy ou utilize
-                                        bibliotecas que já estão publicadas.
-                                    </p>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setShowLibraryActions(
-                                            false
-                                        )
-                                    }
-                                    style={styles.modalClose}
-                                    aria-label="Fechar"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
-
-
-                            <div style={styles.libraryChoiceGrid}>
-
-                                {/* =============================================
-                                    CRIAR NOVA
-                                ============================================= */}
-                                <button
-                                    type="button"
-                                    onClick={abrirCriacaoBiblioteca}
-                                    disabled={!canCreateLibrary}
-                                    style={{
-                                        ...styles.libraryChoiceButton,
-
-                                        opacity:
-                                            canCreateLibrary
-                                                ? 1
-                                                : 0.45,
-
-                                        cursor:
-                                            canCreateLibrary
-                                                ? "pointer"
-                                                : "not-allowed",
-                                    }}
-                                >
-                                    <div style={styles.libraryChoiceIcon}>
-                                        <Plus size={20} />
-                                    </div>
-
-                                    <div>
-                                        <strong>
-                                            Criar nova biblioteca
-                                        </strong>
-
-                                        <span>
-                                            Cria uma Working Copy nova e isolada
-                                            neste projeto.
-                                        </span>
-
-                                        {!canCreateLibrary && (
-                                            <small>
-                                                Requer Libraries:create
-                                            </small>
-                                        )}
-                                    </div>
-                                </button>
-
-
-                                {/* =============================================
-                                    USAR EXISTENTE
-                                ============================================= */}
-                                <button
-                                    type="button"
-                                    onClick={abrirBibliotecasExistentes}
-                                    disabled={
-                                        !canViewLibraries ||
-                                        !canUseLibrary
-                                    }
-                                    style={{
-                                        ...styles.libraryChoiceButton,
-
-                                        opacity:
-                                            canViewLibraries &&
-                                            canUseLibrary
-                                                ? 1
-                                                : 0.45,
-
-                                        cursor:
-                                            canViewLibraries &&
-                                            canUseLibrary
-                                                ? "pointer"
-                                                : "not-allowed",
-                                    }}
-                                >
-                                    <div style={styles.libraryChoiceIcon}>
-                                        <FolderOpen size={20} />
-                                    </div>
-
-                                    <div>
-                                        <strong>
-                                            Adicionar existentes
-                                        </strong>
-
-                                        <span>
-                                            Selecione uma ou várias bibliotecas
-                                            já publicadas em Produção.
-                                        </span>
-
-                                        {(
-                                            !canViewLibraries ||
-                                            !canUseLibrary
-                                        ) && (
-                                            <small>
-                                                Requer Libraries:view e Libraries:use
-                                            </small>
-                                        )}
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-
-            {/* =================================================
-                    MODAL - ADICIONAR BIBLIOTECAS EXISTENTES
-                ================================================= */}
-                {showAddExistingLibraries && (
-                    <div
-                        style={styles.modalBackdrop}
-                        onMouseDown={(event) => {
-
-                            if (
-                                event.target === event.currentTarget &&
-                                !addingExistingLibraries
-                            ) {
-                                setShowAddExistingLibraries(
-                                    false
-                                );
-                            }
-                        }}
-                    >
-                        <div style={styles.modalCardWide}>
-
-                            {/* =============================================
-                                CABEÇALHO
-                            ============================================= */}
-                            <div style={styles.modalHeader}>
-                                <div>
-                                    <div style={styles.modalEyebrow}>
-                                        PUBLISHED LIBRARIES
-                                    </div>
-
-                                    <h2 style={styles.modalTitle}>
-                                        Adicionar bibliotecas
-                                    </h2>
-
-                                    <p style={styles.modalSubtitle}>
-                                        Selecione uma ou várias bibliotecas.
-                                        A versão vigente em Produção é utilizada
-                                        por padrão.
-                                    </p>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        !addingExistingLibraries &&
-                                        setShowAddExistingLibraries(
-                                            false
-                                        )
-                                    }
-                                    style={styles.modalClose}
-                                    disabled={addingExistingLibraries}
-                                    aria-label="Fechar"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
-
-
-                            {/* =============================================
-                                CONTEÚDO
-                            ============================================= */}
-                            <div style={styles.existingLibrariesBody}>
-
-                                {loadingAvailableLibraries ? (
-
-                                    <div style={styles.libraryEmptyState}>
-                                        Carregando bibliotecas publicadas...
-                                    </div>
-
-                                ) : availableLibraries.length === 0 ? (
-
-                                    <div style={styles.libraryEmptyState}>
-                                        Nenhuma biblioteca publicada está disponível.
-                                    </div>
-
-                                ) : (
-
-                                    <div style={styles.existingLibrariesList}>
-
-                                        {availableLibraries.map(
-                                            (item) => {
-
-                                                const library =
-                                                    item.library;
-
-                                                const selected =
-                                                    selectedExistingLibraries.has(
-                                                        library.id
-                                                    );
-
-                                                const selectedVersionId =
-                                                    selectedExistingVersions[
-                                                        library.id
-                                                    ];
-
-                                                const selectedVersion =
-                                                    item.versions.find(
-                                                        (version) =>
-                                                            version.id ===
-                                                            selectedVersionId
-                                                    );
-
-                                                const usingOldVersion =
-                                                    selected &&
-                                                    selectedVersionId !==
-                                                        item.production_version.id;
-
-
-                                                return (
-                                                    <div
-                                                        key={library.id}
-                                                        style={{
-                                                            ...styles.existingLibraryRow,
-
-                                                            borderColor:
-                                                                selected
-                                                                    ? "#416ea8"
-                                                                    : "#353940",
-
-                                                            background:
-                                                                selected
-                                                                    ? "#202a37"
-                                                                    : "#1b1c1f",
-
-                                                            opacity:
-                                                                item.already_added
-                                                                    ? 0.58
-                                                                    : 1,
-                                                        }}
-                                                    >
-                                                        <div
-                                                            style={
-                                                                styles.existingLibraryMain
-                                                            }
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={
-                                                                    selected ||
-                                                                    item.already_added
-                                                                }
-                                                                disabled={
-                                                                    item.already_added ||
-                                                                    addingExistingLibraries
-                                                                }
-                                                                onChange={() =>
-                                                                    alternarBibliotecaExistente(
-                                                                        library.id
-                                                                    )
-                                                                }
-                                                                style={
-                                                                    styles.libraryCheckbox
-                                                                }
-                                                            />
-
-                                                            <div
-                                                                style={
-                                                                    styles.existingLibraryInfo
-                                                                }
-                                                            >
-                                                                <div
-                                                                    style={
-                                                                        styles.existingLibraryNameRow
-                                                                    }
-                                                                >
-                                                                    <strong>
-                                                                        {library.name}
-                                                                    </strong>
-
-                                                                    <code>
-                                                                        {library.import_name}
-                                                                    </code>
-
-                                                                    {item.already_added && (
-                                                                        <span
-                                                                            style={
-                                                                                styles.libraryAlreadyBadge
-                                                                            }
-                                                                        >
-                                                                            JÁ NO PROJETO
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-
-                                                                {library.description && (
-                                                                    <span
-                                                                        style={
-                                                                            styles.existingLibraryDescription
-                                                                        }
-                                                                    >
-                                                                        {library.description}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-
-                                                        <div
-                                                            style={
-                                                                styles.existingLibraryVersionArea
-                                                            }
-                                                        >
-                                                            <label>
-                                                                Versão
-                                                            </label>
-
-                                                            <select
-                                                                value={
-                                                                    selectedVersionId || ""
-                                                                }
-                                                                disabled={
-                                                                    !selected ||
-                                                                    item.already_added ||
-                                                                    addingExistingLibraries
-                                                                }
-                                                                onChange={(event) =>
-                                                                    selecionarVersaoBibliotecaExistente(
-                                                                        library.id,
-                                                                        Number(
-                                                                            event.target.value
-                                                                        )
-                                                                    )
-                                                                }
-                                                                style={
-                                                                    styles.libraryVersionSelect
-                                                                }
-                                                            >
-                                                                {item.versions.map(
-                                                                    (version) => (
-                                                                        <option
-                                                                            key={version.id}
-                                                                            value={version.id}
-                                                                        >
-                                                                            {version.version}
-                                                                            {version.is_production
-                                                                                ? " • PRODUÇÃO"
-                                                                                : " • anterior"}
-                                                                        </option>
-                                                                    )
-                                                                )}
-                                                            </select>
-                                                        </div>
-
-
-                                                        {selected && !usingOldVersion && (
-                                                            <div
-                                                                style={
-                                                                    styles.productionVersionInfo
-                                                                }
-                                                            >
-                                                                Produção atual:{" "}
-                                                                <strong>
-                                                                    {
-                                                                        item.production_version
-                                                                            .version
-                                                                    }
-                                                                </strong>
-                                                            </div>
-                                                        )}
-
-
-                                                        {usingOldVersion && (
-                                                            <div
-                                                                style={
-                                                                    styles.oldVersionWarning
-                                                                }
-                                                            >
-                                                                <strong>
-                                                                    Atenção:
-                                                                </strong>{" "}
-                                                                você selecionou uma versão
-                                                                anterior.
-
-                                                                <span>
-                                                                    Produção atual:{" "}
-                                                                    {
-                                                                        item.production_version
-                                                                            .version
-                                                                    }
-                                                                    {" · "}
-                                                                    Selecionada:{" "}
-                                                                    {
-                                                                        selectedVersion?.version
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            }
-                                        )}
-                                    </div>
-                                )}
-
-
-                                {existingLibraryError && (
-                                    <div style={styles.modalError}>
-                                        {existingLibraryError}
-                                    </div>
-                                )}
-                            </div>
-
-
-                            {/* =============================================
-                                RODAPÉ
-                            ============================================= */}
-                            <div style={styles.modalFooter}>
-
-                                <div style={styles.librarySelectionCount}>
-                                    {
-                                        selectedExistingLibraries.size
-                                    }{" "}
-                                    selecionada(s)
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setShowAddExistingLibraries(
-                                            false
-                                        )
-                                    }
-                                    disabled={addingExistingLibraries}
-                                    style={styles.modalSecondaryButton}
-                                >
-                                    Cancelar
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={adicionarBibliotecasExistentes}
-                                    disabled={
-                                        addingExistingLibraries ||
-                                        selectedExistingLibraries.size === 0
-                                    }
-                                    style={{
-                                        ...styles.modalPrimaryButton,
-
-                                        opacity:
-                                            addingExistingLibraries ||
-                                            selectedExistingLibraries.size === 0
-                                                ? 0.55
-                                                : 1,
-                                    }}
-                                >
-                                    {addingExistingLibraries
-                                        ? "Adicionando..."
-                                        : selectedExistingLibraries.size === 1
-                                            ? "Adicionar biblioteca"
-                                            : `Adicionar ${selectedExistingLibraries.size} bibliotecas`}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-            {/* =================================================
-                MODAL - NOVA BIBLIOTECA
-            ================================================= */}
-            {showCreateLibrary && (
-                <div
-                    style={styles.modalBackdrop}
-                    onMouseDown={(event) => {
-                        if (
-                            event.target === event.currentTarget &&
-                            !creatingLibrary
-                        ) {
-                            setShowCreateLibrary(false);
-                        }
-                    }}
-                >
-                    <div style={styles.modalCard}>
-                        <div style={styles.modalHeader}>
-                            <div>
-                                <div style={styles.modalEyebrow}>
-                                    REUSABLE LIBRARY
-                                </div>
-                                <h2 style={styles.modalTitle}>
-                                    Nova biblioteca
-                                </h2>
-                                <p style={styles.modalSubtitle}>
-                                    Crie uma Working Copy isolada neste projeto.
-                                    Ela só aparecerá em Produção após o Release.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    !creatingLibrary &&
-                                    setShowCreateLibrary(false)
-                                }
-                                style={styles.modalClose}
-                                disabled={creatingLibrary}
-                                aria-label="Fechar"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        <div style={styles.modalBody}>
-                            <label style={styles.modalField}>
-                                <span>Nome</span>
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    value={libraryName}
-                                    placeholder="Ex.: Financeiro Core"
-                                    onChange={(event) => {
-                                        const value =
-                                            event.target.value;
-
-                                        setLibraryName(value);
-                                        setLibraryCreateError("");
-
-                                        if (!libraryImportTouched) {
-                                            setLibraryImportName(
-                                                suggestImportName(value)
-                                            );
-                                        }
-                                    }}
-                                    style={styles.modalInput}
-                                />
-                            </label>
-
-                            <label style={styles.modalField}>
-                                <span>import_name</span>
-                                <input
-                                    type="text"
-                                    value={libraryImportName}
-                                    placeholder="financeiro_core"
-                                    onChange={(event) => {
-                                        setLibraryImportTouched(true);
-                                        setLibraryImportName(
-                                            event.target.value
-                                        );
-                                        setLibraryCreateError("");
-                                    }}
-                                    style={styles.modalInput}
-                                />
-                                <small style={styles.modalHint}>
-                                    Namespace Python usado em imports, por exemplo:
-                                    from financeiro_core import ...
-                                </small>
-                            </label>
-
-                            <label style={styles.modalField}>
-                                <span>Descrição <em>opcional</em></span>
-                                <textarea
-                                    value={libraryDescription}
-                                    placeholder="Responsabilidade desta biblioteca..."
-                                    onChange={(event) =>
-                                        setLibraryDescription(
-                                            event.target.value
-                                        )
-                                    }
-                                    style={styles.modalTextarea}
-                                />
-                            </label>
-
-                            {libraryCreateError && (
-                                <div style={styles.modalError}>
-                                    {libraryCreateError}
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={styles.modalFooter}>
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setShowCreateLibrary(false)
-                                }
-                                disabled={creatingLibrary}
-                                style={styles.modalSecondaryButton}
-                            >
-                                Cancelar
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={criarBibliotecaProjeto}
-                                disabled={
-                                    creatingLibrary ||
-                                    !libraryName.trim() ||
-                                    !libraryImportName.trim()
-                                }
-                                style={{
-                                    ...styles.modalPrimaryButton,
-                                    opacity:
-                                        creatingLibrary ||
-                                        !libraryName.trim() ||
-                                        !libraryImportName.trim()
-                                            ? 0.55
-                                            : 1,
-                                }}
-                            >
-                                {creatingLibrary
-                                    ? "Criando..."
-                                    : "Criar biblioteca"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+            <LibraryActionsModal
+                open={showLibraryActions}
+                canCreateLibrary={canCreateLibrary}
+                canViewLibraries={canViewLibraries}
+                canUseLibrary={canUseLibrary}
+                styles={styles}
+                onClose={() => setShowLibraryActions(false)}
+                onCreateLibrary={abrirCriacaoBiblioteca}
+                onAddExistingLibraries={abrirBibliotecasExistentes}
+            />
+
+            <AddExistingLibrariesModal
+                open={showAddExistingLibraries}
+                availableLibraries={availableLibraries}
+                selectedExistingLibraries={selectedExistingLibraries}
+                selectedExistingVersions={selectedExistingVersions}
+                loadingAvailableLibraries={loadingAvailableLibraries}
+                addingExistingLibraries={addingExistingLibraries}
+                existingLibraryError={existingLibraryError}
+                styles={styles}
+                onClose={() => setShowAddExistingLibraries(false)}
+                onToggleLibrary={alternarBibliotecaExistente}
+                onSelectVersion={selecionarVersaoBibliotecaExistente}
+                onAddLibraries={adicionarBibliotecasExistentes}
+            />
+
+            <CreateLibraryModal
+                open={showCreateLibrary}
+                libraryName={libraryName}
+                libraryImportName={libraryImportName}
+                libraryImportTouched={libraryImportTouched}
+                libraryDescription={libraryDescription}
+                libraryCreateError={libraryCreateError}
+                creatingLibrary={creatingLibrary}
+                styles={styles}
+                onClose={() => setShowCreateLibrary(false)}
+                onLibraryNameChange={setLibraryName}
+                onLibraryImportNameChange={setLibraryImportName}
+                onLibraryImportTouchedChange={setLibraryImportTouched}
+                onLibraryDescriptionChange={setLibraryDescription}
+                onClearError={() => setLibraryCreateError("")}
+                onSuggestImportName={suggestImportName}
+                onCreateLibrary={criarBibliotecaProjeto}
+            />
             {/* =================================================
                 STATUS BAR
             ================================================= */}
@@ -2016,15 +1419,20 @@ function RobotStudio() {
 // Depois podemos mover tudo para RobotStudio.css.
 // ============================================================
 
-const styles: Record<string, CSSProperties> = {
+type RobotStudioStyles = Record<string, CSSProperties>
+    & LibraryActionsModalStyles
+    & AddExistingLibrariesModalStyles
+    & CreateLibraryModalStyles;
+
+const styles: RobotStudioStyles = {
     page: {
         width: "100%",
         height: "100vh",
         minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        background: "#181818",
-        color: "#d4d4d4",
+        background: "var(--studio-canvas)",
+        color: "var(--studio-text)",
         overflow: "hidden",
         fontFamily:
             "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -2037,8 +1445,8 @@ const styles: Record<string, CSSProperties> = {
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 16px",
-        background: "#1f1f1f",
-        borderBottom: "1px solid #2f2f2f",
+        background: "var(--studio-surface)",
+        borderBottom: "1px solid var(--studio-surface-hover)",
         boxSizing: "border-box",
     },
 
@@ -2058,7 +1466,7 @@ const styles: Record<string, CSSProperties> = {
     eyebrow: {
         fontSize: 10,
         letterSpacing: "0.12em",
-        color: "#8b949e",
+        color: "var(--studio-text-muted)",
         fontWeight: 700,
     },
 
@@ -2066,7 +1474,7 @@ const styles: Record<string, CSSProperties> = {
         marginTop: 2,
         fontSize: 15,
         fontWeight: 650,
-        color: "#f1f3f5",
+        color: "var(--studio-text)",
         maxWidth: 500,
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -2077,12 +1485,12 @@ const styles: Record<string, CSSProperties> = {
     checkoutState: {
         height: 26,
         padding: "0 9px",
-        border: "1px solid #3a3a3a",
+        border: "1px solid var(--studio-border)",
         borderRadius: 5,
         display: "inline-flex",
         alignItems: "center",
-        color: "#b8b8b8",
-        background: "#252526",
+        color: "var(--studio-text-secondary)",
+        background: "var(--studio-surface-raised)",
         fontSize: 11,
         fontWeight: 600,
         whiteSpace: "nowrap",
@@ -2093,10 +1501,10 @@ const styles: Record<string, CSSProperties> = {
     checkoutButton: {
         height: 30,
         padding: "0 11px",
-        border: "1px solid #3677d8",
+        border: "1px solid var(--studio-accent)",
         borderRadius: 5,
-        background: "#2f6fce",
-        color: "#ffffff",
+        background: "var(--studio-accent)",
+        color: "var(--studio-text-on-accent)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2109,10 +1517,10 @@ const styles: Record<string, CSSProperties> = {
     checkinButton: {
         height: 30,
         padding: "0 11px",
-        border: "1px solid #555555",
+        border: "1px solid var(--studio-border-strong)",
         borderRadius: 5,
-        background: "#303030",
-        color: "#e0e0e0",
+        background: "var(--studio-surface-hover)",
+        color: "var(--studio-text)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2125,10 +1533,10 @@ const styles: Record<string, CSSProperties> = {
     forceReleaseButton: {
         height: 30,
         padding: "0 11px",
-        border: "1px solid #7f4b4b",
+        border: "1px solid color-mix(in srgb, var(--studio-danger) 45%, var(--studio-border))",
         borderRadius: 5,
-        background: "#3a2525",
-        color: "#f0caca",
+        background: "var(--studio-danger-soft)",
+        color: "var(--studio-danger)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2140,10 +1548,10 @@ const styles: Record<string, CSSProperties> = {
     secondaryAccessButton: {
         height: 34,
         padding: "0 13px",
-        border: "1px solid #555555",
+        border: "1px solid var(--studio-border-strong)",
         borderRadius: 6,
-        background: "#303030",
-        color: "#e0e0e0",
+        background: "var(--studio-surface-hover)",
+        color: "var(--studio-text)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2155,10 +1563,10 @@ const styles: Record<string, CSSProperties> = {
     iconButton: {
         width: 34,
         height: 34,
-        border: "1px solid #3a3a3a",
+        border: "1px solid var(--studio-border)",
         borderRadius: 6,
-        background: "#252526",
-        color: "#d4d4d4",
+        background: "var(--studio-surface-raised)",
+        color: "var(--studio-text)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2168,10 +1576,10 @@ const styles: Record<string, CSSProperties> = {
     primaryButton: {
         height: 34,
         padding: "0 13px",
-        border: "1px solid #3677d8",
+        border: "1px solid var(--studio-accent)",
         borderRadius: 6,
-        background: "#2f6fce",
-        color: "#ffffff",
+        background: "var(--studio-accent)",
+        color: "var(--studio-text-on-accent)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2199,8 +1607,8 @@ const styles: Record<string, CSSProperties> = {
         minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        background: "#202020",
-        borderRight: "1px solid #2d2d2d",
+        background: "var(--studio-surface)",
+        borderRight: "1px solid var(--studio-surface-hover)",
     },
 
     sidebarHeader: {
@@ -2210,7 +1618,7 @@ const styles: Record<string, CSSProperties> = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        color: "#a9a9a9",
+        color: "var(--studio-text-secondary)",
         fontSize: 11,
         fontWeight: 700,
         letterSpacing: "0.08em",
@@ -2229,7 +1637,7 @@ const styles: Record<string, CSSProperties> = {
         border: "none",
         borderRadius: 4,
         background: "transparent",
-        color: "#c4c4c4",
+        color: "var(--studio-text-secondary)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2239,10 +1647,10 @@ const styles: Record<string, CSSProperties> = {
     libraryCreateButton: {
         height: 24,
         padding: "0 7px",
-        border: "1px solid #3f4f67",
+        border: "1px solid var(--studio-accent-soft)",
         borderRadius: 5,
-        background: "#263244",
-        color: "#d7e7ff",
+        background: "var(--studio-accent-soft)",
+        color: "color-mix(in srgb, var(--studio-accent) 28%, var(--studio-text))",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2257,7 +1665,7 @@ const styles: Record<string, CSSProperties> = {
         height: 30,
         padding: "0 8px",
         border: "none",
-        color: "#d9d9d9",
+        color: "var(--studio-text)",
         display: "flex",
         alignItems: "center",
         gap: 6,
@@ -2289,7 +1697,7 @@ const styles: Record<string, CSSProperties> = {
         height: "100%",
         border: "none",
         background: "transparent",
-        color: "#cccccc",
+        color: "var(--studio-text-secondary)",
         display: "flex",
         alignItems: "center",
         gap: 6,
@@ -2317,7 +1725,7 @@ const styles: Record<string, CSSProperties> = {
         border: "none",
         borderRadius: 4,
         background: "transparent",
-        color: "#a8a8a8",
+        color: "var(--studio-text-secondary)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2351,12 +1759,12 @@ const styles: Record<string, CSSProperties> = {
     sidebarFooter: {
         minHeight: 42,
         padding: "8px 12px",
-        borderTop: "1px solid #2d2d2d",
+        borderTop: "1px solid var(--studio-surface-hover)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         gap: 2,
-        color: "#8f8f8f",
+        color: "var(--studio-text-muted)",
         fontSize: 10,
     },
 
@@ -2366,7 +1774,7 @@ const styles: Record<string, CSSProperties> = {
         minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        background: "#1e1e1e",
+        background: "var(--studio-surface)",
     },
 
     tabs: {
@@ -2376,8 +1784,8 @@ const styles: Record<string, CSSProperties> = {
         alignItems: "stretch",
         overflowX: "auto",
         overflowY: "hidden",
-        background: "#252526",
-        borderBottom: "1px solid #2a2a2a",
+        background: "var(--studio-surface-raised)",
+        borderBottom: "1px solid var(--studio-surface-raised)",
     },
 
     tab: {
@@ -2386,7 +1794,7 @@ const styles: Record<string, CSSProperties> = {
         height: 35,
         display: "flex",
         alignItems: "center",
-        borderRight: "1px solid #202020",
+        borderRight: "1px solid var(--studio-surface)",
         boxSizing: "border-box",
     },
 
@@ -2397,7 +1805,7 @@ const styles: Record<string, CSSProperties> = {
         padding: "0 7px 0 10px",
         border: "none",
         background: "transparent",
-        color: "#cccccc",
+        color: "var(--studio-text-secondary)",
         display: "flex",
         alignItems: "center",
         gap: 7,
@@ -2412,7 +1820,7 @@ const styles: Record<string, CSSProperties> = {
         border: "none",
         borderRadius: 4,
         background: "transparent",
-        color: "#9b9b9b",
+        color: "var(--studio-text-muted)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2423,7 +1831,7 @@ const styles: Record<string, CSSProperties> = {
     dirtyDot: {
         marginLeft: "auto",
         fontSize: 8,
-        color: "#c7c7c7",
+        color: "var(--studio-text-secondary)",
     },
 
     editorArea: {
@@ -2438,7 +1846,7 @@ const styles: Record<string, CSSProperties> = {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        color: "#777777",
+        color: "var(--studio-text-muted)",
         textAlign: "center",
         gap: 8,
     },
@@ -2448,8 +1856,8 @@ const styles: Record<string, CSSProperties> = {
         minHeight: 110,
         display: "flex",
         flexDirection: "column",
-        background: "#181818",
-        borderTop: "1px solid #303030",
+        background: "var(--studio-canvas)",
+        borderTop: "1px solid var(--studio-surface-hover)",
     },
 
     outputHeader: {
@@ -2459,7 +1867,7 @@ const styles: Record<string, CSSProperties> = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        borderBottom: "1px solid #242424",
+        borderBottom: "1px solid var(--studio-surface)",
     },
 
     outputTitle: {
@@ -2468,7 +1876,7 @@ const styles: Record<string, CSSProperties> = {
         gap: 7,
         fontSize: 11,
         fontWeight: 700,
-        color: "#bcbcbc",
+        color: "var(--studio-text-secondary)",
         letterSpacing: "0.05em",
     },
 
@@ -2480,16 +1888,16 @@ const styles: Record<string, CSSProperties> = {
         fontFamily: "Consolas, 'Courier New', monospace",
         fontSize: 12,
         lineHeight: 1.55,
-        color: "#c8c8c8",
+        color: "var(--studio-text-secondary)",
     },
 
     outputCollapsed: {
         height: 30,
         minHeight: 30,
         border: "none",
-        borderTop: "1px solid #303030",
-        background: "#181818",
-        color: "#bcbcbc",
+        borderTop: "1px solid var(--studio-surface-hover)",
+        background: "var(--studio-canvas)",
+        color: "var(--studio-text-secondary)",
         display: "flex",
         alignItems: "center",
         gap: 7,
@@ -2507,16 +1915,16 @@ const styles: Record<string, CSSProperties> = {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
-        background: "rgba(0, 0, 0, 0.62)",
+        background: "var(--studio-overlay)",
         backdropFilter: "blur(4px)",
     },
 
     modalCard: {
         width: "min(520px, calc(100vw - 40px))",
-        border: "1px solid #3a3f47",
+        border: "1px solid var(--studio-border)",
         borderRadius: 12,
-        background: "#202124",
-        boxShadow: "0 24px 70px rgba(0, 0, 0, 0.48)",
+        background: "var(--studio-surface)",
+        boxShadow: "var(--studio-shadow-lg)",
         overflow: "hidden",
     },
 
@@ -2526,12 +1934,12 @@ const styles: Record<string, CSSProperties> = {
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 18,
-        borderBottom: "1px solid #30343a",
+        borderBottom: "1px solid var(--studio-surface-hover)",
     },
 
     modalEyebrow: {
         marginBottom: 6,
-        color: "#79aef8",
+        color: "var(--studio-accent-hover)",
         fontSize: 10,
         fontWeight: 800,
         letterSpacing: "0.12em",
@@ -2539,14 +1947,14 @@ const styles: Record<string, CSSProperties> = {
 
     modalTitle: {
         margin: 0,
-        color: "#f3f5f7",
+        color: "var(--studio-text)",
         fontSize: 18,
         fontWeight: 700,
     },
 
     modalSubtitle: {
         margin: "7px 0 0",
-        color: "#9fa6b0",
+        color: "var(--studio-text-muted)",
         fontSize: 12,
         lineHeight: 1.55,
     },
@@ -2555,10 +1963,10 @@ const styles: Record<string, CSSProperties> = {
         width: 30,
         height: 30,
         flexShrink: 0,
-        border: "1px solid #3a3a3a",
+        border: "1px solid var(--studio-border)",
         borderRadius: 6,
-        background: "#292a2d",
-        color: "#bfc3c8",
+        background: "var(--studio-surface-raised)",
+        color: "var(--studio-text-secondary)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2576,7 +1984,7 @@ const styles: Record<string, CSSProperties> = {
         display: "flex",
         flexDirection: "column",
         gap: 7,
-        color: "#c8ccd1",
+        color: "var(--studio-text-secondary)",
         fontSize: 12,
         fontWeight: 650,
     },
@@ -2585,11 +1993,11 @@ const styles: Record<string, CSSProperties> = {
         width: "100%",
         height: 38,
         padding: "0 11px",
-        border: "1px solid #3d424a",
+        border: "1px solid var(--studio-border)",
         borderRadius: 7,
         outline: "none",
-        background: "#18191b",
-        color: "#f1f3f5",
+        background: "var(--studio-canvas)",
+        color: "var(--studio-text)",
         fontSize: 13,
         boxSizing: "border-box",
     },
@@ -2599,11 +2007,11 @@ const styles: Record<string, CSSProperties> = {
         minHeight: 82,
         resize: "vertical",
         padding: "10px 11px",
-        border: "1px solid #3d424a",
+        border: "1px solid var(--studio-border)",
         borderRadius: 7,
         outline: "none",
-        background: "#18191b",
-        color: "#f1f3f5",
+        background: "var(--studio-canvas)",
+        color: "var(--studio-text)",
         fontSize: 13,
         lineHeight: 1.5,
         boxSizing: "border-box",
@@ -2611,7 +2019,7 @@ const styles: Record<string, CSSProperties> = {
     },
 
     modalHint: {
-        color: "#7f8792",
+        color: "var(--studio-text-muted)",
         fontSize: 10.5,
         fontWeight: 500,
         lineHeight: 1.45,
@@ -2619,10 +2027,10 @@ const styles: Record<string, CSSProperties> = {
 
     modalError: {
         padding: "9px 11px",
-        border: "1px solid #6f3b3b",
+        border: "1px solid color-mix(in srgb, var(--studio-danger) 45%, var(--studio-border))",
         borderRadius: 7,
-        background: "#352323",
-        color: "#f0b8b8",
+        background: "var(--studio-danger-soft)",
+        color: "var(--studio-danger)",
         fontSize: 11.5,
         lineHeight: 1.45,
     },
@@ -2632,17 +2040,17 @@ const styles: Record<string, CSSProperties> = {
         display: "flex",
         justifyContent: "flex-end",
         gap: 9,
-        borderTop: "1px solid #30343a",
-        background: "#1c1d1f",
+        borderTop: "1px solid var(--studio-surface-hover)",
+        background: "var(--studio-canvas)",
     },
 
     modalSecondaryButton: {
         height: 34,
         padding: "0 13px",
-        border: "1px solid #474b52",
+        border: "1px solid var(--studio-border-strong)",
         borderRadius: 6,
-        background: "#2a2c2f",
-        color: "#d2d5d8",
+        background: "var(--studio-surface-raised)",
+        color: "var(--studio-text)",
         fontSize: 12,
         fontWeight: 650,
         cursor: "pointer",
@@ -2651,10 +2059,10 @@ const styles: Record<string, CSSProperties> = {
     modalPrimaryButton: {
         height: 34,
         padding: "0 14px",
-        border: "1px solid #3e7edc",
+        border: "1px solid var(--studio-accent)",
         borderRadius: 6,
-        background: "#2f6fce",
-        color: "#ffffff",
+        background: "var(--studio-accent)",
+        color: "var(--studio-text-on-accent)",
         fontSize: 12,
         fontWeight: 700,
         cursor: "pointer",
@@ -2669,10 +2077,10 @@ const styles: Record<string, CSSProperties> = {
         maxHeight: "min(760px, calc(100vh - 48px))",
         display: "flex",
         flexDirection: "column",
-        border: "1px solid #3a3f47",
+        border: "1px solid var(--studio-border)",
         borderRadius: 12,
-        background: "#202124",
-        boxShadow: "0 24px 70px rgba(0, 0, 0, 0.48)",
+        background: "var(--studio-surface)",
+        boxShadow: "var(--studio-shadow-lg)",
         overflow: "hidden",
     },
 
@@ -2689,10 +2097,10 @@ const styles: Record<string, CSSProperties> = {
     libraryChoiceButton: {
         minHeight: 124,
         padding: 16,
-        border: "1px solid #3a4048",
+        border: "1px solid var(--studio-border)",
         borderRadius: 10,
-        background: "#1b1c1f",
-        color: "#e5e7eb",
+        background: "var(--studio-canvas)",
+        color: "var(--studio-text)",
         display: "flex",
         alignItems: "flex-start",
         gap: 13,
@@ -2708,8 +2116,8 @@ const styles: Record<string, CSSProperties> = {
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#25354b",
-        color: "#8dbdff",
+        background: "var(--studio-accent-soft)",
+        color: "var(--studio-accent-hover)",
     },
 
 
@@ -2735,7 +2143,7 @@ const styles: Record<string, CSSProperties> = {
 
     existingLibraryRow: {
         padding: 13,
-        border: "1px solid #353940",
+        border: "1px solid var(--studio-border)",
         borderRadius: 9,
         display: "flex",
         flexDirection: "column",
@@ -2756,7 +2164,7 @@ const styles: Record<string, CSSProperties> = {
         width: 16,
         height: 16,
         marginTop: 3,
-        accentColor: "#2f6fce",
+        accentColor: "var(--studio-accent)",
         cursor: "pointer",
     },
 
@@ -2775,13 +2183,13 @@ const styles: Record<string, CSSProperties> = {
         alignItems: "center",
         flexWrap: "wrap",
         gap: 8,
-        color: "#edf0f3",
+        color: "var(--studio-text)",
         fontSize: 13,
     },
 
 
     existingLibraryDescription: {
-        color: "#8f97a2",
+        color: "var(--studio-text-muted)",
         fontSize: 11,
         lineHeight: 1.4,
     },
@@ -2789,9 +2197,9 @@ const styles: Record<string, CSSProperties> = {
 
     libraryAlreadyBadge: {
         padding: "2px 6px",
-        border: "1px solid #48505b",
+        border: "1px solid var(--studio-border-strong)",
         borderRadius: 999,
-        color: "#abb2bc",
+        color: "var(--studio-text-secondary)",
         fontSize: 9,
         fontWeight: 800,
         letterSpacing: "0.05em",
@@ -2804,7 +2212,7 @@ const styles: Record<string, CSSProperties> = {
         gridTemplateColumns: "70px minmax(180px, 1fr)",
         alignItems: "center",
         gap: 10,
-        color: "#aeb4bd",
+        color: "var(--studio-text-secondary)",
         fontSize: 11,
     },
 
@@ -2813,18 +2221,18 @@ const styles: Record<string, CSSProperties> = {
         width: "100%",
         height: 34,
         padding: "0 9px",
-        border: "1px solid #41464f",
+        border: "1px solid var(--studio-border-strong)",
         borderRadius: 6,
         outline: "none",
-        background: "#17181a",
-        color: "#e2e5e9",
+        background: "var(--studio-canvas)",
+        color: "var(--studio-text)",
         fontSize: 12,
     },
 
 
     productionVersionInfo: {
         marginLeft: 27,
-        color: "#7f9fc7",
+        color: "var(--studio-accent-hover)",
         fontSize: 10.5,
     },
 
@@ -2832,13 +2240,13 @@ const styles: Record<string, CSSProperties> = {
     oldVersionWarning: {
         marginLeft: 27,
         padding: "8px 10px",
-        border: "1px solid #725d32",
+        border: "1px solid color-mix(in srgb, var(--studio-warning) 45%, var(--studio-border))",
         borderRadius: 6,
         display: "flex",
         flexDirection: "column",
         gap: 3,
-        background: "#332c1c",
-        color: "#e5c882",
+        background: "var(--studio-warning-soft)",
+        color: "var(--studio-warning)",
         fontSize: 10.5,
         lineHeight: 1.45,
     },
@@ -2849,9 +2257,9 @@ const styles: Record<string, CSSProperties> = {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        border: "1px dashed #383d44",
+        border: "1px dashed var(--studio-border)",
         borderRadius: 8,
-        color: "#8d949e",
+        color: "var(--studio-text-muted)",
         fontSize: 12,
     },
 
@@ -2860,7 +2268,7 @@ const styles: Record<string, CSSProperties> = {
         marginRight: "auto",
         display: "flex",
         alignItems: "center",
-        color: "#89919c",
+        color: "var(--studio-text-muted)",
         fontSize: 11,
     },
     statusBar: {
@@ -2870,8 +2278,8 @@ const styles: Record<string, CSSProperties> = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#1f5f9f",
-        color: "#ffffff",
+        background: "color-mix(in srgb, var(--studio-accent) 72%, var(--studio-canvas))",
+        color: "var(--studio-text-on-accent)",
         fontSize: 11,
         boxSizing: "border-box",
     },

@@ -42,6 +42,8 @@ import type {
     Agent,
     AgentEnvironment,
 } from "../../types/agents";
+import PremiumSelect from "../ui/PremiumSelect";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -370,7 +372,7 @@ function AgentCard({
                             Resolução
                         </label>
 
-                        <select
+                        <PremiumSelect
                             value={selectedResolution}
                             onChange={(event) => {
                                 setSelectedResolution(
@@ -396,7 +398,7 @@ function AgentCard({
                                 }
                             )}
 
-                        </select>
+                        </PremiumSelect>
 
                     </div>
 
@@ -407,7 +409,7 @@ function AgentCard({
                             Escala
                         </label>
 
-                        <select
+                        <PremiumSelect
                             value={selectedScale}
                             onChange={(event) => {
                                 setSelectedScale(
@@ -436,27 +438,26 @@ function AgentCard({
                             <option value={200}>
                                 200%
                             </option>
-                        </select>
+                        </PremiumSelect>
 
                     </div>
 
 
                     <div className="agent-display-editor-actions">
 
-                        <button
-                            type="button"
-                            className="secondary-button"
+                        <Button
+                            size="sm"
                             onClick={() => {
                                 setEditingDisplay(false);
                             }}
                         >
                             Cancelar
-                        </button>
+                        </Button>
 
 
-                        <button
-                            type="button"
-                            className="primary-button"
+                        <Button
+                            size="sm"
+                            variant="primary"
                             disabled={
                                 !selectedResolution
                             }
@@ -469,6 +470,15 @@ function AgentCard({
                                     selectedResolution
                                         .split("x")
                                         .map(Number);
+
+                                if (
+                                    width === undefined ||
+                                    height === undefined ||
+                                    !Number.isFinite(width) ||
+                                    !Number.isFinite(height)
+                                ) {
+                                    return;
+                                }
 
 
                                 await onDisplayChange(
@@ -483,7 +493,7 @@ function AgentCard({
                             }}
                         >
                             Salvar display
-                        </button>
+                        </Button>
 
                     </div>
 
@@ -521,9 +531,8 @@ function AgentCard({
                         e dispara as duas ações.
                         ================================================== */}
 
-                    <button
-                        type="button"
-                        className="secondary-button"
+                    <Button
+                        size="sm"
                         onClick={() => {
 
                             const novoAmbiente:
@@ -556,7 +565,7 @@ function AgentCard({
                         }}
                     >
                         Alterar ambiente
-                    </button>
+                    </Button>
                     
 
 
@@ -564,9 +573,8 @@ function AgentCard({
                         ALTERAR DISPLAY
                         ================================================== */}
 
-                    <button
-                        type="button"
-                        className="secondary-button"
+                    <Button
+                        size="sm"
                         onClick={() => {
 
                             // Sempre reabre o editor usando os valores
@@ -592,15 +600,14 @@ function AgentCard({
 
                         Alterar display
 
-                    </button>
+                    </Button>
 
                     {/* ==================================================
                         DOWNLOAD
                         ================================================== */}
 
-                    <button
-                        type="button"
-                        className="secondary-button"
+                    <Button
+                        size="sm"
                         onClick={() => {
                             onDownload(
                                 agent.agent_id
@@ -615,16 +622,16 @@ function AgentCard({
 
                         Baixar
 
-                    </button>
+                    </Button>
 
 
                     {/* ==================================================
                         EXCLUSÃO
                         ================================================== */}
 
-                    <button
-                        type="button"
-                        className="danger-button"
+                    <Button
+                        size="sm"
+                        variant="danger"
                         onClick={() => {
                             onDelete(
                                 agent.agent_id,
@@ -640,7 +647,7 @@ function AgentCard({
 
                         Excluir
 
-                    </button>
+                    </Button>
 
                 </div>
 

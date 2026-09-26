@@ -51,6 +51,9 @@ frontend/node_modules/
 # Build gerado pelo Vite.
 frontend/dist/
 
+# Evidencias, capturas e logs locais de auditoria.
+.e2e/
+
 # ============================================================
 # Arquivos temporários
 # ============================================================

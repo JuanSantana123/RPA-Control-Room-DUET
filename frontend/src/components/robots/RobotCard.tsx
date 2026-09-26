@@ -46,6 +46,7 @@ import type {
 } from "../../types/robots";
 
 import RobotLibrariesSnapshot from "./RobotLibrariesSnapshot";
+import { Button } from "../ui/Button";
 
 
 interface RobotCardProps {
@@ -136,6 +137,8 @@ function RobotCard({
                     className="robot-card-menu"
                     title="Opções do robô"
                     aria-label="Opções do robô"
+                    aria-expanded={openRobotMenu === robot.id}
+                    aria-controls={`robot-menu-${robot.id}`}
                     onClick={(event) => {
                         event.stopPropagation();
 
@@ -149,13 +152,19 @@ function RobotCard({
                     <MoreVertical
                         size={17}
                         strokeWidth={1.8}
+                        aria-hidden="true"
                     />
                 </button>
 
 
                 {/* Menu contextual do Robot. */}
                 {openRobotMenu === robot.id && (
-                    <div className="robot-card-context-menu">
+                    <div
+                        id={`robot-menu-${robot.id}`}
+                        className="robot-card-context-menu"
+                        role="group"
+                        aria-label={`Opções de ${robot.name}`}
+                    >
 
                         {/* Baixa o arquivo da versão atual. */}
                         <button
@@ -272,9 +281,8 @@ function RobotCard({
             <div className="robot-card-actions">
 
                 {/* Cria uma nova versão editável a partir do Robot. */}
-                <button
-                    type="button"
-                    className="secondary-button"
+                <Button
+                    size="sm"
                     onClick={() =>
                         onCreateNewVersion(robot)
                     }
@@ -285,30 +293,26 @@ function RobotCard({
                     />
 
                     Nova versão
-                </button>
+                </Button>
 
 
                 {/* Executa o Robot no Agent selecionado. */}
-                <button
-                    type="button"
-                    className="secondary-button"
+                <Button
+                    size="sm"
                     onClick={() =>
                         onExecuteRobot(robot)
                     }
-                    disabled={
-                        !selectedExecutionAgent ||
-                        executingRobotId === robot.id
-                    }
+                    disabled={!selectedExecutionAgent}
+                    busy={executingRobotId === robot.id}
+                    loadingLabel="Enviando robô para execução"
                 >
                     <CirclePlay
                         size={15}
                         strokeWidth={1.9}
                     />
 
-                    {executingRobotId === robot.id
-                        ? "Executando..."
-                        : "Executar"}
-                </button>
+                    Executar
+                </Button>
             </div>
         </article>
     );

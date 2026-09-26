@@ -49,6 +49,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 
 import type {
@@ -232,7 +233,7 @@ function useDevelopmentTrash({
                 response.data?.projects || []
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao carregar Lixeira de Desenvolvimento:",
@@ -240,10 +241,10 @@ function useDevelopmentTrash({
             );
 
 
-            const message =
-                err.response?.data?.detail ||
-                err.response?.data?.message ||
-                "Não foi possível carregar a Lixeira.";
+            const message = getApiErrorMessage(
+                err,
+                "Não foi possível carregar a Lixeira."
+            );
 
 
             onError(
@@ -330,7 +331,7 @@ function useDevelopmentTrash({
                 restoredProject
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao restaurar projeto:",
@@ -338,11 +339,10 @@ function useDevelopmentTrash({
             );
 
 
-            const message =
-                err.response?.data?.detail ||
-                err.response?.data?.message ||
-                err.message ||
-                "Não foi possível restaurar o projeto.";
+            const message = getApiErrorMessage(
+                err,
+                "Não foi possível restaurar o projeto."
+            );
 
 
             onError(
@@ -432,7 +432,7 @@ function useDevelopmentTrash({
                     )
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao excluir projeto permanentemente:",
@@ -440,10 +440,10 @@ function useDevelopmentTrash({
             );
 
 
-            const message =
-                err.response?.data?.detail ||
-                err.response?.data?.message ||
-                "Não foi possível excluir o projeto permanentemente.";
+            const message = getApiErrorMessage(
+                err,
+                "Não foi possível excluir o projeto permanentemente."
+            );
 
 
             onError(

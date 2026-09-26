@@ -43,17 +43,17 @@
    ========================================================= */
 
 .history-table thead {
-    background: #f8fafc;
+    background: var(--color-surface-muted);
 }
 
 .history-table thead tr {
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .history-table th {
     padding: 14px 18px;
 
-    color: #64748b;
+    color: var(--color-text-secondary);
 
     font-size: 11px;
     font-weight: 700;
@@ -69,7 +69,7 @@
    ========================================================= */
 
 .history-table tbody tr {
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--color-surface-subtle);
 
     transition:
         background-color 160ms ease;
@@ -80,7 +80,7 @@
 }
 
 .history-table tbody tr:hover {
-    background: #f8fafc;
+    background: var(--color-surface-muted);
 }
 
 /* =========================================================
@@ -90,7 +90,7 @@
 .history-table td {
     padding: 15px 18px;
 
-    color: #475569;
+    color: var(--color-text-secondary);
     font-size: 13px;
     line-height: 1.5;
 
@@ -101,7 +101,7 @@
 .history-table th:first-child,
 .history-table td:first-child {
     width: 70px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-weight: 600;
 }
 
@@ -163,7 +163,7 @@
    ========================================================= */
 
 .history-table td:last-child {
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-size: 12px;
     word-break: break-word;
 }
@@ -175,7 +175,7 @@
 .history-table tbody tr td[colspan="8"] {
     padding: 52px 24px;
 
-    color: #94a3b8;
+    color: var(--color-text-muted);
 
     font-size: 13px;
     text-align: center;
@@ -209,7 +209,7 @@
     min-width: 200px;
     max-width: 320px;
 
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-size: 12px;
     line-height: 1.4;
 
@@ -225,7 +225,7 @@
 .history-user-cell {
     min-width: 120px;
 
-    color: #334155;
+    color: var(--color-text-primary);
     font-size: 12px;
     font-weight: 600;
 

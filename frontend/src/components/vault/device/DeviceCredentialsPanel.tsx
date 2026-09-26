@@ -33,17 +33,18 @@
 
 import {
     useEffect,
+    useEffectEvent,
     useMemo,
     useState,
 } from "react";
 
 
 import {
-    Loader2,
     Plus,
     RefreshCw,
     Search,
     ShieldCheck,
+    X,
 } from "lucide-react";
 
 
@@ -68,6 +69,12 @@ import {
 import type {
     DeviceCredential,
 } from "../../../types/deviceCredentials";
+
+import { CardGridSkeleton }
+    from "../../ui/Skeletons";
+import { Button, IconButton } from "../../ui/Button";
+import { TextField } from "../../ui/TextField";
+import EmptyState from "../../ui/EmptyState";
 
 
 // ============================================================
@@ -160,6 +167,10 @@ function DeviceCredentialsPanel({
         ""
     );
 
+    const handleCreateRequest = useEffectEvent(
+        openCreateForm
+    );
+
 
     // ========================================================
     // AÇÃO EXTERNA DE CRIAÇÃO
@@ -178,7 +189,12 @@ function DeviceCredentialsPanel({
                 createRequestToken > 0
             ) {
 
-                openCreateForm();
+                const openRequest = window.setTimeout(
+                    handleCreateRequest,
+                    0
+                );
+
+                return () => window.clearTimeout(openRequest);
             }
 
         },
@@ -340,9 +356,7 @@ function DeviceCredentialsPanel({
                 </div>
 
 
-                <button
-                    type="button"
-                    className="primary-button"
+                <Button
                     disabled={
                         creatingCredential
                     }
@@ -358,7 +372,7 @@ function DeviceCredentialsPanel({
 
                     Nova credencial
 
-                </button>
+                </Button>
 
             </div>
 
@@ -404,34 +418,29 @@ function DeviceCredentialsPanel({
 
             <div className="device-credentials-toolbar">
 
-                <div className="device-credentials-search">
-
-                    <Search
-                        size={16}
-                        aria-hidden="true"
-                    />
-
-                    <input
-                        type="search"
-                        value={
-                            searchTerm
-                        }
-                        placeholder="Buscar por nome, domínio ou usuário..."
-                        aria-label="Buscar credenciais de dispositivo"
-                        onChange={
-                            (event) =>
-                                setSearchTerm(
-                                    event.target.value
-                                )
-                        }
-                    />
-
-                </div>
+                <TextField
+                    label="Buscar credenciais de dispositivo"
+                    labelHidden
+                    containerClassName="device-credentials-search"
+                    type="search"
+                    value={searchTerm}
+                    placeholder="Buscar por nome, domínio ou usuário..."
+                    leadingIcon={<Search size={16} aria-hidden="true" />}
+                    trailingAction={searchTerm ? (
+                        <IconButton
+                            label="Limpar busca de credenciais"
+                            icon={<X size={14} aria-hidden="true" />}
+                            size="sm"
+                            onClick={() => setSearchTerm("")}
+                        />
+                    ) : undefined}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                />
 
 
-                <button
-                    type="button"
-                    className="secondary-button"
+                <Button
+                    variant="secondary"
+                    size="sm"
                     disabled={
                         loadingCredentials
                     }
@@ -449,7 +458,7 @@ function DeviceCredentialsPanel({
 
                     Atualizar
 
-                </button>
+                </Button>
 
             </div>
 
@@ -459,81 +468,30 @@ function DeviceCredentialsPanel({
                 ================================================== */}
 
             {loadingCredentials ? (
-
-                <div className="device-credentials-state">
-
-                    <Loader2
-                        size={22}
-                        className="spin"
-                        aria-hidden="true"
-                    />
-
-                    <strong>
-                        Carregando credenciais...
-                    </strong>
-
-                    <span>
-                        Consultando identidades Windows disponíveis.
-                    </span>
-
-                </div>
+                <CardGridSkeleton count={3} />
 
             ) : credentials.length === 0 ? (
 
-                <div className="device-credentials-state">
-
-                    <ShieldCheck
-                        size={26}
-                        aria-hidden="true"
-                    />
-
-                    <strong>
-                        Nenhuma credencial de dispositivo
-                    </strong>
-
-                    <span>
-                        Crie a primeira identidade Windows para
-                        utilização pelos Devices.
-                    </span>
-
-
-                    <button
-                        type="button"
-                        className="primary-button"
-                        onClick={
-                            openCreateForm
-                        }
-                    >
-
-                        <Plus
-                            size={16}
-                            aria-hidden="true"
-                        />
-
-                        Criar credencial
-
-                    </button>
-
-                </div>
+                <EmptyState
+                    icon={<ShieldCheck />}
+                    title="Nenhuma credencial de dispositivo"
+                    description="Crie a primeira identidade Windows para utilização controlada pelos dispositivos."
+                    action={(
+                        <Button onClick={openCreateForm}>
+                            <Plus size={16} aria-hidden="true" />
+                            Criar credencial
+                        </Button>
+                    )}
+                />
 
             ) : filteredCredentials.length === 0 ? (
 
-                <div className="device-credentials-state">
-
-                    <Search
-                        size={24}
-                        aria-hidden="true"
-                    />
-
-                    <strong>
-                        Nenhuma credencial encontrada
-                    </strong>
-
-                    <span>
-                        Ajuste o termo informado na busca.
-                    </span>
-
-                </div>
+                <EmptyState
+                    icon={<Search />}
+                    title="Nenhuma credencial encontrada"
+                    description="Ajuste o termo informado ou limpe a busca para visualizar todas as credenciais."
+                    action={<Button size="sm" onClick={() => setSearchTerm("")}>Limpar busca</Button>}
+                />
 
             ) : (
 

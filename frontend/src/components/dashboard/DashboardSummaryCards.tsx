@@ -63,7 +63,7 @@ function DashboardSummaryCards({
                 <div className="card-top">
 
                     <span className="card-title">
-                        Agents
+                        Dispositivos
                     </span>
 
                     <div className="card-icon">
@@ -80,7 +80,7 @@ function DashboardSummaryCards({
                 </div>
 
                 <div className="card-info">
-                    Agents cadastrados
+                    Dispositivos cadastrados
                 </div>
 
             </div>
@@ -95,7 +95,7 @@ function DashboardSummaryCards({
                 <div className="card-top">
 
                     <span className="card-title">
-                        Agents Online
+                        Dispositivos online
                     </span>
 
                     <div className="card-icon card-icon-success">
@@ -112,7 +112,7 @@ function DashboardSummaryCards({
                 </div>
 
                 <div className="card-info">
-                    Agents disponíveis
+                    Dispositivos disponíveis
                 </div>
 
             </div>

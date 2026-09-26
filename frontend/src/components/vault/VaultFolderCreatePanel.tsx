@@ -24,6 +24,9 @@ import type {
 import type {
     VaultFolder,
 } from "../../types/vault";
+import PremiumSelect from "../ui/PremiumSelect";
+import { Button } from "../ui/Button";
+import { Folder } from "lucide-react";
 
 
 // ============================================================
@@ -95,7 +98,7 @@ function VaultFolderCreatePanel({
                             value={folder.id}
                         >
                             {"— ".repeat(nivel)}
-                            📁 {folder.name}
+                            {folder.name}
                         </option>
                     );
 
@@ -128,12 +131,15 @@ function VaultFolderCreatePanel({
         <section className="content-panel vault-form-panel vault-create-folder-panel">
 
             <h2>
+                <Folder size={18} strokeWidth={1.8} aria-hidden="true" />
                 Nova pasta
             </h2>
 
 
             <input
+                id="vault-new-folder-name"
                 type="text"
+                aria-label="Nome da nova pasta"
                 className="form-input"
                 placeholder="Nome da pasta"
                 value={newFolderName}
@@ -146,7 +152,9 @@ function VaultFolderCreatePanel({
             />
 
 
-            <select
+            <PremiumSelect
+                id="vault-new-folder-parent"
+                aria-label="Pasta superior"
                 className="form-input"
                 value={
                     newFolderParentId === null
@@ -175,30 +183,25 @@ function VaultFolderCreatePanel({
                     folders
                 )}
 
-            </select>
+            </PremiumSelect>
 
 
-            <button
-                type="button"
-                className="primary-button"
+            <Button
                 onClick={onCreate}
-                disabled={creatingFolder}
+                busy={creatingFolder}
+                loadingLabel="Criando pasta"
             >
-                {creatingFolder
-                    ? "Criando..."
-                    : "Criar pasta"
-                }
-            </button>
+                Criar pasta
+            </Button>
 
 
-            <button
-                type="button"
-                className="secondary-button"
+            <Button
+                variant="secondary"
                 onClick={onCancel}
                 disabled={creatingFolder}
             >
                 Cancelar
-            </button>
+            </Button>
 
         </section>
     );

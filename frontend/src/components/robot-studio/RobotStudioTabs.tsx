@@ -116,12 +116,12 @@ function RobotStudioTabs({
 
                             background:
                                 active
-                                    ? "#1e1e1e"
-                                    : "#2d2d30",
+                                    ? "var(--studio-surface)"
+                                    : "var(--studio-surface-hover)",
 
                             borderTop:
                                 active
-                                    ? "1px solid #4c8bf5"
+                                    ? "1px solid var(--studio-accent)"
                                     : "1px solid transparent",
                         }}
                     >

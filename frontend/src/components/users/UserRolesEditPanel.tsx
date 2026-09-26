@@ -22,6 +22,8 @@
 import type {
     UserAvailableRole,
 } from "../../types/users";
+import { ShieldCheck } from "lucide-react";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -66,13 +68,13 @@ function UserRolesEditPanel({
                 <div className="users-panel-heading">
 
                     <div className="users-panel-icon">
-                        🔐
+                        <ShieldCheck size={18} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
                     <div>
 
                         <h2>
-                            Editar Roles do usuário
+                            Editar perfis do usuário
                         </h2>
 
                         <p>
@@ -89,7 +91,7 @@ function UserRolesEditPanel({
             <div className="users-edit-content">
 
                 <p className="users-edit-description">
-                    Selecione as Roles que este usuário deverá possuir.
+                    Selecione os perfis que este usuário deverá possuir.
                 </p>
 
 
@@ -131,19 +133,18 @@ function UserRolesEditPanel({
 
                 <div className="users-edit-actions">
 
-                    <button
-                        className="users-secondary-button"
+                    <Button
                         onClick={onCancel}
                     >
                         Cancelar
-                    </button>
+                    </Button>
 
-                    <button
-                        className="users-primary-button"
+                    <Button
+                        variant="primary"
                         onClick={onSave}
                     >
-                        Salvar Roles
-                    </button>
+                        Salvar perfis
+                    </Button>
 
                 </div>
 

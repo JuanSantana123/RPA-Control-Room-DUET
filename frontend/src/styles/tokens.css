@@ -1,101 +1,60 @@
-/*
-|--------------------------------------------------------------------------
-| DESIGN TOKENS
-|--------------------------------------------------------------------------
-| Variáveis visuais centrais da aplicação.
-| Todas as páginas e componentes deverão reutilizar estes valores.
-|--------------------------------------------------------------------------
-*/
-
 :root {
-  /*
-  |--------------------------------------------------------------------------
-  | CORES PRINCIPAIS
-  |--------------------------------------------------------------------------
-  */
-
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-soft: #eff6ff;
-
-  --color-background: #f7f8fa;
+  color-scheme: light;
+  --color-primary: #5b5ce2;
+  --color-primary-hover: #4a4bc5;
+  --color-primary-active: #3f40aa;
+  --color-primary-soft: #eeeeff;
+  --color-primary-contrast: #ffffff;
+  --color-background: #f4f5f8;
   --color-surface: #ffffff;
-  --color-surface-muted: #f9fafb;
-
-  --color-sidebar: #111827;
-  --color-sidebar-hover: #1f2937;
-  --color-sidebar-active: #26364d;
-
-  /*
-  |--------------------------------------------------------------------------
-  | TEXTO
-  |--------------------------------------------------------------------------
-  */
-
-  --color-text-primary: #172033;
-  --color-text-secondary: #64748b;
-  --color-text-muted: #94a3b8;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #f7f7fa;
+  --color-surface-subtle: #eeeef3;
+  --color-overlay: rgba(17, 19, 28, 0.52);
+  --color-sidebar: #181922;
+  --color-sidebar-raised: #22232f;
+  --color-sidebar-hover: #292a37;
+  --color-sidebar-active: #303146;
+  --color-sidebar-text: #b7b9c9;
+  --color-sidebar-text-strong: #f8f8fb;
+  --color-text-primary: #1d1e27;
+  --color-text-secondary: #5e6070;
+  --color-text-muted: #858797;
   --color-text-inverse: #ffffff;
-
-  /*
-  |--------------------------------------------------------------------------
-  | BORDAS
-  |--------------------------------------------------------------------------
-  */
-
-  --color-border: #e5e7eb;
-  --color-border-light: #eef0f3;
-  --color-border-focus: #93c5fd;
-
-  /*
-  |--------------------------------------------------------------------------
-  | STATUS
-  |--------------------------------------------------------------------------
-  */
-
-  --color-success: #16a34a;
-  --color-success-soft: #ecfdf3;
-
-  --color-warning: #d97706;
-  --color-warning-soft: #fffbeb;
-
-  --color-danger: #dc2626;
-  --color-danger-soft: #fef2f2;
-
-  --color-info: #2563eb;
-  --color-info-soft: #eff6ff;
-
-  /*
-  |--------------------------------------------------------------------------
-  | TIPOGRAFIA
-  |--------------------------------------------------------------------------
-  */
-
-  --font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-
+  --color-border: #dedfe7;
+  --color-border-light: #e9eaf0;
+  --color-border-strong: #c6c8d2;
+  --color-border-focus: #7778eb;
+  --color-success: #16825d;
+  --color-success-soft: #e7f6f0;
+  --color-warning: #a9650e;
+  --color-warning-soft: #fff4df;
+  --color-danger: #c43d4d;
+  --color-danger-soft: #fcebed;
+  --color-info: #3269c8;
+  --color-info-soft: #eaf1fd;
+  --font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.5rem;
   --font-size-2xl: 1.875rem;
-
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-
-  /*
-  |--------------------------------------------------------------------------
-  | ESPAÇAMENTOS
-  |--------------------------------------------------------------------------
-  */
-
+  /* Aliases curtos usados pelos módulos migrados. Mantidos aqui para que
+     nenhum consumidor dependa de custom properties inexistentes. */
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-base: var(--font-size-md);
+  --text-lg: var(--font-size-lg);
+  --weight-regular: var(--font-weight-regular);
+  --weight-medium: var(--font-weight-medium);
+  --weight-semibold: var(--font-weight-semibold);
+  --weight-bold: var(--font-weight-bold);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -105,48 +64,81 @@
   --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
-
-  /*
-  |--------------------------------------------------------------------------
-  | BORDAS ARREDONDADAS
-  |--------------------------------------------------------------------------
-  */
-
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --radius-xl: 18px;
-
-  /*
-  |--------------------------------------------------------------------------
-  | SOMBRAS
-  |--------------------------------------------------------------------------
-  */
-
-  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.03);
-
-  --shadow-sm:
-    0 1px 3px rgba(15, 23, 42, 0.04),
-    0 1px 2px rgba(15, 23, 42, 0.02);
-
-  --shadow-md:
-    0 4px 12px rgba(15, 23, 42, 0.06);
-
-  /*
-  |--------------------------------------------------------------------------
-  | TRANSIÇÕES
-  |--------------------------------------------------------------------------
-  */
-
-  --transition-fast: 150ms ease;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+  --shadow-xs: 0 1px 2px rgba(18, 20, 31, 0.05);
+  --shadow-sm: 0 1px 3px rgba(18, 20, 31, 0.06), 0 6px 16px rgba(18, 20, 31, 0.03);
+  --shadow-md: 0 12px 32px rgba(18, 20, 31, 0.1);
+  --shadow-lg: 0 20px 52px rgba(18, 20, 31, 0.14);
+  --shadow-focus: 0 0 0 3px rgba(91, 92, 226, 0.22);
+  --control-height-sm: 34px;
+  --control-height-md: 40px;
+  --control-height-lg: 46px;
+  --control-disabled-opacity: 0.52;
+  --transition-fast: 140ms ease;
   --transition-normal: 220ms ease;
+  --sidebar-width: 264px;
+  --header-height: 68px;
+  --content-max-width: 1600px;
+  --z-sidebar: 40;
+  --z-header: 30;
+  --z-overlay: 35;
+  --z-modal: 100;
+  /* Compatibilidade semântica para superfícies legadas ainda estilizadas inline. */
+  --surface-color: var(--color-surface-raised);
+  --surface-hover: var(--color-surface-subtle);
+  --border-color: var(--color-border);
+  --border: var(--color-border);
+  --accent-color: var(--color-primary);
+  --primary-color: var(--color-primary);
+}
 
-  /*
-  |--------------------------------------------------------------------------
-  | DIMENSÕES DO LAYOUT
-  |--------------------------------------------------------------------------
-  */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-primary: #8b8cf5;
+  --color-primary-hover: #a0a1ff;
+  --color-primary-active: #7475df;
+  --color-primary-soft: #292a4b;
+  --color-primary-contrast: #14151d;
+  --color-background: #111219;
+  --color-surface: #191a23;
+  --color-surface-raised: #20212c;
+  --color-surface-muted: #171820;
+  --color-surface-subtle: #262731;
+  --color-overlay: rgba(3, 4, 8, 0.72);
+  --color-sidebar: #0d0e14;
+  --color-sidebar-raised: #171820;
+  --color-sidebar-hover: #20212c;
+  --color-sidebar-active: #292a42;
+  --color-sidebar-text: #a9abba;
+  --color-sidebar-text-strong: #f4f4f8;
+  --color-text-primary: #f2f2f6;
+  --color-text-secondary: #b0b2bf;
+  --color-text-muted: #828493;
+  --color-border: #30313d;
+  --color-border-light: #272833;
+  --color-border-strong: #444652;
+  --color-border-focus: #9a9bf7;
+  --color-success: #59c39b;
+  --color-success-soft: #17362c;
+  --color-warning: #e0a04b;
+  --color-warning-soft: #3b2d18;
+  --color-danger: #ef7885;
+  --color-danger-soft: #402127;
+  --color-info: #7ca8ef;
+  --color-info-soft: #1d304e;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.28), 0 8px 22px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 16px 38px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.46);
+}
 
-  --sidebar-width: 250px;
-  --header-height: 72px;
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+  }
 }

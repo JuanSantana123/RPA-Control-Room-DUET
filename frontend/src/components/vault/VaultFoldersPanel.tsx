@@ -19,9 +19,14 @@
 import VaultFolderNode
     from "./VaultFolderNode";
 
+import { CardGridSkeleton }
+    from "../ui/Skeletons";
+
 import type {
     VaultFolder,
 } from "../../types/vault";
+import { FolderOpen } from "lucide-react";
+import EmptyState from "../ui/EmptyState";
 
 
 // ============================================================
@@ -76,16 +81,16 @@ function VaultFoldersPanel({
 
 
             {loading ? (
-
-                <p>
-                    Carregando pastas...
-                </p>
+                <CardGridSkeleton count={2} />
 
             ) : folders.length === 0 ? (
 
-                <p className="vault-empty-state">
-                    Nenhuma pasta cadastrada.
-                </p>
+                <EmptyState
+                    compact
+                    icon={<FolderOpen />}
+                    title="Nenhuma pasta cadastrada"
+                    description="Crie uma pasta para organizar credenciais por processo ou equipe."
+                />
 
             ) : (
 

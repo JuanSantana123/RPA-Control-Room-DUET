@@ -134,7 +134,10 @@ export function useExecutionsData() {
 
     useEffect(() => {
 
-        carregarExecucoes();
+        const initialLoad = window.setTimeout(
+            carregarExecucoes,
+            0
+        );
 
 
         const intervalo =
@@ -146,6 +149,7 @@ export function useExecutionsData() {
 
         return () => {
 
+            window.clearTimeout(initialLoad);
             window.clearInterval(
                 intervalo
             );

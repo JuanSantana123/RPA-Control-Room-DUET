@@ -40,6 +40,7 @@ import {
 import type {
     DeviceCredential,
 } from "../../../types/deviceCredentials";
+import { Button } from "../../ui/Button";
 
 
 // ============================================================
@@ -220,9 +221,10 @@ function DeviceCredentialCard({
 
                 <div className="device-credential-card-actions">
 
-                    <button
-                        type="button"
-                        className="secondary-button device-credential-action-button"
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        className="device-credential-action-button"
                         disabled={
                             deleting
                         }
@@ -240,15 +242,15 @@ function DeviceCredentialCard({
 
                         Editar
 
-                    </button>
+                    </Button>
 
 
-                    <button
-                        type="button"
+                    <Button
+                        variant="danger"
+                        size="sm"
                         className="device-credential-delete-button"
-                        disabled={
-                            deleting
-                        }
+                        busy={deleting}
+                        loadingLabel="Excluindo credencial"
                         title={`Excluir ${credential.name}`}
                         onClick={
                             () => onDelete(
@@ -261,13 +263,9 @@ function DeviceCredentialCard({
                             size={14}
                         />
 
-                        {
-                            deleting
-                                ? "Excluindo..."
-                                : "Excluir"
-                        }
+                        Excluir
 
-                    </button>
+                    </Button>
 
                 </div>
 

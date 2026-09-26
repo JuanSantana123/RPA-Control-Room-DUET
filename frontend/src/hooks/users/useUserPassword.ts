@@ -27,6 +27,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     User,
@@ -187,7 +188,7 @@ export function useUserPassword({
                 setNewPassword("");
                 setConfirmNewPassword("");
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao alterar senha do usuário:",
@@ -195,11 +196,7 @@ export function useUserPassword({
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível alterar a senha do usuário."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível alterar a senha do usuário."));
             }
         };
 

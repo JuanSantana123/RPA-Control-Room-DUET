@@ -34,6 +34,7 @@ import {
 
 import api
     from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     VaultFolder,
@@ -178,7 +179,12 @@ export function useVaultFolders({
 
     useEffect(() => {
 
-        carregarPastas();
+        const initialLoad = window.setTimeout(
+            carregarPastas,
+            0
+        );
+
+        return () => window.clearTimeout(initialLoad);
 
     }, [
         carregarPastas,
@@ -295,7 +301,7 @@ export function useVaultFolders({
 
                 await carregarPastas();
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao criar pasta:",
@@ -303,11 +309,7 @@ export function useVaultFolders({
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível criar a pasta."
-                );
+                setError(getApiErrorMessage(err, "Não foi possível criar a pasta."));
 
             } finally {
 
@@ -406,7 +408,7 @@ export function useVaultFolders({
 
                 await carregarPastas();
 
-            } catch (error: any) {
+            } catch (error) {
 
                 console.error(
                     "Erro ao excluir pasta:",
@@ -414,17 +416,7 @@ export function useVaultFolders({
                 );
 
 
-                console.error(
-                    "Resposta da API:",
-                    error?.response?.data
-                );
-
-
-                setError(
-                    error?.response?.data?.message ||
-                    error?.response?.data?.detail ||
-                    "Erro ao excluir a pasta."
-                );
+                setError(getApiErrorMessage(error, "Erro ao excluir a pasta."));
             }
         };
 

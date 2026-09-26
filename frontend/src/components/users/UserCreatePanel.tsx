@@ -24,6 +24,10 @@
 import type {
     UserAvailableRole,
 } from "../../types/users";
+import PremiumSelect from "../ui/PremiumSelect";
+import { UserRound } from "lucide-react";
+import { Button } from "../ui/Button";
+import { TextField } from "../ui/TextField";
 
 
 // ============================================================
@@ -89,7 +93,7 @@ function UserCreatePanel({
                 <div className="users-panel-heading">
 
                     <div className="users-panel-icon">
-                        👤
+                        <UserRound size={18} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
                     <div>
@@ -117,34 +121,26 @@ function UserCreatePanel({
 
                 <div className="users-form-grid">
 
-                    <div className="users-field-group">
-
-                        <label>
-                            Username
-                        </label>
-
-                        <input
+                    <TextField
+                            id="new-user-username"
+                            label="Nome de usuário"
                             type="text"
-                            placeholder="Digite o username"
+                            autoComplete="username"
+                            placeholder="Digite o nome de usuário"
                             value={username}
                             onChange={(event) =>
                                 setUsername(
                                     event.target.value
                                 )
                             }
-                        />
-
-                    </div>
+                    />
 
 
-                    <div className="users-field-group">
-
-                        <label>
-                            Nome completo
-                        </label>
-
-                        <input
+                    <TextField
+                            id="new-user-name"
+                            label="Nome completo"
                             type="text"
+                            autoComplete="name"
                             placeholder="Digite o nome"
                             value={name}
                             onChange={(event) =>
@@ -152,19 +148,14 @@ function UserCreatePanel({
                                     event.target.value
                                 )
                             }
-                        />
-
-                    </div>
+                    />
 
 
-                    <div className="users-field-group">
-
-                        <label>
-                            Senha inicial
-                        </label>
-
-                        <input
+                    <TextField
+                            id="new-user-password"
+                            label="Senha inicial"
                             type="password"
+                            autoComplete="new-password"
                             placeholder="Digite a senha"
                             value={password}
                             onChange={(event) =>
@@ -172,18 +163,17 @@ function UserCreatePanel({
                                     event.target.value
                                 )
                             }
-                        />
-
-                    </div>
+                    />
 
 
                     <div className="users-field-group">
 
-                        <label>
-                            Role inicial
+                        <label htmlFor="new-user-role">
+                            Perfil inicial
                         </label>
 
-                        <select
+                        <PremiumSelect
+                            id="new-user-role"
                             value={selectedRoleId}
                             onChange={(event) => {
 
@@ -199,7 +189,7 @@ function UserCreatePanel({
                         >
 
                             <option value="">
-                                Sem Role
+                                Sem perfil
                             </option>
 
                             {roles.map(
@@ -215,7 +205,7 @@ function UserCreatePanel({
                                 )
                             )}
 
-                        </select>
+                        </PremiumSelect>
 
                     </div>
 
@@ -224,12 +214,12 @@ function UserCreatePanel({
 
                 <div className="users-form-actions">
 
-                    <button
-                        className="users-primary-button"
+                    <Button
+                        variant="primary"
                         onClick={onCreate}
                     >
                         Criar usuário
-                    </button>
+                    </Button>
 
                 </div>
 

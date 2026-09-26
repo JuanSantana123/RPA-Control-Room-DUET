@@ -1,191 +1,75 @@
-// ============================================================
-// DUET CORE - LOGIN PAGE
-// ============================================================
-//
-// Tela de autenticação do DUET CORE.
-//
-// Responsabilidade:
-// - renderizar a interface de Login;
-// - apresentar os campos de usuário e senha;
-// - apresentar mensagens de erro;
-// - encaminhar o envio do formulário ao hook useLogin.
-//
-// A lógica operacional está concentrada em:
-//
-// useLogin
-// - estado do usuário;
-// - estado da senha;
-// - autenticação através do AuthContext;
-// - tratamento de erros;
-// - redirecionamento após autenticação.
-//
-// Os estilos visuais estão concentrados em:
-//
-// styles/login.css
-//
-// Esta página NÃO:
-// - chama diretamente endpoints de autenticação;
-// - manipula cookies ou sessões;
-// - implementa regras do AuthContext;
-// - concentra estilos inline.
-//
-// O AuthContext continua sendo responsável pelo processo real
-// de autenticação e gerenciamento da sessão.
-// ============================================================
-
-import {
-    useLogin,
-} from "../hooks/auth/useLogin";
-
+import { LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
+import { BrandMark } from "../components/brand/BrandMark";
+import { ThemeSwitcher } from "../components/theme/ThemeSwitcher";
+import { useLogin } from "../hooks/auth/useLogin";
+import { Button } from "../components/ui/Button";
+import { TextField } from "../components/ui/TextField";
 import "../styles/login.css";
 
-
-// ============================================================
-// COMPONENTE LOGIN
-// ============================================================
-
 export default function Login() {
-
-    // ========================================================
-    // ESTADO / OPERAÇÕES
-    // ========================================================
-    //
-    // Toda a lógica da tela permanece encapsulada no hook.
-    // ========================================================
-
-    const {
-        username,
-        setUsername,
-
-        password,
-        setPassword,
-
-        errorMessage,
-
-        handleLogin,
-    } = useLogin();
-
-
-    // ========================================================
-    // INTERFACE
-    // ========================================================
-
-    return (
-        <div className="login-page">
-
-            {/* ==================================================
-                CARD PRINCIPAL
-                ================================================== */}
-
-            <div className="login-card">
-
-                {/* ==============================================
-                    CABEÇALHO
-                    ============================================== */}
-
-                <h1 className="login-title">
-                    RPA Control Room
-                </h1>
-
-
-                <p className="login-description">
-                    Entre com suas credenciais
-                </p>
-
-
-                {/* ==============================================
-                    FORMULÁRIO
-                    ============================================== */}
-
-                <form onSubmit={handleLogin}>
-
-                    {/* ==========================================
-                        USUÁRIO
-                        ========================================== */}
-
-                    <div className="login-field">
-
-                        <label className="login-label">
-                            Usuário
-                        </label>
-
-
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(event) =>
-                                setUsername(
-                                    event.target.value
-                                )
-                            }
-                            placeholder="Digite seu usuário"
-                            autoComplete="username"
-                            className="login-input"
-                        />
-
-                    </div>
-
-
-                    {/* ==========================================
-                        SENHA
-                        ========================================== */}
-
-                    <div
-                        className="
-                            login-field
-                            login-field-password
-                        "
-                    >
-
-                        <label className="login-label">
-                            Senha
-                        </label>
-
-
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(event) =>
-                                setPassword(
-                                    event.target.value
-                                )
-                            }
-                            placeholder="Digite sua senha"
-                            autoComplete="current-password"
-                            className="login-input"
-                        />
-
-                    </div>
-
-
-                    {/* ==========================================
-                        MENSAGEM DE ERRO
-                        ========================================== */}
-
-                    {errorMessage && (
-
-                        <div className="login-error">
-                            {errorMessage}
-                        </div>
-
-                    )}
-
-
-                    {/* ==========================================
-                        LOGIN
-                        ========================================== */}
-
-                    <button
-                        type="submit"
-                        className="login-submit"
-                    >
-                        Entrar
-                    </button>
-
-                </form>
-
-            </div>
-
+  const { username, setUsername, password, setPassword, errorMessage, isSubmitting, handleLogin } = useLogin();
+  return (
+    <main className="login-page">
+      <div className="login-topbar"><ThemeSwitcher /></div>
+      <section className="login-intro" aria-labelledby="login-product-title">
+        <BrandMark />
+        <div className="login-intro-copy">
+          <span className="login-kicker">Orquestração de automações</span>
+          <h1 id="login-product-title">Operação precisa.<br />Controle permanente.</h1>
+          <p>Um ponto seguro para desenvolver, publicar e acompanhar seus robôs em toda a operação.</p>
         </div>
-    );
+        <div className="login-trust"><ShieldCheck size={18} /><span>Ambiente privado do Control Room</span></div>
+      </section>
+      <section className="login-panel" aria-labelledby="login-title">
+        <div className="login-card">
+          <div className="login-card-heading">
+            <span className="login-eyebrow">Acesso seguro</span>
+            <h2 className="login-title" id="login-title">Entre no DUET CORE</h2>
+            <p className="login-description">Use as credenciais fornecidas pelo administrador.</p>
+          </div>
+          <form onSubmit={handleLogin} noValidate>
+            <TextField
+              id="username"
+              label="Usuário"
+              type="text"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="Seu usuário"
+              autoComplete="username"
+              leadingIcon={<UserRound size={18} />}
+              containerClassName="login-field"
+              required
+              autoFocus
+            />
+            <TextField
+              id="password"
+              label="Senha"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Sua senha"
+              autoComplete="current-password"
+              leadingIcon={<LockKeyhole size={18} />}
+              containerClassName="login-field login-field-password"
+              required
+            />
+            {errorMessage && <div className="login-error" role="alert">{errorMessage}</div>}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              className="login-submit"
+              busy={isSubmitting}
+              loadingLabel="Autenticando"
+              disabled={!username || !password}
+            >
+              Entrar no Control Room
+            </Button>
+          </form>
+          <p className="login-help">Problemas de acesso? Procure o administrador da sua instalação.</p>
+        </div>
+      </section>
+    </main>
+  );
 }

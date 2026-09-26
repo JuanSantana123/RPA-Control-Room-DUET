@@ -14,13 +14,16 @@
 // ============================================================
 
 import {
+    useMemo,
     useState,
 } from "react";
 
 import {
     Folder,
+    Blocks,
     Package,
     Plus,
+    MousePointer2,
 } from "lucide-react";
 
 import LibrariesPanel from "../components/libraries/LibrariesPanel";
@@ -30,6 +33,11 @@ import RobotFolderTree from "../components/robots/RobotFolderTree";
 import CreateRobotFolderForm from "../components/robots/CreateRobotFolderForm";
 import RobotExecutionAgent from "../components/robots/RobotExecutionAgent";
 import RobotsGrid from "../components/robots/RobotsGrid";
+import RobotsOverview from "../components/robots/RobotsOverview";
+import RobotsToolbar, { type RobotSort, type RobotView } from "../components/robots/RobotsToolbar";
+import FeedbackBanner from "../components/ui/FeedbackBanner";
+import { Button } from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
 
 import {
     useRobotFolders,
@@ -54,6 +62,10 @@ import {
 // ============================================================
 
 function Robots() {
+
+    const [robotQuery, setRobotQuery] = useState("");
+    const [robotSort, setRobotSort] = useState<RobotSort>("name-asc");
+    const [robotView, setRobotView] = useState<RobotView>("grid");
 
     // ========================================================
     // MENSAGENS DA PÁGINA
@@ -107,6 +119,7 @@ function Robots() {
 
         abrirCriacaoPastaRaiz,
         abrirCriacaoSubpasta,
+        fecharCriacaoPasta,
 
         criarPasta,
         excluirPasta,
@@ -168,7 +181,7 @@ function Robots() {
         executingRobotId,
 
         executarRobo,
-    } = useRobotExecution();
+    } = useRobotExecution({ setError, setSuccess });
 
 
     // ========================================================
@@ -186,6 +199,23 @@ function Robots() {
     } = useRobotLibraries({
         setError,
     });
+
+    const visibleRobots = useMemo(() => {
+        const term = robotQuery.trim().toLocaleLowerCase("pt-BR");
+        const filtered = term
+            ? robots.filter((robot) => [robot.name, robot.filename, robot.version].some((value) => String(value).toLocaleLowerCase("pt-BR").includes(term)))
+            : [...robots];
+
+        return filtered.sort((left, right) => {
+            if (robotSort === "name-desc") return right.name.localeCompare(left.name, "pt-BR");
+            if (robotSort === "version-desc") return String(right.version).localeCompare(String(left.version), "pt-BR", { numeric: true });
+            return left.name.localeCompare(right.name, "pt-BR");
+        });
+    }, [robotQuery, robotSort, robots]);
+
+    const selectedLocation = rootSelected
+        ? "Raiz de Robôs"
+        : selectedFolder?.name || "Nenhuma pasta selecionada";
     // ========================================================
     // INTERFACE
     // ========================================================
@@ -212,17 +242,16 @@ function Robots() {
                         event.target.files?.[0];
 
 
-                    if (
-                        !file ||
-                        uploadTargetFolderId === null
-                    ) {
+                    if (!file || uploadTargetFolderId === null) {
                         return;
                     }
 
 
                     await enviarRobo(
                         file,
-                        uploadTargetFolderId
+                        uploadTargetFolderId === "root"
+                            ? null
+                            : uploadTargetFolderId
                     );
 
 
@@ -237,6 +266,13 @@ function Robots() {
 
             {/* Cabeçalho principal da página. */}
             <RobotsHeader />
+
+            <RobotsOverview
+                folderCount={folders.length}
+                robotCount={robots.length}
+                availableAgentCount={executionAgents.length}
+                selectedLocation={selectedLocation}
+            />
             
 
             {/* ============================================================
@@ -247,9 +283,13 @@ function Robots() {
             ============================================================ */}
 
             {error && (
-                <div className="alert alert-error">
-                    {error}
-                </div>
+                <FeedbackBanner
+                    tone="error"
+                    title="A operação em Robôs não foi concluída"
+                    message={error}
+                    hint="Revise a pasta, o pacote e suas permissões. Se persistir, consulte os logs do sistema."
+                    onDismiss={() => setError("")}
+                />
             )}
 
 
@@ -261,9 +301,12 @@ function Robots() {
             ============================================================ */}
 
             {success && (
-                <div className="alert alert-success">
-                    {success}
-                </div>
+                <FeedbackBanner
+                    tone="success"
+                    title="Operação concluída"
+                    message={success}
+                    onDismiss={() => setSuccess("")}
+                />
             )}
 
             {/* Área superior: criação de pasta e upload */}
@@ -284,11 +327,13 @@ function Robots() {
                         onCreateFolder={
                             criarPasta
                         }
+                        onCancel={fecharCriacaoPasta}
                     />
                 )}
 
             </div>
 
+            <div className="robots-workspace-grid">
             {/* Lista de pastas */}
             <section className="content-panel robots-folders-panel">
                 <div className="content-panel-header">
@@ -306,25 +351,27 @@ function Robots() {
                     </div>
 
 
-                    <div className="panel-header-meta">
-                        <button
-                            type="button"
-                            className="secondary-button"
+                    <div className="robots-folder-header-actions">
+                        <span className="panel-count-group" aria-label={`${folders.length} pastas cadastradas`}>
+                            <span className="panel-count">
+                                {folders.length}
+                            </span>
+
+                            <span className="panel-count-label">
+                                pastas
+                            </span>
+                        </span>
+
+                        <Button
+                            size="sm"
+                            variant="secondary"
                             onClick={
                                     abrirCriacaoPastaRaiz
                                 }
                         >
                             <Plus size={15} strokeWidth={1.9} />
                             Nova pasta
-                        </button>
-
-                        <span className="panel-count">
-                            {folders.length}
-                        </span>
-
-                        <span className="panel-count-label">
-                            pastas
-                        </span>
+                        </Button>
                     </div>
                     
                 </div>
@@ -410,6 +457,22 @@ function Robots() {
                         </div>
                     </div>
 
+                    <RobotsToolbar
+                        query={robotQuery}
+                        sort={robotSort}
+                        view={robotView}
+                        visibleCount={visibleRobots.length}
+                        totalCount={robots.length}
+                        canUpload
+                        uploadLocation={rootSelected ? "Raiz de Robôs" : selectedFolder?.name || "pasta atual"}
+                        onQueryChange={setRobotQuery}
+                        onSortChange={setRobotSort}
+                        onViewChange={setRobotView}
+                        onUpload={() => {
+                            abrirUploadParaPasta(selectedFolder?.id ?? null);
+                        }}
+                    />
+
                     {/* Agent de execução */}
                     {/* ========================================================
                             AGENT DE EXECUÇÃO
@@ -431,7 +494,10 @@ function Robots() {
                             ROBOTS DA LOCALIZAÇÃO SELECIONADA
                         ======================================================== */}
                         <RobotsGrid
-                            robots={robots}
+                            robots={visibleRobots}
+                            totalRobotCount={robots.length}
+                            viewMode={robotView}
+                            hasActiveFilter={Boolean(robotQuery.trim())}
                             loadingRobots={loadingRobots}
 
                             openRobotMenu={
@@ -485,12 +551,37 @@ function Robots() {
                             onExecuteRobot={
                                 executarRobo
                             }
+                            onClearFilter={() => setRobotQuery("")}
                         />
                 </section>
             )}
+            {!rootSelected && !selectedFolder && (
+                <section className="content-panel robots-selection-state">
+                    <EmptyState
+                        icon={<MousePointer2 />}
+                        title="Selecione uma localização"
+                        description="Escolha a raiz ou uma pasta para pesquisar, organizar, baixar e executar suas automações."
+                        action={(
+                            <Button onClick={carregarRobosRaiz}>
+                                <Package size={15} aria-hidden="true" />
+                                Abrir Raiz de Robôs
+                            </Button>
+                        )}
+                    />
+                </section>
+            )}
+            </div>
 
             {/* Catálogo global de Bibliotecas.
                 A lógica fica isolada em components/libraries. */}
+            <div className="robots-catalog-intro">
+                <span className="section-icon"><Blocks size={18} strokeWidth={1.8} aria-hidden="true" /></span>
+                <div>
+                    <small>Dependências reutilizáveis</small>
+                    <h2>Catálogo de bibliotecas</h2>
+                    <p>Consulte versões publicadas e os componentes compartilhados pelas automações.</p>
+                </div>
+            </div>
             <LibrariesPanel />
         </div>
 );

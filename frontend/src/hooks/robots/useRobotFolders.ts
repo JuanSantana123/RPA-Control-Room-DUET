@@ -30,11 +30,13 @@
 // ============================================================
 
 import {
+    useCallback,
     useEffect,
     useState,
 } from "react";
 
 import api from "../../services/api";
+import { obterMensagemErro } from "../../utils/robotErrors";
 
 import type {
     RobotFolder,
@@ -73,12 +75,13 @@ export function useRobotFolders({
     );
 
 
-    // A tela original inicia sem Raiz de Robôs selecionada.
+    // A raiz é a localização inicial: o usuário chega direto ao
+    // catálogo e não precisa realizar um clique de preparação.
     const [
         rootSelected,
         setRootSelected,
     ] = useState<boolean>(
-        false
+        true
     );
 
 
@@ -150,7 +153,7 @@ export function useRobotFolders({
     // CARREGAR PASTAS
     // ========================================================
 
-    const carregarPastas = async () => {
+    const carregarPastas = useCallback(async () => {
 
         try {
 
@@ -176,15 +179,16 @@ export function useRobotFolders({
             );
 
 
-            setError(
-                "Não foi possível carregar as pastas de robôs."
-            );
+            setError(obterMensagemErro(
+                err,
+                "Não foi possível carregar as pastas de robôs. Verifique a conexão e tente novamente."
+            ));
 
         } finally {
 
             setLoadingFolders(false);
         }
-    };
+    }, [setError]);
 
 
     // ========================================================
@@ -193,9 +197,14 @@ export function useRobotFolders({
 
     useEffect(() => {
 
-        carregarPastas();
+        const initialLoad = window.setTimeout(
+            carregarPastas,
+            0
+        );
 
-    }, []);
+        return () => window.clearTimeout(initialLoad);
+
+    }, [carregarPastas]);
 
 
     // ========================================================
@@ -312,6 +321,13 @@ export function useRobotFolders({
         setShowFolderForm(true);
     };
 
+    const fecharCriacaoPasta = () => {
+        if (creatingFolder) return;
+        setShowFolderForm(false);
+        setNewFolderName("");
+        setNewFolderParentId(null);
+    };
+
 
     // ========================================================
     // CRIAR PASTA
@@ -342,8 +358,7 @@ export function useRobotFolders({
             setError("");
 
 
-            const response =
-                await api.post(
+            await api.post(
                     "/robot-folders",
                     {
                         name: nome,
@@ -351,12 +366,6 @@ export function useRobotFolders({
                             newFolderParentId,
                     }
                 );
-
-
-            console.log(
-                "Pasta criada com sucesso:",
-                response.data
-            );
 
 
             // Se a pasta criada for uma subpasta,
@@ -400,9 +409,10 @@ export function useRobotFolders({
             );
 
 
-            setError(
-                "Não foi possível criar a pasta."
-            );
+            setError(obterMensagemErro(
+                err,
+                `Não foi possível criar a pasta "${nome}". Confirme se o nome já está em uso e tente novamente.`
+            ));
 
         } finally {
 
@@ -458,7 +468,7 @@ export function useRobotFolders({
 
             await carregarPastas();
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao excluir pasta:",
@@ -466,13 +476,10 @@ export function useRobotFolders({
             );
 
 
-            const mensagem =
-                err.response?.data?.detail ||
-                err.response?.data?.message ||
-                "Não foi possível excluir a pasta.";
-
-
-            setError(mensagem);
+            setError(obterMensagemErro(
+                err,
+                `Não foi possível excluir a pasta "${folder.name}". Ela pode conter robôs ou subpastas vinculadas.`
+            ));
         }
     };
 
@@ -517,6 +524,7 @@ export function useRobotFolders({
 
         abrirCriacaoPastaRaiz,
         abrirCriacaoSubpasta,
+        fecharCriacaoPasta,
 
         criarPasta,
         excluirPasta,

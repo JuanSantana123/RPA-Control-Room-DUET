@@ -29,9 +29,13 @@ import {
 import AgentCard
     from "./AgentCard";
 
+import { CardGridSkeleton }
+    from "../ui/Skeletons";
+
 import type {
     Agent,
 } from "../../types/agents";
+import EmptyState from "../ui/EmptyState";
 
 
 // ============================================================
@@ -98,11 +102,11 @@ function AgentsList({
                 <div>
 
                     <h2>
-                        Devices cadastrados
+                        Dispositivos cadastrados
                     </h2>
 
                     <p>
-                        Devices disponíveis para execução das automações.
+                        Dispositivos disponíveis para execução das automações.
                     </p>
 
                 </div>
@@ -128,10 +132,7 @@ function AgentsList({
                 ================================================== */}
 
             {loading && (
-
-                <div className="panel-loading">
-                    Carregando Devices...
-                </div>
+                <CardGridSkeleton count={3} />
 
             )}
 
@@ -144,28 +145,11 @@ function AgentsList({
                 !error &&
                 agents.length === 0 && (
 
-                    <div className="panel-empty-state">
-
-                        <div className="panel-empty-icon">
-
-                            <Monitor
-                                size={26}
-                                strokeWidth={1.6}
-                            />
-
-                        </div>
-
-
-                        <h3>
-                            Nenhum Device cadastrado
-                        </h3>
-
-
-                        <p>
-                            Cadastre o primeiro Device para começar a executar robôs.
-                        </p>
-
-                    </div>
+                    <EmptyState
+                        icon={<Monitor />}
+                        title="Nenhum dispositivo cadastrado"
+                        description="Cadastre o primeiro dispositivo para começar a executar automações com segurança."
+                    />
 
                 )}
 

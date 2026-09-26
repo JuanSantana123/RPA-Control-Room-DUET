@@ -22,7 +22,7 @@
 
 .vault-page .page-heading h1 {
     margin: 5px 0 0;
-    color: #172033;
+    color: var(--color-text-primary);
     font-size: 32px;
     font-weight: 750;
     letter-spacing: -0.8px;
@@ -30,11 +30,11 @@
 
 .vault-page .page-heading p {
     margin: 8px 0 0;
-    color: #7b8798;
+    color: var(--color-text-muted);
     font-size: 14px;
 }
 
-.vault-page .page-heading .primary-button {
+.vault-page .page-heading .ui-button--primary {
     min-height: 42px;
     padding: 0 18px;
     border-radius: 9px;
@@ -69,8 +69,8 @@
     min-width: 0;
     min-height: 460px;
     overflow: hidden;
-    background: #ffffff;
-    border: 1px solid #e8edf3;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
     border-radius: 14px;
     box-shadow:
         0 2px 4px rgba(15, 23, 42, 0.025),
@@ -88,13 +88,13 @@
     gap: 16px;
     min-height: 64px;
     padding: 0 22px;
-    border-bottom: 1px solid #edf1f5;
-    background: #ffffff;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-surface);
 }
 
 .vault-panel-header h2 {
     margin: 0;
-    color: #202b3c;
+    color: var(--color-text-primary);
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.2px;
@@ -153,7 +153,7 @@
     border: 1px solid transparent;
     border-radius: 9px;
     background: transparent;
-    color: #59677a;
+    color: var(--color-text-secondary);
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
@@ -168,15 +168,15 @@
 }
 
 .vault-folder-select-button:hover {
-    background: #f7f9fc;
-    border-color: #e9eef5;
-    color: #253247;
+    background: var(--color-surface-muted);
+    border-color: var(--color-border-light);
+    color: var(--color-text-primary);
 }
 
 .vault-folder-select-button.selected {
-    background: linear-gradient(90deg, #eef5ff 0%, #f5f8ff 100%);
-    border-color: #d5e5ff;
-    color: #2463d4;
+    background: linear-gradient(90deg, var(--color-info-soft) 0%, var(--color-surface-muted) 100%);
+    border-color: var(--color-info-soft);
+    color: var(--color-info);
     font-weight: 700;
 }
 
@@ -187,7 +187,7 @@
     left: -12px;
     width: 3px;
     border-radius: 0 4px 4px 0;
-    background: #3b82f6;
+    background: var(--color-primary);
     content: "";
 }
 
@@ -197,10 +197,10 @@
     flex-shrink: 0;
     min-height: 28px;
     padding: 5px 7px;
-    border: 1px solid #e7ecf2;
+    border: 1px solid var(--color-border-light);
     border-radius: 7px;
-    background: #ffffff;
-    color: #8491a3;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
     font-family: inherit;
     font-size: 10px;
     font-weight: 600;
@@ -218,9 +218,9 @@
 }
 
 .vault-folder-action-button:hover {
-    background: #f5f8fc;
-    border-color: #d6e0ec;
-    color: #334155;
+    background: var(--color-surface-muted);
+    border-color: var(--color-border-strong);
+    color: var(--color-text-primary);
 }
 
 /* =========================================================
@@ -251,8 +251,8 @@
     position: relative;
     padding: 20px 22px;
     overflow: hidden;
-    background: #ffffff;
-    border: 1px solid #e8edf3;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(15, 23, 42, 0.025);
     transition:
@@ -267,12 +267,12 @@
     bottom: 0;
     left: 0;
     width: 4px;
-    background: #dbeafe;
+    background: var(--color-primary-soft);
     content: "";
 }
 
 .vault-credential-card:hover {
-    border-color: #d8e3f0;
+    border-color: var(--color-border-strong);
     box-shadow:
         0 5px 14px rgba(15, 23, 42, 0.055),
         0 1px 3px rgba(15, 23, 42, 0.025);
@@ -294,22 +294,22 @@
     align-items: center;
     gap: 9px;
     margin: 0;
-    color: #202b3c;
+    color: var(--color-text-primary);
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.2px;
 }
 
-.vault-credential-header h3::before {
+.vault-credential-title-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 30px;
     height: 30px;
     border-radius: 8px;
-    background: #eff6ff;
-    content: "🔐";
-    font-size: 14px;
+    border: 1px solid var(--color-border-light);
+    background: var(--color-surface-subtle);
+    color: var(--color-text-secondary);
 }
 
 /* Ações do card */
@@ -320,7 +320,7 @@
     gap: 8px;
 }
 
-.vault-credential-actions .secondary-button {
+.vault-credential-actions .ui-button--secondary {
     min-height: 30px;
     padding: 0 10px;
     border-radius: 7px;
@@ -337,8 +337,8 @@
     min-height: 34px;
     margin: 0;
     padding: 7px 0;
-    border-bottom: 1px solid #f1f4f8;
-    color: #68778b;
+    border-bottom: 1px solid var(--color-surface-subtle);
+    color: var(--color-text-secondary);
     font-size: 12px;
 }
 
@@ -348,14 +348,14 @@
 
 .vault-credential-card strong {
     flex-shrink: 0;
-    color: #46566b;
+    color: var(--color-text-secondary);
     font-size: 12px;
     font-weight: 650;
 }
 
 .vault-credential-card p span {
     overflow: hidden;
-    color: #7c8999;
+    color: var(--color-text-muted);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -366,8 +366,8 @@
 
 .vault-page .vault-form-panel {
     padding: 22px;
-    background: #fbfcfe;
-    border: 1px solid #e7edf5;
+    background: var(--color-surface-muted);
+    border: 1px solid var(--color-border);
     border-radius: 12px;
 }
 
@@ -375,7 +375,7 @@
 .vault-page .vault-form-panel h4 {
     margin-top: 0;
     margin-bottom: 20px;
-    color: #263449;
+    color: var(--color-text-primary);
     font-size: 15px;
     font-weight: 700;
 }
@@ -387,7 +387,7 @@
 .vault-form-group label {
     display: block;
     margin-bottom: 7px;
-    color: #526176;
+    color: var(--color-text-secondary);
     font-size: 12px;
     font-weight: 650;
 }
@@ -419,7 +419,7 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    color: #526176;
+    color: var(--color-text-secondary);
     font-size: 11px;
     white-space: nowrap;
 }
@@ -430,23 +430,6 @@
     justify-content: flex-end;
     gap: 10px;
     margin-top: 22px;
-}
-
-/* =========================================================
-   ESTADOS VAZIOS
-   ========================================================= */
-
-.vault-empty-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 250px;
-    margin: 0;
-    padding: 30px;
-    color: #9aa7b8;
-    font-size: 13px;
-    line-height: 1.6;
-    text-align: center;
 }
 
 /* =========================================================
@@ -491,9 +474,6 @@
         opacity: 1;
     }
 
-    .vault-empty-state {
-        min-height: 180px;
-    }
 }
 
 @media (max-width: 600px) {
@@ -553,8 +533,8 @@
     align-items: end;
     margin-bottom: 24px;
     padding: 24px 26px;
-    background: #ffffff;
-    border: 1px solid #e6edf5;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 14px;
     box-shadow:
         0 2px 5px rgba(15, 23, 42, 0.025),
@@ -565,28 +545,14 @@
 
 .vault-create-folder-panel > h2 {
     grid-column: 1 / -1;
-    position: relative;
     margin: 0;
-    padding-left: 38px;
-    color: #202b3c;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--color-text-primary);
     font-size: 17px;
     font-weight: 700;
     line-height: 30px;
-}
-
-.vault-create-folder-panel > h2::before {
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: #eff6ff;
-    content: "📁";
-    font-size: 15px;
 }
 
 /* Grupos de campos */
@@ -598,7 +564,7 @@
 .vault-create-folder-panel .vault-form-group label {
     display: block;
     margin-bottom: 8px;
-    color: #526176;
+    color: var(--color-text-secondary);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.2px;
@@ -611,10 +577,10 @@
     width: 100%;
     min-height: 42px;
     box-sizing: border-box;
-    border: 1px solid #dfe7f0;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: #fbfcfe;
-    color: #263449;
+    background: var(--color-surface-muted);
+    color: var(--color-text-primary);
     font-size: 13px;
     transition:
         border-color 0.18s ease,
@@ -623,13 +589,13 @@
 }
 
 .vault-create-folder-panel .form-input:hover {
-    border-color: #cbd8e8;
-    background: #ffffff;
+    border-color: var(--color-border-strong);
+    background: var(--color-surface);
 }
 
 .vault-create-folder-panel .form-input:focus {
-    border-color: #6ea4f8;
-    background: #ffffff;
+    border-color: var(--color-border-focus);
+    background: var(--color-surface);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
     outline: none;
 }
@@ -644,25 +610,25 @@
     gap: 9px;
     margin-top: 2px;
     padding-top: 18px;
-    border-top: 1px solid #edf1f5;
+    border-top: 1px solid var(--color-border-light);
 }
 
 /* Botão cancelar */
 
-.vault-create-folder-panel .secondary-button {
+.vault-create-folder-panel .ui-button--secondary {
     min-height: 38px;
     padding: 0 15px;
-    border: 1px solid #dfe6ef;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: #ffffff;
-    color: #64748b;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
     font-size: 12px;
     font-weight: 600;
 }
 
 /* Botão criar */
 
-.vault-create-folder-panel .primary-button {
+.vault-create-folder-panel .ui-button--primary {
     min-height: 38px;
     padding: 0 18px;
     border-radius: 8px;
@@ -692,6 +658,167 @@
 }
 
 /* =========================================================
+   CREDENCIAIS DE DISPOSITIVO
+   ========================================================= */
+
+.device-credentials-panel {
+    min-width: 0;
+    min-height: 460px;
+    padding: 24px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.device-credentials-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.device-credentials-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.device-credentials-panel-title > svg {
+    box-sizing: content-box;
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    background: var(--color-surface-subtle);
+}
+
+.device-credentials-panel-title h2 { margin: 0; font-size: var(--text-lg); letter-spacing: -.02em; }
+.device-credentials-panel-header p { max-width: 620px; margin: 7px 0 0; color: var(--color-text-muted); font-size: var(--text-sm); line-height: 1.5; }
+
+.device-credentials-toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.device-credentials-search { position: relative; min-width: 0; }
+.device-credentials-search > svg {
+    position: absolute;
+    top: 50%;
+    left: 13px;
+    z-index: 1;
+    color: var(--color-text-muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+.device-credentials-search input { padding-left: 40px; }
+
+.device-credentials-state {
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 32px;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-muted);
+    background: var(--color-surface-subtle);
+    text-align: center;
+}
+
+.device-credentials-state > svg {
+    box-sizing: content-box;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-secondary);
+    background: var(--color-surface-raised);
+}
+.device-credentials-state strong { color: var(--color-text-primary); font-size: var(--text-base); }
+.device-credentials-state span { max-width: 440px; font-size: var(--text-sm); line-height: 1.5; }
+.device-credentials-state .ui-button--primary { margin-top: 8px; }
+.device-credentials-access-state { display: grid; align-items: center; }
+.device-credentials-access-state .device-credentials-state { min-height: 330px; }
+
+.device-credentials-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+    gap: 14px;
+}
+
+.device-credential-card {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-xs);
+}
+
+.device-credential-card-header,
+.device-credential-card-identity,
+.device-credential-card-meta-item { display: flex; align-items: center; }
+.device-credential-card-header { justify-content: space-between; gap: 14px; }
+.device-credential-card-identity { min-width: 0; gap: 10px; }
+.device-credential-card-icon,
+.device-credential-card-meta-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    background: var(--color-surface-subtle);
+}
+.device-credential-card-title { min-width: 0; }
+.device-credential-card-title h3 { margin: 0; overflow: hidden; font-size: var(--text-sm); text-overflow: ellipsis; white-space: nowrap; }
+.device-credential-card-title span,
+.device-credential-card-label,
+.device-credential-card-meta-item span { color: var(--color-text-muted); font-size: var(--text-xs); }
+.device-credential-card-account { margin: 16px 0; padding: 13px; border: 1px solid var(--color-border-light); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.device-credential-card-account > * { display: block; }
+.device-credential-card-account strong { margin-top: 5px; overflow-wrap: anywhere; font-size: var(--text-sm); }
+.device-credential-card-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.device-credential-card-meta-item { gap: 9px; min-width: 0; }
+.device-credential-card-meta-item strong { display: block; margin-top: 3px; overflow-wrap: anywhere; font-size: var(--text-xs); }
+.device-credential-delete-button { min-height: 34px; padding: 0 11px; border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-danger); background: var(--color-surface); font: inherit; font-size: var(--text-xs); font-weight: var(--weight-semibold); cursor: pointer; }
+
+.device-credential-form {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-subtle);
+}
+.device-credential-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.device-credential-field-help { color: var(--color-text-muted); line-height: 1.5; }
+.device-credential-security-note { display: flex; gap: 10px; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-secondary); background: var(--color-surface-raised); font-size: var(--text-xs); }
+
+@media (max-width: 700px) {
+    .device-credentials-panel { min-height: 0; padding: 16px; }
+    .device-credentials-panel-header { align-items: stretch; flex-direction: column; }
+    .device-credentials-panel-header .ui-button--primary { width: 100%; }
+    .device-credentials-toolbar { grid-template-columns: 1fr; }
+    .device-credentials-toolbar .ui-button--secondary { width: 100%; }
+    .device-credential-card-header { align-items: flex-start; flex-direction: column; }
+    .device-credential-card-actions { width: 100%; }
+    .device-credential-card-actions > button { flex: 1; }
+    .device-credential-card-meta,
+    .device-credential-form-grid { grid-template-columns: 1fr; }
+    .device-credential-security-note { flex-direction: column; }
+}
+
+/* =========================================================
    NAVEGAÇÃO ENTRE TIPOS DE CREDENCIAL
    =========================================================
 
@@ -713,8 +840,8 @@
     margin: 0 0 22px;
     padding: 5px;
 
-    background: #f5f7fa;
-    border: 1px solid #e4eaf1;
+    background: var(--color-surface-muted);
+    border: 1px solid var(--color-border);
     border-radius: 12px;
 }
 
@@ -739,7 +866,7 @@
     border-radius: 9px;
 
     background: transparent;
-    color: #6b7789;
+    color: var(--color-text-secondary);
 
     font-family: inherit;
     text-align: left;
@@ -757,7 +884,7 @@
 
 .vault-credential-tab:hover {
     background: rgba(255, 255, 255, 0.7);
-    color: #334155;
+    color: var(--color-text-primary);
 }
 
 
@@ -766,10 +893,10 @@
    ========================================================= */
 
 .vault-credential-tab.is-active {
-    background: #ffffff;
-    border-color: #dfe7f0;
+    background: var(--color-surface);
+    border-color: var(--color-border);
 
-    color: #1e293b;
+    color: var(--color-text-primary);
 
     box-shadow:
         0 1px 2px rgba(15, 23, 42, 0.04),
@@ -784,7 +911,7 @@
 .vault-credential-tab:focus-visible {
     outline: none;
 
-    border-color: #7ba8ef;
+    border-color: var(--color-info);
 
     box-shadow:
         0 0 0 3px rgba(59, 130, 246, 0.12);
@@ -822,7 +949,7 @@
 
     overflow: hidden;
 
-    color: #94a0b0;
+    color: var(--color-text-muted);
 
     font-size: 11px;
     font-weight: 500;
@@ -835,7 +962,7 @@
 
 .vault-credential-tab.is-active
 .vault-credential-tab-description {
-    color: #718096;
+    color: var(--color-text-secondary);
 }
 
 

@@ -119,17 +119,17 @@ export function useRobotStudioTerminal({
   useEffect(() => {
 
     if (!enabled || !projectId) {
-
-      setStatus("disconnected");
-
       return;
     }
 
 
-    setStatus("connecting");
-
     const socket = new WebSocket(
       buildTerminalWebSocketUrl(projectId),
+    );
+
+    const connectionFeedback = window.setTimeout(
+      () => setStatus("connecting"),
+      0,
     );
 
     socketRef.current = socket;
@@ -194,6 +194,8 @@ export function useRobotStudioTerminal({
     // --------------------------------------------------------
 
     return () => {
+
+      window.clearTimeout(connectionFeedback);
 
       socket.onopen = null;
       socket.onmessage = null;
@@ -317,7 +319,9 @@ export function useRobotStudioTerminal({
   );
 
   return {
-    status,
+    status: !enabled || !projectId
+      ? "disconnected" as const
+      : status,
     send,
     resize,
   };

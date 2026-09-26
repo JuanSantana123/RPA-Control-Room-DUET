@@ -403,36 +403,6 @@ function useDevelopmentProjectCreation({
 
 
         // Mantém a abertura sempre no modo Novo Robô.
-        setProjectOriginMode(
-            "new"
-        );
-
-
-        setBaseRobotId(
-            ""
-        );
-
-
-        setSelectedOriginFolderId(
-            null
-        );
-
-
-        setOriginFolders(
-            []
-        );
-
-
-        setOriginRobots(
-            []
-        );
-
-
-        setOriginRobotsError(
-            ""
-        );
-
-
         api
             .get(
                 "/development/release/robots"
@@ -453,7 +423,7 @@ function useDevelopmentProjectCreation({
                     response.data?.robots || []
                 );
             })
-            .catch((err: any) => {
+            .catch((err) => {
 
                 if (!active) {
                     return;
@@ -598,7 +568,7 @@ function useDevelopmentProjectCreation({
                 false
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao criar projeto de Desenvolvimento:",

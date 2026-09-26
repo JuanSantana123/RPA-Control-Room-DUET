@@ -29,6 +29,8 @@ import {
     formatarData,
     formatarTipo,
 } from "../../utils/scheduleFormatters";
+import { Pencil, Power, Trash2 } from "lucide-react";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -93,7 +95,7 @@ function ScheduleRow({
                         <div
                             style={{
                                 fontSize: "11px",
-                                color: "#94a3b8",
+                                color: "var(--color-text-muted)",
                                 marginTop: "2px",
                             }}
                         >
@@ -189,25 +191,26 @@ function ScheduleRow({
 
             <td className="schedule-actions">
 
-                <button
-                    type="button"
-                    className="table-action-button edit"
+                <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => {
                         onEdit(
                             schedule.id
                         );
                     }}
                 >
+                    <Pencil size={14} strokeWidth={1.9} aria-hidden="true" />
                     Editar
-                </button>
+                </Button>
 
 
                 {" "}
 
 
-                <button
-                    type="button"
-                    className="table-action-button toggle"
+                <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => {
                         onToggleStatus(
                             schedule.id,
@@ -215,27 +218,29 @@ function ScheduleRow({
                         );
                     }}
                 >
+                    <Power size={14} strokeWidth={1.9} aria-hidden="true" />
                     {schedule.ativo
                         ? "Desativar"
                         : "Ativar"
                     }
-                </button>
+                </Button>
 
 
                 {" "}
 
 
-                <button
-                    type="button"
-                    className="table-action-button delete"
+                <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => {
                         onDelete(
                             schedule.id
                         );
                     }}
                 >
+                    <Trash2 size={14} strokeWidth={1.9} aria-hidden="true" />
                     Excluir
-                </button>
+                </Button>
 
             </td>
 

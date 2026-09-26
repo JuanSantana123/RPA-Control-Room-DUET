@@ -53,7 +53,10 @@ from agents.serializers import (
 # O plaintext não será persistido em novos Agents.
 # ============================================================
 
-from agents.token_security import proteger_agent_token
+from agents.token_security import (
+    AgentTokenSecurityError,
+    proteger_agent_token,
+)
 
 logger = logging.getLogger("control_room")
 
@@ -202,6 +205,31 @@ def criar_agent_service(
             "status": "success",
             "message": "Agent criado com sucesso.",
             "agent": serializar_agent_criado(agent),
+        }
+
+    except AgentTokenSecurityError as error:
+
+        db.rollback()
+
+        logger.exception(
+            "Configuração de segurança impediu a criação do Agent",
+            extra={
+                "event": "agent_creation_security_configuration_missing",
+                "agent_port": request.port,
+                "error_type": type(error).__name__,
+                "error_message": str(error),
+            },
+        )
+
+        return {
+            "status": "error",
+            "error_code": "agent_token_key_unavailable",
+            "message": (
+                "O dispositivo não pôde ser criado porque a chave de proteção "
+                "dos tokens dos Agents não está configurada no Control Room. "
+                "Solicite ao administrador que configure DUET_AGENT_TOKEN_KEY "
+                "e reinicie o serviço antes de tentar novamente."
+            ),
         }
 
     except Exception as error:

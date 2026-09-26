@@ -53,6 +53,11 @@ import type {
     MouseEvent,
 } from "react";
 
+import { CardGridSkeleton }
+    from "../../ui/Skeletons";
+import { Button } from "../../ui/Button";
+import EmptyState from "../../ui/EmptyState";
+
 
 import type {
     DevelopmentProject,
@@ -216,32 +221,7 @@ function ProjectGrid({
     // ========================================================
 
     if (loading) {
-
-        return (
-
-            <div className="panel-empty-state">
-
-                <div className="panel-empty-icon">
-
-                    <Code2
-                        size={24}
-                        strokeWidth={1.6}
-                    />
-
-                </div>
-
-
-                <h3>
-                    Carregando projetos...
-                </h3>
-
-
-                <p>
-                    Buscando os projetos no Control Room.
-                </p>
-
-            </div>
-        );
+        return <CardGridSkeleton count={3} />;
     }
 
 
@@ -259,36 +239,13 @@ function ProjectGrid({
 
         return (
 
-            <div className="panel-empty-state">
-
-                <div className="panel-empty-icon">
-
-                    <Code2
-                        size={24}
-                        strokeWidth={1.6}
-                    />
-
-                </div>
-
-
-                <h3>
-
-                    {projectListIsEmpty
-                        ? "Nenhum projeto em desenvolvimento"
-                        : "Nenhum projeto encontrado"}
-
-                </h3>
-
-
-                <p>
-
-                    {projectListIsEmpty
-                        ? "Crie um projeto para começar a desenvolver uma nova automação."
-                        : "Tente pesquisar por outro nome ou descrição."}
-
-                </p>
-
-            </div>
+            <EmptyState
+                icon={<Code2 />}
+                title={projectListIsEmpty ? "Nenhum projeto em desenvolvimento" : "Nenhum projeto encontrado"}
+                description={projectListIsEmpty
+                    ? "Crie um projeto para começar a desenvolver uma nova automação."
+                    : "Tente pesquisar por outro nome, descrição ou ajuste os filtros."}
+            />
         );
     }
 
@@ -450,10 +407,8 @@ function ProjectGrid({
                                 STUDIO
                             ===================================== */}
 
-                            <button
-                                type="button"
-
-                                className="primary-button"
+                            <Button
+                                size="sm"
 
                                 onClick={() => {
 
@@ -470,7 +425,7 @@ function ProjectGrid({
 
                                 Abrir no Studio
 
-                            </button>
+                            </Button>
 
 
                             {/* =====================================
@@ -479,10 +434,9 @@ function ProjectGrid({
 
                             {canExecute && (
 
-                                <button
-                                    type="button"
-
-                                    className="secondary-button"
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
 
                                     disabled={
                                         executingProjectId !==
@@ -504,7 +458,7 @@ function ProjectGrid({
 
                                     Executar
 
-                                </button>
+                                </Button>
                             )}
 
                         </div>

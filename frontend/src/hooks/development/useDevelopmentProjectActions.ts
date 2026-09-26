@@ -267,7 +267,7 @@ function useDevelopmentProjectActions({
                 project
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao excluir projeto de Desenvolvimento:",

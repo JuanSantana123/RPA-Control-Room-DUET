@@ -63,6 +63,8 @@ import type {
     DevelopmentProject,
     ReleasePreview,
 } from "../../../types/development";
+import { Button } from "../../ui/Button";
+import { useDialogFocus } from "../../../hooks/ui/useDialogFocus";
 
 
 // ============================================================
@@ -270,6 +272,11 @@ function PublishModal({
     onClose,
     onPublish,
 }: PublishModalProps) {
+    const dialogRef = useDialogFocus<HTMLDivElement>({
+        open: Boolean(project && canPublish),
+        onClose,
+        closeOnEscape: publishingProjectId === null,
+    });
 
     // ========================================================
     // MODAL FECHADO / SEM PERMISSÃO
@@ -433,7 +440,7 @@ function PublishModal({
                         background:
                             releaseFolderId ===
                                 String(folder.id)
-                                ? "var(--surface-hover, rgba(37, 99, 235, 0.10))"
+                                ? "var(--color-surface-subtle)"
                                 : "transparent",
 
                         color:
@@ -544,16 +551,18 @@ function PublishModal({
                     20,
 
                 background:
-                    "rgba(15, 23, 42, 0.48)",
+                    "var(--color-overlay)",
             }}
         >
 
             <div
+                ref={dialogRef}
                 role="dialog"
 
                 aria-modal="true"
 
                 aria-labelledby="development-publish-title"
+                tabIndex={-1}
 
                 onMouseDown={(event) => {
                     event.stopPropagation();
@@ -579,10 +588,10 @@ function PublishModal({
                         12,
 
                     background:
-                        "var(--surface-color, #ffffff)",
+                        "var(--color-surface-raised)",
 
                     boxShadow:
-                        "0 24px 70px rgba(15,23,42,.28)",
+                        "var(--shadow-lg)",
                 }}
             >
 
@@ -736,7 +745,7 @@ function PublishModal({
                                                 10,
 
                                             border:
-                                                "1px solid var(--border-color, #dfe3ea)",
+                                                "1px solid var(--color-border)",
 
                                             borderRadius:
                                                 9,
@@ -794,7 +803,7 @@ function PublishModal({
 
                                                 background:
                                                     releaseFolderId === ""
-                                                        ? "var(--surface-hover, rgba(37, 99, 235, 0.10))"
+                                                        ? "var(--color-surface-subtle)"
                                                         : "transparent",
 
                                                 color:
@@ -850,7 +859,7 @@ function PublishModal({
                                                 7,
 
                                             background:
-                                                "var(--surface-hover, rgba(100, 116, 139, 0.08))",
+                                                "var(--color-surface-subtle)",
 
                                             fontSize:
                                                 12,
@@ -964,7 +973,7 @@ function PublishModal({
                                             "12px 0",
 
                                         borderBottom:
-                                            "1px solid var(--border-color, #dfe3ea)",
+                                            "1px solid var(--color-border)",
                                     }}
                                 >
 
@@ -1338,10 +1347,8 @@ function PublishModal({
                     }}
                 >
 
-                    <button
-                        type="button"
-
-                        className="secondary-button"
+                    <Button
+                        variant="secondary"
 
                         disabled={
                             publishingProjectId !==
@@ -1353,26 +1360,24 @@ function PublishModal({
                         }
                     >
                         Cancelar
-                    </button>
+                    </Button>
 
 
-                    <button
-                        type="button"
-
-                        className="primary-button"
+                    <Button
 
                         onClick={
                             onPublish
                         }
 
+                        busy={publishingProjectId !== null}
+                        loadingLabel="Publicando release"
+
                         disabled={
                             publishDisabled
                         }
                     >
-                        {publishingProjectId !== null
-                            ? "Publicando..."
-                            : "Publicar Release"}
-                    </button>
+                        Publicar release
+                    </Button>
 
                 </div>
 

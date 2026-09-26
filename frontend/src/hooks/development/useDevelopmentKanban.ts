@@ -303,7 +303,7 @@ function useDevelopmentKanban({
                 response.data?.stages || []
             );
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao carregar o Kanban de Desenvolvimento:",
@@ -441,7 +441,7 @@ function useDevelopmentKanban({
             // confirmação do PATCH.
             await loadKanban();
 
-        } catch (err: any) {
+        } catch (err) {
 
             console.error(
                 "Erro ao movimentar projeto no Workflow:",

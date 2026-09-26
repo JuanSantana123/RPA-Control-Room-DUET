@@ -40,21 +40,6 @@
     font-size: 13px;
 }
 
-.robots-page .page-heading-icon {
-    width: 44px;
-    height: 44px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border: 1px solid #dbeafe;
-    border-radius: 12px;
-
-    background: #eff6ff;
-    color: #2563eb;
-}
-
 /* =========================================================
    PAINÉIS DE CONTEÚDO
    ========================================================= */
@@ -101,11 +86,11 @@
     align-items: center;
     justify-content: center;
 
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--color-primary-soft);
     border-radius: 9px;
 
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 .robots-page .panel-header-meta {
@@ -122,11 +107,11 @@
     align-items: center;
     justify-content: center;
 
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--color-primary-soft);
     border-radius: 8px;
 
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
 
     font-size: 12px;
     font-weight: 650;
@@ -141,8 +126,7 @@
    ESTADOS VAZIOS E CARREGAMENTO
    ========================================================= */
 
-.robots-page .panel-loading,
-.robots-page .panel-empty-state {
+.robots-page .panel-loading {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -159,37 +143,6 @@
     font-size: 13px;
 }
 
-.robots-page .panel-empty-icon {
-    width: 52px;
-    height: 52px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    margin-bottom: 14px;
-
-    border: 1px solid #e5e7eb;
-    border-radius: 13px;
-
-    background: #f8fafc;
-    color: #94a3b8;
-}
-
-.robots-page .panel-empty-state h3 {
-    margin: 0 0 7px;
-
-    color: var(--color-text-primary);
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.robots-page .panel-empty-state p {
-    margin: 0;
-
-    color: var(--color-text-muted);
-    font-size: 13px;
-}
 /* Grid superior com criação de pasta e upload */
 .robots-management-grid {
     display: grid;
@@ -201,13 +154,16 @@
 /* Formulário de criação de pasta */
 .robot-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(150px, 0.8fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
-    align-items: end;
-    padding: 22px 24px;
+    align-items: start;
+    padding: 20px 24px 22px;
 }
 
-.robot-form .primary-button {
+.robot-form > .ui-field,
+.robot-form > .folder-parent-context { width: min(480px, 100%); }
+
+.robot-form .ui-button--primary {
     grid-column: 1 / -1;
     justify-self: flex-start;
 }
@@ -220,10 +176,10 @@
     height: 42px;
     padding: 0 12px;
 
-    border: 1px solid #dbe2ea;
+    border: 1px solid var(--color-border);
     border-radius: 9px;
 
-    background: #ffffff;
+    background: var(--color-surface);
     color: var(--color-text-primary);
 
     font-size: 13px;
@@ -237,7 +193,7 @@
 .robot-form input:focus,
 .robot-form select:focus,
 .execution-agent-section select:focus {
-    border-color: #93c5fd;
+    border-color: var(--color-border-focus);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 
@@ -252,11 +208,11 @@
     justify-content: center;
     gap: 8px;
 
-    border: 1px dashed #cbd5e1;
+    border: 1px dashed var(--color-border-strong);
     border-radius: 12px;
 
-    background: #f8fafc;
-    color: #64748b;
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
 
     cursor: pointer;
 
@@ -267,9 +223,9 @@
 }
 
 .robot-upload-area:hover {
-    border-color: #93c5fd;
-    background: #f8fbff;
-    color: #2563eb;
+    border-color: var(--color-border-focus);
+    background: var(--color-surface-muted);
+    color: var(--color-primary);
 }
 
 .robot-upload-area strong {
@@ -294,9 +250,9 @@
 }
 
 .robot-upload-disabled:hover {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-    color: #64748b;
+    border-color: var(--color-border-strong);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
 }
 
 .robot-upload-input {
@@ -305,7 +261,7 @@
 
 .robot-upload-status {
     margin: -12px 24px 20px;
-    color: #2563eb;
+    color: var(--color-primary);
     font-size: 12px;
     font-weight: 600;
 }
@@ -358,13 +314,13 @@
 }
 
 .robot-folder-row:hover {
-    background: #f8fafc;
-    border-color: #e2e8f0;
+    background: var(--color-surface-muted);
+    border-color: var(--color-border);
 }
 
 .robot-folder-row-selected {
-    background: #eff6ff;
-    border-color: #bfdbfe;
+    background: var(--color-primary-soft);
+    border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
 }
 
 .robot-folder-main {
@@ -390,16 +346,17 @@
     border: 0;
     border-radius: 6px;
     background: transparent;
-    color: #94a3b8;
+    color: var(--color-text-muted);
 }
 
 .robot-folder-expand:hover {
-    background: #e2e8f0;
-    color: #475569;
+    background: var(--color-border);
+    color: var(--color-text-secondary);
 }
 
 .robot-folder-select {
     min-width: 0;
+    min-height: 32px;
 
     display: flex;
     align-items: center;
@@ -408,11 +365,22 @@
     border: 0;
     background: transparent;
 
-    color: #475569;
+    color: var(--color-text-secondary);
     font-size: 13px;
     font-weight: 550;
 
     text-align: left;
+    cursor: pointer;
+}
+
+.robot-folder-create-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 2px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border-light);
 }
 
 .robot-folder-select span {
@@ -422,16 +390,16 @@
 }
 
 .robot-folder-row-selected .robot-folder-select {
-    color: #1d4ed8;
+    color: var(--color-primary-hover);
 }
 
 .robot-folder-icon {
     flex-shrink: 0;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .robot-folder-row-selected .robot-folder-icon {
-    color: #2563eb;
+    color: var(--color-primary);
 }
 
 .robot-folder-delete {
@@ -448,7 +416,7 @@
     border-radius: 7px;
 
     background: transparent;
-    color: #cbd5e1;
+    color: var(--color-border-strong);
 
     transition:
         color 160ms ease,
@@ -457,9 +425,9 @@
 }
 
 .robot-folder-delete:hover {
-    border-color: #fecaca;
-    background: #fff7f7;
-    color: #dc2626;
+    border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
 }
 
 .robot-folder-children {
@@ -481,7 +449,7 @@
     padding: 20px 24px;
 
     border-bottom: 1px solid var(--color-border);
-    background: #fcfdff;
+    background: var(--color-surface-muted);
 }
 
 .execution-agent-section .form-field {
@@ -504,7 +472,7 @@
 }
 
 .execution-agent-hint svg {
-    color: #94a3b8;
+    color: var(--color-text-muted);
     flex-shrink: 0;
 }
 
@@ -528,10 +496,10 @@
     display: flex;
     flex-direction: column;
 
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 11px;
 
-    background: #ffffff;
+    background: var(--color-surface);
 
     transition:
         border-color 160ms ease,
@@ -540,7 +508,7 @@
 }
 
 .robot-card:hover {
-    border-color: #cbd5e1;
+    border-color: var(--color-border-strong);
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
     transform: translateY(-1px);
 }
@@ -565,8 +533,8 @@
 
     border-radius: 10px;
 
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 .robot-card-menu {
@@ -581,13 +549,13 @@
     border-radius: 7px;
 
     background: transparent;
-    color: #94a3b8;
+    color: var(--color-text-muted);
 }
 
 .robot-card-menu:hover {
-    border-color: #e2e8f0;
-    background: #f8fafc;
-    color: #475569;
+    border-color: var(--color-border);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
 }
 
 .robot-card-body {
@@ -629,16 +597,16 @@
     margin-top: 18px;
     padding-top: 12px;
 
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--color-surface-subtle);
 }
 
 .robot-card-meta span {
-    color: #94a3b8;
+    color: var(--color-text-muted);
     font-size: 11px;
 }
 
 .robot-card-meta strong {
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-size: 11px;
     font-weight: 650;
 }
@@ -650,8 +618,8 @@
 
     padding: 12px 16px;
 
-    border-top: 1px solid #f1f5f9;
-    background: #fafbfc;
+    border-top: 1px solid var(--color-surface-subtle);
+    background: var(--color-surface-muted);
 }
 
 .robot-card-actions button {
@@ -694,10 +662,13 @@
         grid-template-columns: 1fr;
     }
 
-    .robot-form .primary-button {
+    .robot-form .ui-button--primary {
         grid-column: auto;
         width: 100%;
     }
+
+    .robot-folder-create-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .robot-folder-create-actions .ui-button { width: 100%; }
 
     .robots-grid {
         grid-template-columns: 1fr;
@@ -732,13 +703,13 @@
   gap: 5px;
   padding: 11px 13px;
   margin-bottom: 16px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--color-primary-soft);
   border-radius: 9px;
-  background: #f8fbff;
+  background: var(--color-surface-muted);
 }
 
 .folder-parent-context-label {
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -746,7 +717,7 @@
 }
 
 .folder-parent-context strong {
-  color: #1e40af;
+  color: var(--color-primary-active);
   font-size: 13px;
   font-weight: 600;
 }
@@ -779,7 +750,7 @@
     border-radius: 8px !important;
 
     background: transparent !important;
-    color: #64748b !important;
+    color: var(--color-text-secondary) !important;
 
     cursor: pointer;
     outline: none;
@@ -791,9 +762,9 @@
 }
 
 .robot-folder-menu-button:hover {
-    background: #f8fafc !important;
-    border-color: #e2e8f0 !important;
-    color: #334155 !important;
+    background: var(--color-surface-muted) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-primary) !important;
 }
 
 .robot-folder-menu-button:focus,
@@ -819,8 +790,8 @@
     width: 190px;
     padding: 5px;
 
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 10px;
 
     box-shadow:
@@ -844,7 +815,7 @@
     border-radius: 7px !important;
 
     background: transparent !important;
-    color: #334155 !important;
+    color: var(--color-text-primary) !important;
 
     font-family: inherit;
     font-size: 13px;
@@ -859,33 +830,33 @@
 }
 
 .robot-folder-context-menu button:hover {
-    background: #f1f5f9 !important;
-    color: #1e293b !important;
+    background: var(--color-surface-subtle) !important;
+    color: var(--color-text-primary) !important;
 }
 
 .robot-folder-context-menu button svg {
     flex-shrink: 0;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .robot-folder-context-menu button:hover svg {
-    color: #2563eb;
+    color: var(--color-primary);
 }
 
 .robot-folder-context-menu
 .robot-folder-context-danger {
-    color: #dc2626 !important;
+    color: var(--color-danger) !important;
 }
 
 .robot-folder-context-menu
 .robot-folder-context-danger:hover {
-    background: #fef2f2 !important;
-    color: #b91c1c !important;
+    background: var(--color-danger-soft) !important;
+    color: var(--color-danger) !important;
 }
 
 .robot-folder-context-menu
 .robot-folder-context-danger svg {
-    color: #dc2626;
+    color: var(--color-danger);
 }
 
 
@@ -938,8 +909,8 @@
     flex-direction: column;
     min-width: 0;
 
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 14px;
 
     overflow: hidden;
@@ -952,7 +923,7 @@
 
 .robot-card:hover {
     transform: translateY(-2px);
-    border-color: #cbd5e1;
+    border-color: var(--color-border-strong);
     box-shadow:
         0 10px 25px rgba(15, 23, 42, 0.07),
         0 2px 6px rgba(15, 23, 42, 0.03);
@@ -976,11 +947,11 @@
     width: 38px;
     height: 38px;
 
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--color-primary-soft);
     border-radius: 10px;
 
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 /* Botão de opções */
@@ -997,7 +968,7 @@
     border-radius: 7px;
 
     background: transparent;
-    color: #94a3b8;
+    color: var(--color-text-muted);
 
     cursor: pointer;
 
@@ -1008,9 +979,9 @@
 }
 
 .robot-card-menu:hover {
-    background: #f8fafc;
-    border-color: #e2e8f0;
-    color: #475569;
+    background: var(--color-surface-muted);
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
 }
 
 /* Corpo */
@@ -1022,7 +993,7 @@
 .robot-card-body h3 {
     margin: 0;
 
-    color: #0f172a;
+    color: var(--color-text-primary);
     font-size: 14px;
     font-weight: 650;
     line-height: 1.4;
@@ -1036,7 +1007,7 @@
 .robot-filename {
     margin: 5px 0 18px;
 
-    color: #94a3b8;
+    color: var(--color-text-muted);
     font-size: 12px;
     line-height: 1.4;
 
@@ -1052,17 +1023,17 @@
     justify-content: space-between;
 
     padding-top: 12px;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--color-surface-subtle);
 }
 
 .robot-card-meta span {
-    color: #94a3b8;
+    color: var(--color-text-muted);
     font-size: 11px;
     font-weight: 500;
 }
 
 .robot-card-meta strong {
-    color: #475569;
+    color: var(--color-text-secondary);
     font-size: 12px;
     font-weight: 600;
 }
@@ -1075,7 +1046,7 @@
 
     padding: 12px 16px 16px;
 
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--color-surface-subtle);
 }
 
 /* Botões dentro dos cards */
@@ -1087,29 +1058,29 @@
 }
 
 /* Botão executar */
-.robot-card-actions .secondary-button {
-    background: #ffffff;
-    border-color: #dbe3ee;
-    color: #334155;
+.robot-card-actions .ui-button--secondary {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
 }
 
-.robot-card-actions .secondary-button:hover:not(:disabled) {
-    background: #f8fafc;
-    border-color: #bfdbfe;
-    color: #2563eb;
+.robot-card-actions .ui-button--secondary:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+    border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+    color: var(--color-primary);
 }
 
 /* Botão excluir */
-.robot-card-actions .danger-button {
-    background: #ffffff;
-    border-color: #fecaca;
-    color: #dc2626;
+.robot-card-actions .ui-button--danger {
+    background: var(--color-surface);
+    border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+    color: var(--color-danger);
 }
 
-.robot-card-actions .danger-button:hover:not(:disabled) {
-    background: #fef2f2;
-    border-color: #fca5a5;
-    color: #b91c1c;
+.robot-card-actions .ui-button--danger:hover:not(:disabled) {
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-border));
+    color: var(--color-danger);
 }
 
 /* Estado desabilitado */
@@ -1141,8 +1112,8 @@
     width: 220px;
     padding: 6px;
 
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 10px;
 
     box-shadow:
@@ -1165,7 +1136,7 @@
     border-radius: 7px;
 
     background: transparent;
-    color: #334155;
+    color: var(--color-text-primary);
 
     font-size: 12px;
     font-weight: 500;
@@ -1180,8 +1151,8 @@
 
 /* Efeito ao passar o mouse sobre uma opção. */
 .robot-card-context-menu button:hover {
-    background: #f1f5f9;
-    color: #0f172a;
+    background: var(--color-surface-subtle);
+    color: var(--color-text-primary);
 }
 
 /* Ícones das opções do menu. */
@@ -1190,13 +1161,13 @@
 }
 /* Opção perigosa do menu contextual do robô. */
 .robot-card-context-danger {
-    color: #dc2626 !important;
+    color: var(--color-danger) !important;
 }
 
 /* Mantém a cor vermelha também quando passar o mouse. */
 .robot-card-context-danger:hover {
-    background: #fef2f2 !important;
-    color: #b91c1c !important;
+    background: var(--color-danger-soft) !important;
+    color: var(--color-danger) !important;
 }
 
 /* ============================================================
@@ -1235,7 +1206,7 @@
     border-radius: 8px;
 
     background: transparent;
-    color: #475569;
+    color: var(--color-text-secondary);
 
     font-family: inherit;
     text-align: left;
@@ -1251,7 +1222,7 @@
 
 /* Nome "Bibliotecas". */
 .robot-card-libraries-button > span {
-    color: #94a3b8;
+    color: var(--color-text-muted);
 
     font-size: 11px;
     font-weight: 500;
@@ -1262,7 +1233,7 @@
 .robot-card-libraries-button > strong {
     min-width: 24px;
 
-    color: #475569;
+    color: var(--color-text-secondary);
 
     font-size: 11px;
     font-weight: 650;
@@ -1274,21 +1245,21 @@
 /* Chevron de abrir/fechar. */
 .robot-card-libraries-button > svg {
     flex-shrink: 0;
-    color: #94a3b8;
+    color: var(--color-text-muted);
 }
 
 
 /* Feedback visual ao passar o mouse. */
 .robot-card-libraries-button:hover {
-    border-color: #dbeafe;
-    background: #f8fbff;
-    color: #2563eb;
+    border-color: var(--color-primary-soft);
+    background: var(--color-surface-muted);
+    color: var(--color-primary);
 }
 
 .robot-card-libraries-button:hover > span,
 .robot-card-libraries-button:hover > strong,
 .robot-card-libraries-button:hover > svg {
-    color: #2563eb;
+    color: var(--color-primary);
 }
 
 
@@ -1296,7 +1267,7 @@
 .robot-card-libraries-button:focus-visible {
     outline: none;
 
-    border-color: #93c5fd;
+    border-color: var(--color-border-focus);
 
     box-shadow:
         0 0 0 3px rgba(59, 130, 246, 0.08);
@@ -1311,10 +1282,10 @@
     margin-top: 6px;
     padding: 10px;
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
     border-radius: 9px;
 
-    background: #f8fafc;
+    background: var(--color-surface-muted);
 }
 
 
@@ -1323,7 +1294,7 @@
 .robot-library-empty {
     padding: 10px 8px;
 
-    color: #94a3b8;
+    color: var(--color-text-muted);
 
     font-size: 11px;
     line-height: 1.5;
@@ -1354,10 +1325,10 @@
 
     padding: 9px 10px;
 
-    border: 1px solid #e8edf3;
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
 
-    background: #ffffff;
+    background: var(--color-surface);
 }
 
 
@@ -1378,7 +1349,7 @@
 .robot-library-main > strong {
     overflow: hidden;
 
-    color: #1e293b;
+    color: var(--color-text-primary);
 
     font-size: 11px;
     font-weight: 650;
@@ -1394,7 +1365,7 @@
 .robot-library-main > span {
     overflow: hidden;
 
-    color: #94a3b8;
+    color: var(--color-text-muted);
 
     font-size: 10px;
     font-family:
@@ -1433,11 +1404,11 @@
     min-width: 46px;
     padding: 3px 7px;
 
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--color-primary-soft);
     border-radius: 6px;
 
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
 
     font-size: 10px;
     font-weight: 700;
@@ -1455,7 +1426,7 @@
  * atualmente em Produção.
  */
 .robot-library-status-current {
-    color: #059669;
+    color: var(--color-success);
 
     font-size: 9px;
     font-weight: 600;
@@ -1472,7 +1443,7 @@
  * foi publicada depois deste Release.
  */
 .robot-library-status-history {
-    color: #64748b;
+    color: var(--color-text-secondary);
 
     font-size: 9px;
     font-weight: 600;
@@ -1567,10 +1538,10 @@
 
     padding: 12px 54px 12px 14px;
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
     border-radius: 11px;
 
-    background: #ffffff;
+    background: var(--color-surface);
 
     overflow: visible;
 
@@ -1584,7 +1555,7 @@
 .robots-page .robot-card:hover {
     transform: translateY(-1px);
 
-    border-color: #cbd5e1;
+    border-color: var(--color-border-strong);
 
     box-shadow:
         0 5px 16px rgba(15, 23, 42, 0.05);
@@ -1622,11 +1593,11 @@
 
     flex-shrink: 0;
 
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--color-primary-soft);
     border-radius: 10px;
 
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 
@@ -1680,7 +1651,7 @@
 
     overflow: hidden;
 
-    color: #0f172a;
+    color: var(--color-text-primary);
 
     font-size: 13px;
     font-weight: 650;
@@ -1696,7 +1667,7 @@
 
     overflow: hidden;
 
-    color: #94a3b8;
+    color: var(--color-text-muted);
 
     font-size: 11px;
     line-height: 1.35;
@@ -1722,7 +1693,7 @@
 
 
 .robots-page .robot-card-meta span {
-    color: #94a3b8;
+    color: var(--color-text-muted);
 
     font-size: 10px;
     font-weight: 500;
@@ -1730,7 +1701,7 @@
 
 
 .robots-page .robot-card-meta strong {
-    color: #475569;
+    color: var(--color-text-secondary);
 
     font-size: 11px;
     font-weight: 650;
@@ -1759,8 +1730,8 @@
 
 
 .robots-page .robot-card-libraries-button:hover {
-    border-color: #dbeafe;
-    background: #f8fbff;
+    border-color: var(--color-primary-soft);
+    background: var(--color-surface-muted);
 }
 
 
@@ -1818,10 +1789,10 @@
 
     box-sizing: border-box;
 
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border);
     border-radius: 9px;
 
-    background: #f8fafc;
+    background: var(--color-surface-muted);
 }
 
 

@@ -135,7 +135,10 @@ export function useHistoryData() {
     useEffect(() => {
 
         // Carrega imediatamente ao abrir a página.
-        carregarHistorico();
+        const initialLoad = window.setTimeout(
+            carregarHistorico,
+            0
+        );
 
 
         // Mantém a atualização automática de 5 segundos.
@@ -153,6 +156,7 @@ export function useHistoryData() {
         // Remove o intervalo quando a página for desmontada.
         return () => {
 
+            window.clearTimeout(initialLoad);
             clearInterval(
                 intervalo
             );

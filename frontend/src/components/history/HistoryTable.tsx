@@ -25,6 +25,11 @@
 import HistoryRow
     from "./HistoryRow";
 
+import { TableSkeleton }
+    from "../ui/Skeletons";
+import EmptyState from "../ui/EmptyState";
+import { FileClock } from "lucide-react";
+
 import type {
     HistoryExecution,
 } from "../../types/history";
@@ -100,7 +105,7 @@ function HistoryTable({
 
                             <th>Usuário</th>
 
-                            <th>Agent</th>
+                            <th>Dispositivo</th>
 
                             <th>Início</th>
 
@@ -108,7 +113,7 @@ function HistoryTable({
 
                             <th>Duração</th>
 
-                            <th>Status</th>
+                            <th>Situação</th>
 
                             <th>Erro</th>
 
@@ -128,7 +133,7 @@ function HistoryTable({
                             <tr>
 
                                 <td colSpan={10}>
-                                    Carregando histórico...
+                                    <TableSkeleton rows={5} columns={6} />
                                 </td>
 
                             </tr>
@@ -164,7 +169,11 @@ function HistoryTable({
                                 <tr>
 
                                     <td colSpan={10}>
-                                        Nenhuma execução finalizada.
+                                        <EmptyState
+                                            icon={<FileClock />}
+                                            title="Nenhuma execução finalizada"
+                                            description="As automações concluídas aparecerão aqui com duração, resultado e rastreabilidade."
+                                        />
                                     </td>
 
                                 </tr>

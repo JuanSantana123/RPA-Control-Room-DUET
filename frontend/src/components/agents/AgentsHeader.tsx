@@ -19,11 +19,6 @@
 // Toda a lógica permanece fora da camada visual.
 // ============================================================
 
-import {
-    Bot,
-} from "lucide-react";
-
-
 // ============================================================
 // COMPONENTE
 // ============================================================
@@ -40,7 +35,7 @@ function AgentsHeader() {
                 </div>
 
                 <h1>
-                    Devices
+                    Dispositivos
                 </h1>
 
                 <p>
@@ -49,13 +44,6 @@ function AgentsHeader() {
 
             </div>
 
-
-            <div className="page-heading-icon">
-                <Bot
-                    size={22}
-                    strokeWidth={1.7}
-                />
-            </div>
 
         </div>
     );

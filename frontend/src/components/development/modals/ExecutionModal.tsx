@@ -57,6 +57,9 @@ import type {
     DevelopmentProject,
     ExecutionAgent,
 } from "../../../types/development";
+import PremiumSelect from "../../ui/PremiumSelect";
+import { Button } from "../../ui/Button";
+import { useDialogFocus } from "../../../hooks/ui/useDialogFocus";
 
 
 // ============================================================
@@ -146,6 +149,11 @@ function ExecutionModal({
     onClose,
     onExecute,
 }: ExecutionModalProps) {
+    const dialogRef = useDialogFocus<HTMLDivElement>({
+        open: Boolean(project && canExecute),
+        onClose,
+        closeOnEscape: executingProjectId === null,
+    });
 
     // ========================================================
     // MODAL FECHADO / SEM PERMISSÃO
@@ -221,7 +229,7 @@ function ExecutionModal({
                     20,
 
                 background:
-                    "rgba(15, 23, 42, 0.48)",
+                    "var(--color-overlay)",
 
                 boxSizing:
                     "border-box",
@@ -229,11 +237,13 @@ function ExecutionModal({
         >
 
             <div
+                ref={dialogRef}
                 role="dialog"
 
                 aria-modal="true"
 
                 aria-labelledby="development-execution-title"
+                tabIndex={-1}
 
                 onMouseDown={(event) => {
                     event.stopPropagation();
@@ -250,16 +260,16 @@ function ExecutionModal({
                         22,
 
                     border:
-                        "1px solid var(--border-color, #dfe3ea)",
+                        "1px solid var(--color-border)",
 
                     borderRadius:
                         12,
 
                     background:
-                        "var(--surface-color, #ffffff)",
+                        "var(--color-surface-raised)",
 
                     boxShadow:
-                        "0 24px 70px rgba(15, 23, 42, 0.28)",
+                        "var(--shadow-lg)",
 
                     boxSizing:
                         "border-box",
@@ -321,13 +331,13 @@ function ExecutionModal({
                             14,
 
                         border:
-                            "1px solid var(--border-color, #dfe3ea)",
+                            "1px solid var(--color-border)",
 
                         borderRadius:
                             8,
 
                         background:
-                            "var(--surface-hover, rgba(100, 116, 139, 0.06))",
+                            "var(--color-surface-subtle)",
                     }}
                 >
 
@@ -390,7 +400,7 @@ function ExecutionModal({
                     </label>
 
 
-                    <select
+                    <PremiumSelect
                         id="development-execution-agent"
 
                         value={
@@ -479,7 +489,7 @@ function ExecutionModal({
                             }
                         )}
 
-                    </select>
+                    </PremiumSelect>
 
                 </div>
 
@@ -550,10 +560,8 @@ function ExecutionModal({
                     }}
                 >
 
-                    <button
-                        type="button"
-
-                        className="secondary-button"
+                    <Button
+                        variant="secondary"
 
                         disabled={
                             executingProjectId !== null
@@ -564,13 +572,12 @@ function ExecutionModal({
                         }
                     >
                         Cancelar
-                    </button>
+                    </Button>
 
 
-                    <button
-                        type="button"
-
-                        className="primary-button"
+                    <Button
+                        busy={executingProjectId === project.id}
+                        loadingLabel="Iniciando execução"
 
                         disabled={
                             !selectedAgentId ||
@@ -589,12 +596,9 @@ function ExecutionModal({
                         />
 
 
-                        {executingProjectId ===
-                            project.id
-                            ? "Executando..."
-                            : "Executar"}
+                        Executar
 
-                    </button>
+                    </Button>
 
                 </div>
 

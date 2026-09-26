@@ -51,6 +51,10 @@ import type {
     DragEvent,
 } from "react";
 
+import { CardGridSkeleton }
+    from "../../ui/Skeletons";
+import EmptyState from "../../ui/EmptyState";
+
 
 import type {
     DevelopmentProject,
@@ -242,32 +246,7 @@ function KanbanBoard({
     // ========================================================
 
     if (loading) {
-
-        return (
-
-            <div className="panel-empty-state">
-
-                <div className="panel-empty-icon">
-
-                    <Code2
-                        size={24}
-                        strokeWidth={1.6}
-                    />
-
-                </div>
-
-
-                <h3>
-                    Carregando Kanban...
-                </h3>
-
-
-                <p>
-                    Buscando o Workflow oficial no Control Room.
-                </p>
-
-            </div>
-        );
+        return <CardGridSkeleton count={4} />;
     }
 
 
@@ -281,28 +260,11 @@ function KanbanBoard({
 
         return (
 
-            <div className="panel-empty-state">
-
-                <div className="panel-empty-icon">
-
-                    <Code2
-                        size={24}
-                        strokeWidth={1.6}
-                    />
-
-                </div>
-
-
-                <h3>
-                    Workflow não configurado
-                </h3>
-
-
-                <p>
-                    Nenhum estágio ativo foi retornado pelo Control Room.
-                </p>
-
-            </div>
+            <EmptyState
+                icon={<Code2 />}
+                title="Workflow não configurado"
+                description="Nenhum estágio ativo foi retornado pelo Control Room. Revise a configuração do fluxo."
+            />
         );
     }
 

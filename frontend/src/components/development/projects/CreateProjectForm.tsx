@@ -1,1317 +1,167 @@
-// ============================================================
-// CREATE PROJECT FORM
-// ============================================================
-//
-// Responsabilidade:
-//     Renderiza o formulário utilizado para criar um novo
-//     AutomationProject na área de Desenvolvimento.
-//
-// O componente suporta duas origens:
-//
-//     1. Novo Robô
-//        Cria uma nova automação sem base em Produção.
-//
-//     2. Robô existente
-//        Permite navegar pela estrutura de pastas da área de
-//        Robôs e selecionar uma versão publicada como origem.
-//
-// Este componente apresenta:
-//     - seleção do tipo de origem;
-//     - árvore hierárquica de pastas;
-//     - Robots da pasta selecionada;
-//     - Robot de origem selecionado;
-//     - título da demanda;
-//     - descrição;
-//     - ações Cancelar e Criar projeto.
-//
-// Arquitetura:
-//     Este componente é exclusivamente responsável pela
-//     apresentação e interação do formulário.
-//
-// Este arquivo NÃO deve:
-//     - chamar endpoints HTTP;
-//     - criar projetos diretamente;
-//     - carregar Robots;
-//     - conhecer regras de persistência;
-//     - navegar para o Studio.
-//
-// Development.tsx continua responsável por:
-//     - carregar a estrutura de Produção;
-//     - manter os estados;
-//     - executar POST /development/projects;
-//     - atualizar lista e Kanban.
-//
-// A navegação visual das pastas fica neste componente porque
-// é responsabilidade direta do formulário de criação.
-// ============================================================
+import type { ReactNode } from "react";
+import { Box, Check, Folder, History, Plus, Sparkles } from "lucide-react";
 
-import {
-    Folder,
-    Plus,
-} from "lucide-react";
-
-
-import type {
-    ReactNode,
-} from "react";
-
-
-import type {
-    OriginRobot,
-    OriginRobotFolder,
-    ProjectOriginMode,
-} from "../../../types/development";
-
-
-// ============================================================
-// PROPS
-// ============================================================
+import type { OriginRobot, OriginRobotFolder, ProjectOriginMode } from "../../../types/development";
+import { Button } from "../../ui/Button";
+import FeedbackBanner from "../../ui/FeedbackBanner";
+import { TextAreaField } from "../../ui/TextAreaField";
+import { TextField } from "../../ui/TextField";
 
 interface CreateProjectFormProps {
-
-    // ========================================================
-    // ORIGEM
-    // ========================================================
-
-    originMode:
-        ProjectOriginMode;
-
-
-    baseRobotId:
-        string;
-
-
-    folders:
-        OriginRobotFolder[];
-
-
-    robots:
-        OriginRobot[];
-
-
-    selectedFolderId:
-        number | null;
-
-
-    robotsError:
-        string;
-
-
-    // ========================================================
-    // DADOS DA DEMANDA
-    // ========================================================
-
-    projectName:
-        string;
-
-
-    projectDescription:
-        string;
-
-
-    // ========================================================
-    // ESTADO OPERACIONAL
-    // ========================================================
-
-    creating:
-        boolean;
-
-
-    // ========================================================
-    // CALLBACKS - ORIGEM
-    // ========================================================
-
-    onOriginModeChange:
-        (mode: ProjectOriginMode) => void;
-
-
-    onBaseRobotChange:
-        (robotId: string) => void;
-
-
-    onSelectedFolderChange:
-        (folderId: number | null) => void;
-
-
-    // ========================================================
-    // CALLBACKS - DEMANDA
-    // ========================================================
-
-    onProjectNameChange:
-        (value: string) => void;
-
-
-    onProjectDescriptionChange:
-        (value: string) => void;
-
-
-    // ========================================================
-    // AÇÕES
-    // ========================================================
-
-    onCancel:
-        () => void;
-
-
-    onCreate:
-        () => void | Promise<void>;
+  originMode: ProjectOriginMode;
+  baseRobotId: string;
+  folders: OriginRobotFolder[];
+  robots: OriginRobot[];
+  selectedFolderId: number | null;
+  robotsError: string;
+  projectName: string;
+  projectDescription: string;
+  creating: boolean;
+  onOriginModeChange: (mode: ProjectOriginMode) => void;
+  onBaseRobotChange: (robotId: string) => void;
+  onSelectedFolderChange: (folderId: number | null) => void;
+  onProjectNameChange: (value: string) => void;
+  onProjectDescriptionChange: (value: string) => void;
+  onCancel: () => void;
+  onCreate: () => void | Promise<void>;
 }
 
-
-// ============================================================
-// COMPONENTE
-// ============================================================
-
-function CreateProjectForm({
-    originMode,
-
-    baseRobotId,
-
-    folders,
-    robots,
-
-    selectedFolderId,
-
-    robotsError,
-
-    projectName,
-    projectDescription,
-
-    creating,
-
-    onOriginModeChange,
-    onBaseRobotChange,
-    onSelectedFolderChange,
-
-    onProjectNameChange,
-    onProjectDescriptionChange,
-
-    onCancel,
-    onCreate,
+export default function CreateProjectForm({
+  originMode, baseRobotId, folders, robots, selectedFolderId, robotsError,
+  projectName, projectDescription, creating, onOriginModeChange, onBaseRobotChange,
+  onSelectedFolderChange, onProjectNameChange, onProjectDescriptionChange,
+  onCancel, onCreate,
 }: CreateProjectFormProps) {
-
-    // ========================================================
-    // ROBOT SELECIONADO
-    // ========================================================
-
-    const selectedRobot =
-        robots.find(
-            (robot) =>
-                String(robot.id) ===
-                    baseRobotId
-        ) ?? null;
-
-
-    // ========================================================
-    // ROBOTS DA PASTA ATUAL
-    // ========================================================
-
-    const robotsInSelectedFolder =
-        robots.filter(
-            (robot) =>
-                robot.folder_id ===
-                    selectedFolderId
-        );
-
-
-    // ========================================================
-    // FILHOS DE UMA PASTA
-    // ========================================================
-
-    const getFolderChildren = (
-        parentId: number | null
-    ) =>
-        folders
-            .filter(
-                (folder) =>
-                    folder.parent_id ===
-                        parentId
-            )
-            .sort(
-                (a, b) =>
-                    a.name.localeCompare(
-                        b.name,
-                        "pt-BR"
-                    )
-            );
-
-
-    // ========================================================
-    // CAMINHO AMIGÁVEL DA PASTA
-    // ========================================================
-
-    const getFolderPath = (
-        folderId: number | null
-    ): string => {
-
-        if (folderId === null) {
-            return "Raiz de Robôs";
-        }
-
-
-        const names:
-            string[] = [];
-
-
-        const visited =
-            new Set<number>();
-
-
-        let currentId:
-            number | null =
-                folderId;
-
-
-        while (
-            currentId !== null &&
-            !visited.has(currentId)
-        ) {
-
-            visited.add(
-                currentId
-            );
-
-
-            const folder =
-                folders.find(
-                    (item) =>
-                        item.id === currentId
-                );
-
-
-            if (!folder) {
-                break;
-            }
-
-
-            names.unshift(
-                folder.name
-            );
-
-
-            currentId =
-                folder.parent_id;
-        }
-
-
-        return [
-            "Raiz de Robôs",
-            ...names,
-        ].join(" / ");
-    };
-
-
-    // ========================================================
-    // ÁRVORE DE PASTAS
-    // ========================================================
-
-    const renderFolderTree = (
-        parentId: number | null,
-        depth = 0
-    ): ReactNode[] => {
-
-        return getFolderChildren(
-            parentId
-        ).flatMap(
-            (folder) => [
-
-                <button
-                    key={
-                        `folder-${folder.id}`
-                    }
-
-                    type="button"
-
-                    disabled={
-                        creating
-                    }
-
-                    onClick={() => {
-
-                        // Muda a pasta exibida no navegador.
-                        onSelectedFolderChange(
-                            folder.id
-                        );
-
-
-                        // Ao trocar de pasta, remove qualquer Robot
-                        // que estivesse selecionado em outra pasta.
-                        onBaseRobotChange(
-                            ""
-                        );
-                    }}
-
-                    style={{
-                        width:
-                            "100%",
-
-                        display:
-                            "flex",
-
-                        alignItems:
-                            "center",
-
-                        gap:
-                            8,
-
-                        padding:
-                            `8px 10px 8px ${12 + depth * 18}px`,
-
-                        border:
-                            "none",
-
-                        borderRadius:
-                            7,
-
-                        background:
-                            selectedFolderId === folder.id
-                                ? "var(--surface-hover, rgba(100, 116, 139, 0.14))"
-                                : "transparent",
-
-                        color:
-                            "inherit",
-
-                        textAlign:
-                            "left",
-
-                        cursor:
-                            creating
-                                ? "not-allowed"
-                                : "pointer",
-
-                        fontSize:
-                            13,
-                    }}
-                >
-
-                    <Folder
-                        size={15}
-                        strokeWidth={1.8}
-                    />
-
-
-                    <span>
-                        {folder.name}
-                    </span>
-
-                </button>,
-
-
-                // Renderização recursiva das subpastas.
-                ...renderFolderTree(
-                    folder.id,
-                    depth + 1
-                ),
-            ]
-        );
-    };
-
-
-    // ========================================================
-    // VALIDAÇÃO VISUAL
-    // ========================================================
-
-    const createDisabled =
-        !projectName.trim() ||
-        creating ||
-        (
-            originMode === "existing" &&
-            !baseRobotId
-        );
-
-
-    // ========================================================
-    // INTERFACE
-    // ========================================================
-
-    return (
-
-        <div
-            style={{
-                padding:
-                    18,
-
-                marginBottom:
-                    18,
-
-                border:
-                    "1px solid var(--border-color, #2f3540)",
-
-                borderRadius:
-                    8,
-            }}
-        >
-
-            <div
-                style={{
-                    display:
-                        "grid",
-
-                    gap:
-                        12,
-                }}
-            >
-
-                {/* =================================================
-                    ORIGEM DO PROJETO
-                ================================================= */}
-
-                <div
-                    className="form-field"
-
-                    style={{
-                        gap:
-                            10,
-                    }}
-                >
-
-                    <label>
-                        Origem do projeto
-                    </label>
-
-
-                    {/* =============================================
-                        TIPO DE ORIGEM
-                    ============================================= */}
-
-                    <div
-                        style={{
-                            display:
-                                "grid",
-
-                            gridTemplateColumns:
-                                "repeat(auto-fit, minmax(220px, 1fr))",
-
-                            gap:
-                                10,
-                        }}
-                    >
-
-                        {/* =========================================
-                            NOVO ROBÔ
-                        ========================================= */}
-
-                        <button
-                            type="button"
-
-                            disabled={
-                                creating
-                            }
-
-                            onClick={() => {
-
-                                onOriginModeChange(
-                                    "new"
-                                );
-
-
-                                onBaseRobotChange(
-                                    ""
-                                );
-
-
-                                onSelectedFolderChange(
-                                    null
-                                );
-                            }}
-
-                            style={{
-                                padding:
-                                    14,
-
-                                border:
-                                    originMode === "new"
-                                        ? "1px solid var(--primary-color, #2563eb)"
-                                        : "1px solid var(--border-color, #dfe3ea)",
-
-                                borderRadius:
-                                    9,
-
-                                background:
-                                    originMode === "new"
-                                        ? "var(--surface-hover, rgba(37, 99, 235, 0.08))"
-                                        : "transparent",
-
-                                color:
-                                    "inherit",
-
-                                textAlign:
-                                    "left",
-
-                                cursor:
-                                    creating
-                                        ? "not-allowed"
-                                        : "pointer",
-                            }}
-                        >
-
-                            <div
-                                style={{
-                                    fontSize:
-                                        13,
-
-                                    fontWeight:
-                                        700,
-
-                                    marginBottom:
-                                        4,
-                                }}
-                            >
-                                Novo Robô
-                            </div>
-
-
-                            <div
-                                style={{
-                                    fontSize:
-                                        12,
-
-                                    opacity:
-                                        0.68,
-
-                                    lineHeight:
-                                        1.45,
-                                }}
-                            >
-                                Inicia uma nova automação sem
-                                código de Produção como base.
-                            </div>
-
-                        </button>
-
-
-                        {/* =========================================
-                            ROBÔ EXISTENTE
-                        ========================================= */}
-
-                        <button
-                            type="button"
-
-                            disabled={
-                                creating
-                            }
-
-                            onClick={() => {
-
-                                onOriginModeChange(
-                                    "existing"
-                                );
-                            }}
-
-                            style={{
-                                padding:
-                                    14,
-
-                                border:
-                                    originMode === "existing"
-                                        ? "1px solid var(--primary-color, #2563eb)"
-                                        : "1px solid var(--border-color, #dfe3ea)",
-
-                                borderRadius:
-                                    9,
-
-                                background:
-                                    originMode === "existing"
-                                        ? "var(--surface-hover, rgba(37, 99, 235, 0.08))"
-                                        : "transparent",
-
-                                color:
-                                    "inherit",
-
-                                textAlign:
-                                    "left",
-
-                                cursor:
-                                    creating
-                                        ? "not-allowed"
-                                        : "pointer",
-                            }}
-                        >
-
-                            <div
-                                style={{
-                                    fontSize:
-                                        13,
-
-                                    fontWeight:
-                                        700,
-
-                                    marginBottom:
-                                        4,
-                                }}
-                            >
-                                Robô existente
-                            </div>
-
-
-                            <div
-                                style={{
-                                    fontSize:
-                                        12,
-
-                                    opacity:
-                                        0.68,
-
-                                    lineHeight:
-                                        1.45,
-                                }}
-                            >
-                                Recupera uma versão já publicada
-                                para criar uma nova alteração.
-                            </div>
-
-                        </button>
-
-                    </div>
-
-
-                    {/* =================================================
-                        NAVEGADOR DE ROBÔS
-                    ================================================= */}
-
-                    {originMode ===
-                        "existing" && (
-
-                        <div
-                            style={{
-                                marginTop:
-                                    4,
-
-                                display:
-                                    "grid",
-
-                                gridTemplateColumns:
-                                    "repeat(auto-fit, minmax(260px, 1fr))",
-
-                                border:
-                                    "1px solid var(--border-color, #dfe3ea)",
-
-                                borderRadius:
-                                    9,
-
-                                overflow:
-                                    "hidden",
-
-                                minHeight:
-                                    220,
-                            }}
-                        >
-
-                            {/* =========================================
-                                ÁRVORE DE PASTAS
-                            ========================================= */}
-
-                            <div
-                                style={{
-                                    padding:
-                                        10,
-
-                                    borderRight:
-                                        "1px solid var(--border-color, #dfe3ea)",
-
-                                    minWidth:
-                                        0,
-                                }}
-                            >
-
-                                <div
-                                    style={{
-                                        padding:
-                                            "4px 8px 9px",
-
-                                        fontSize:
-                                            11,
-
-                                        fontWeight:
-                                            800,
-
-                                        letterSpacing:
-                                            "0.06em",
-
-                                        opacity:
-                                            0.55,
-
-                                        textTransform:
-                                            "uppercase",
-                                    }}
-                                >
-                                    Pastas de Robôs
-                                </div>
-
-
-                                {/* =====================================
-                                    RAIZ
-                                ===================================== */}
-
-                                <button
-                                    type="button"
-
-                                    disabled={
-                                        creating
-                                    }
-
-                                    onClick={() => {
-
-                                        onSelectedFolderChange(
-                                            null
-                                        );
-
-
-                                        onBaseRobotChange(
-                                            ""
-                                        );
-                                    }}
-
-                                    style={{
-                                        width:
-                                            "100%",
-
-                                        display:
-                                            "flex",
-
-                                        alignItems:
-                                            "center",
-
-                                        gap:
-                                            8,
-
-                                        padding:
-                                            "8px 10px",
-
-                                        border:
-                                            "none",
-
-                                        borderRadius:
-                                            7,
-
-                                        background:
-                                            selectedFolderId === null
-                                                ? "var(--surface-hover, rgba(100, 116, 139, 0.14))"
-                                                : "transparent",
-
-                                        color:
-                                            "inherit",
-
-                                        textAlign:
-                                            "left",
-
-                                        cursor:
-                                            creating
-                                                ? "not-allowed"
-                                                : "pointer",
-
-                                        fontSize:
-                                            13,
-
-                                        fontWeight:
-                                            650,
-                                    }}
-                                >
-
-                                    <Folder
-                                        size={15}
-                                        strokeWidth={1.8}
-                                    />
-
-                                    Raiz de Robôs
-
-                                </button>
-
-
-                                {/* Todas as subpastas. */}
-                                {renderFolderTree(
-                                    null
-                                )}
-
-                            </div>
-
-
-                            {/* =========================================
-                                ROBÔS DA PASTA
-                            ========================================= */}
-
-                            <div
-                                style={{
-                                    padding:
-                                        12,
-
-                                    minWidth:
-                                        0,
-                                }}
-                            >
-
-                                <div
-                                    style={{
-                                        marginBottom:
-                                            10,
-                                    }}
-                                >
-
-                                    <div
-                                        style={{
-                                            fontSize:
-                                                11,
-
-                                            fontWeight:
-                                                800,
-
-                                            letterSpacing:
-                                                "0.06em",
-
-                                            opacity:
-                                                0.55,
-
-                                            textTransform:
-                                                "uppercase",
-                                        }}
-                                    >
-                                        Robôs da pasta
-                                    </div>
-
-
-                                    <div
-                                        style={{
-                                            marginTop:
-                                                3,
-
-                                            fontSize:
-                                                12,
-
-                                            opacity:
-                                                0.7,
-                                        }}
-                                    >
-                                        {getFolderPath(
-                                            selectedFolderId
-                                        )}
-                                    </div>
-
-                                </div>
-
-
-                                {robotsInSelectedFolder.length ===
-                                    0 ? (
-
-                                    <div
-                                        style={{
-                                            padding:
-                                                "28px 14px",
-
-                                            textAlign:
-                                                "center",
-
-                                            fontSize:
-                                                12,
-
-                                            opacity:
-                                                0.6,
-                                        }}
-                                    >
-                                        Nenhum Robô publicado
-                                        nesta pasta.
-                                    </div>
-
-                                ) : (
-
-                                    <div
-                                        style={{
-                                            display:
-                                                "grid",
-
-                                            gap:
-                                                7,
-                                        }}
-                                    >
-
-                                        {robotsInSelectedFolder.map(
-                                            (robot) => {
-
-                                                const selected =
-                                                    String(
-                                                        robot.id
-                                                    ) ===
-                                                    baseRobotId;
-
-
-                                                return (
-
-                                                    <button
-                                                        key={
-                                                            robot.id
-                                                        }
-
-                                                        type="button"
-
-                                                        disabled={
-                                                            creating
-                                                        }
-
-                                                        onClick={() => {
-
-                                                            onBaseRobotChange(
-                                                                String(
-                                                                    robot.id
-                                                                )
-                                                            );
-                                                        }}
-
-                                                        style={{
-                                                            width:
-                                                                "100%",
-
-                                                            display:
-                                                                "flex",
-
-                                                            alignItems:
-                                                                "center",
-
-                                                            justifyContent:
-                                                                "space-between",
-
-                                                            gap:
-                                                                12,
-
-                                                            padding:
-                                                                "10px 12px",
-
-                                                            border:
-                                                                selected
-                                                                    ? "1px solid var(--primary-color, #2563eb)"
-                                                                    : "1px solid var(--border-color, #dfe3ea)",
-
-                                                            borderRadius:
-                                                                8,
-
-                                                            background:
-                                                                selected
-                                                                    ? "var(--surface-hover, rgba(37, 99, 235, 0.08))"
-                                                                    : "transparent",
-
-                                                            color:
-                                                                "inherit",
-
-                                                            textAlign:
-                                                                "left",
-
-                                                            cursor:
-                                                                creating
-                                                                    ? "not-allowed"
-                                                                    : "pointer",
-                                                        }}
-                                                    >
-
-                                                        <div
-                                                            style={{
-                                                                minWidth:
-                                                                    0,
-                                                            }}
-                                                        >
-
-                                                            <div
-                                                                style={{
-                                                                    fontSize:
-                                                                        13,
-
-                                                                    fontWeight:
-                                                                        700,
-
-                                                                    overflow:
-                                                                        "hidden",
-
-                                                                    textOverflow:
-                                                                        "ellipsis",
-
-                                                                    whiteSpace:
-                                                                        "nowrap",
-                                                                }}
-                                                            >
-                                                                {robot.name}
-                                                            </div>
-
-
-                                                            <div
-                                                                style={{
-                                                                    marginTop:
-                                                                        2,
-
-                                                                    fontSize:
-                                                                        11,
-
-                                                                    opacity:
-                                                                        0.62,
-                                                                }}
-                                                            >
-                                                                Robot #{robot.id}
-                                                            </div>
-
-                                                        </div>
-
-
-                                                        <span
-                                                            style={{
-                                                                flexShrink:
-                                                                    0,
-
-                                                                padding:
-                                                                    "3px 7px",
-
-                                                                borderRadius:
-                                                                    999,
-
-                                                                fontSize:
-                                                                    11,
-
-                                                                fontWeight:
-                                                                    700,
-
-                                                                background:
-                                                                    "var(--surface-hover, rgba(100, 116, 139, 0.14))",
-                                                            }}
-                                                        >
-                                                            v{robot.version}
-                                                        </span>
-
-                                                    </button>
-                                                );
-                                            }
-                                        )}
-
-                                    </div>
-                                )}
-
-                            </div>
-
-                        </div>
-                    )}
-
-
-                    {/* =================================================
-                        ROBOT SELECIONADO
-                    ================================================= */}
-
-                    {originMode ===
-                        "existing" &&
-                        selectedRobot && (
-
-                        <div
-                            style={{
-                                padding:
-                                    "10px 12px",
-
-                                border:
-                                    "1px solid rgba(37, 99, 235, 0.22)",
-
-                                borderRadius:
-                                    8,
-
-                                background:
-                                    "rgba(37, 99, 235, 0.06)",
-
-                                fontSize:
-                                    12,
-
-                                lineHeight:
-                                    1.5,
-                            }}
-                        >
-
-                            <strong>
-                                Selecionado:
-                            </strong>{" "}
-
-
-                            {getFolderPath(
-                                selectedRobot.folder_id
-                            )}
-
-
-                            {" / "}
-
-
-                            {selectedRobot.name}
-
-
-                            {" · "}
-
-
-                            versão {selectedRobot.version}
-
-
-                            <div
-                                style={{
-                                    marginTop:
-                                        2,
-
-                                    opacity:
-                                        0.72,
-                                }}
-                            >
-                                O código e as Bibliotecas desta
-                                versão serão recuperados no novo
-                                projeto.
-                            </div>
-
-                        </div>
-                    )}
-
-
-                    {robotsError && (
-
-                        <small role="alert">
-                            {robotsError}
-                        </small>
-                    )}
-
-                </div>
-
-
-                {/* =================================================
-                    TÍTULO DA DEMANDA
-                ================================================= */}
-
-                <div className="form-field">
-
-                    <label
-                        htmlFor="development-project-name"
-                    >
-                        Título da demanda
-                    </label>
-
-
-                    <input
-                        id="development-project-name"
-
-                        type="text"
-
-                        value={
-                            projectName
-                        }
-
-                        placeholder="Ex.: Melhoria no campo de contrato"
-
-                        autoFocus
-
-                        onChange={(event) => {
-
-                            onProjectNameChange(
-                                event.target.value
-                            );
-                        }}
-
-                        onKeyDown={(event) => {
-
-                            if (
-                                event.key ===
-                                "Enter"
-                            ) {
-                                onCreate();
-                            }
-                        }}
-                    />
-
-                </div>
-
-
-                {/* =================================================
-                    DESCRIÇÃO
-                ================================================= */}
-
-                <div className="form-field">
-
-                    <label
-                        htmlFor="development-project-description"
-                    >
-                        Descrição
-                    </label>
-
-
-                    <input
-                        id="development-project-description"
-
-                        type="text"
-
-                        value={
-                            projectDescription
-                        }
-
-                        placeholder="Descrição opcional da automação"
-
-                        onChange={(event) => {
-
-                            onProjectDescriptionChange(
-                                event.target.value
-                            );
-                        }}
-                    />
-
-                </div>
-
-
-                {/* =================================================
-                    AÇÕES
-                ================================================= */}
-
-                <div
-                    style={{
-                        display:
-                            "flex",
-
-                        gap:
-                            8,
-
-                        justifyContent:
-                            "flex-end",
-                    }}
-                >
-
-                    <button
-                        type="button"
-
-                        className="secondary-button"
-
-                        onClick={
-                            onCancel
-                        }
-                    >
-                        Cancelar
-                    </button>
-
-
-                    {/* Mantém o mesmo ícone utilizado atualmente
-                        na área de criação do projeto. */}
-                    <Plus
-                        size={15}
-                        strokeWidth={2}
-                    />
-
-
-                    <button
-                        type="button"
-
-                        className="primary-button"
-
-                        disabled={
-                            createDisabled
-                        }
-
-                        onClick={
-                            onCreate
-                        }
-                    >
-
-                        {creating
-                            ? "Criando..."
-                            : "Criar projeto"}
-
-                    </button>
-
-                </div>
-
-            </div>
-
+  const selectedRobot = robots.find((robot) => String(robot.id) === baseRobotId) ?? null;
+  const robotsInSelectedFolder = robots.filter((robot) => robot.folder_id === selectedFolderId);
+  const createDisabled = !projectName.trim() || creating || (originMode === "existing" && !baseRobotId);
+
+  const getFolderPath = (folderId: number | null): string => {
+    if (folderId === null) return "Raiz de Robôs";
+    const names: string[] = [];
+    const visited = new Set<number>();
+    let currentId: number | null = folderId;
+    while (currentId !== null && !visited.has(currentId)) {
+      visited.add(currentId);
+      const folder = folders.find((item) => item.id === currentId);
+      if (!folder) break;
+      names.unshift(folder.name);
+      currentId = folder.parent_id;
+    }
+    return ["Raiz de Robôs", ...names].join(" / ");
+  };
+
+  const chooseFolder = (folderId: number | null) => {
+    onSelectedFolderChange(folderId);
+    onBaseRobotChange("");
+  };
+
+  const renderFolderTree = (parentId: number | null): ReactNode[] => folders
+    .filter((folder) => folder.parent_id === parentId)
+    .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"))
+    .map((folder) => (
+      <div className="project-folder-node" key={folder.id}>
+        <button type="button" aria-pressed={selectedFolderId === folder.id} disabled={creating}
+          onClick={() => chooseFolder(folder.id)}>
+          <Folder size={15} aria-hidden="true" /><span>{folder.name}</span>
+        </button>
+        <div className="project-folder-children">{renderFolderTree(folder.id)}</div>
+      </div>
+    ));
+
+  return (
+    <form className="project-create-panel" onSubmit={(event) => {
+      event.preventDefault();
+      if (!createDisabled) void onCreate();
+    }}>
+      <header className="project-create-panel__header">
+        <div>
+          <span className="project-create-panel__eyebrow">Novo workspace</span>
+          <h2>Crie um projeto de automação</h2>
+          <p>Comece do zero ou reutilize uma versão publicada sem alterar o robô em produção.</p>
         </div>
-    );
+        <div className="project-create-panel__progress" aria-label="Duas etapas">
+          <span className="is-active">1 <small>Origem</small></span>
+          <i aria-hidden="true" />
+          <span className={projectName.trim() ? "is-active" : ""}>2 <small>Demanda</small></span>
+        </div>
+      </header>
+
+      <div className="project-create-panel__body">
+        <fieldset className="project-origin-fieldset">
+          <legend>Escolha a origem</legend>
+          <div className="project-origin-options">
+            <button type="button" aria-pressed={originMode === "new"} disabled={creating} onClick={() => {
+              onOriginModeChange("new"); onBaseRobotChange(""); onSelectedFolderChange(null);
+            }}>
+              <span className="project-origin-option__icon"><Sparkles size={17} aria-hidden="true" /></span>
+              <span><strong>Nova automação</strong><small>Workspace limpo para começar uma solução inédita.</small></span>
+              {originMode === "new" && <Check size={16} className="project-origin-option__check" aria-hidden="true" />}
+            </button>
+            <button type="button" aria-pressed={originMode === "existing"} disabled={creating}
+              onClick={() => onOriginModeChange("existing")}>
+              <span className="project-origin-option__icon"><History size={17} aria-hidden="true" /></span>
+              <span><strong>Evoluir robô publicado</strong><small>Recupere código e bibliotecas de uma versão existente.</small></span>
+              {originMode === "existing" && <Check size={16} className="project-origin-option__check" aria-hidden="true" />}
+            </button>
+          </div>
+        </fieldset>
+
+        {originMode === "existing" && (
+          <section className="project-origin-browser" aria-label="Selecionar robô de origem">
+            <div className="project-origin-browser__folders">
+              <div className="project-origin-browser__title"><span>Localização</span><small>{folders.length} pastas</small></div>
+              <button type="button" className="project-folder-root" aria-pressed={selectedFolderId === null}
+                disabled={creating} onClick={() => chooseFolder(null)}>
+                <Folder size={15} aria-hidden="true" /><span>Raiz de Robôs</span>
+              </button>
+              {renderFolderTree(null)}
+            </div>
+            <div className="project-origin-browser__robots">
+              <div className="project-origin-browser__title"><span>Robôs publicados</span><small>{getFolderPath(selectedFolderId)}</small></div>
+              {robotsInSelectedFolder.length === 0 ? (
+                <div className="project-origin-browser__empty"><Box size={20} aria-hidden="true" />
+                  <strong>Nenhum robô nesta localização</strong><span>Selecione outra pasta para continuar.</span>
+                </div>
+              ) : <div className="project-origin-robot-list">{robotsInSelectedFolder.map((robot) => {
+                const selected = String(robot.id) === baseRobotId;
+                return <button key={robot.id} type="button" aria-pressed={selected} disabled={creating}
+                  onClick={() => onBaseRobotChange(String(robot.id))}>
+                  <span><strong>{robot.name}</strong><small>Robô #{robot.id}</small></span>
+                  <span className="project-origin-robot-version">v{robot.version}</span>
+                </button>;
+              })}</div>}
+            </div>
+          </section>
+        )}
+
+        {selectedRobot && originMode === "existing" && (
+          <div className="project-origin-selected" role="status">
+            <Check size={16} aria-hidden="true" /><span><strong>Base selecionada:</strong> {getFolderPath(selectedRobot.folder_id)} / {selectedRobot.name} · versão {selectedRobot.version}</span>
+          </div>
+        )}
+
+        {robotsError && <FeedbackBanner tone="error" title="Não foi possível carregar os robôs" message={robotsError} />}
+
+        <div className="project-demand-fields">
+          <TextField id="development-project-name" label="Título da demanda" description="Use um título curto que identifique claramente o objetivo."
+            type="text" value={projectName} placeholder="Ex.: Automatizar conciliação de contratos" required disabled={creating}
+            onChange={(event) => onProjectNameChange(event.target.value)} />
+          <TextAreaField id="development-project-description" label="Descrição" description="Opcional: registre contexto, resultado esperado ou restrições."
+            value={projectDescription} placeholder="Descreva o que esta automação precisa resolver..." rows={3} disabled={creating}
+            counter={`${projectDescription.length} caracteres`} onChange={(event) => onProjectDescriptionChange(event.target.value)} />
+        </div>
+      </div>
+
+      <footer className="project-create-panel__actions">
+        <p>{originMode === "existing" && !baseRobotId ? "Selecione uma versão publicada para continuar." : !projectName.trim() ? "Informe o título da demanda para continuar." : "Tudo pronto para criar o workspace."}</p>
+        <div>
+          <Button variant="secondary" type="button" disabled={creating} onClick={onCancel}>Cancelar</Button>
+          <Button variant="primary" type="submit" busy={creating} disabled={createDisabled} loadingLabel="Criando projeto">
+            <Plus size={15} aria-hidden="true" /> Criar projeto
+          </Button>
+        </div>
+      </footer>
+    </form>
+  );
 }
-
-
-export default CreateProjectForm;

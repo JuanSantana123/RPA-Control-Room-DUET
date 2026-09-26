@@ -190,16 +190,16 @@ function ProjectOptionsMenu({
                         6,
 
                     background:
-                        "var(--surface-color, #ffffff)",
+                        "var(--color-surface-raised)",
 
                     border:
-                        "1px solid var(--border-color, #dfe3ea)",
+                        "1px solid var(--color-border)",
 
                     borderRadius:
                         8,
 
                     boxShadow:
-                        "0 10px 30px rgba(15, 23, 42, 0.18)",
+                        "var(--shadow-md)",
 
                     boxSizing:
                         "border-box",
@@ -251,7 +251,7 @@ function ProjectOptionsMenu({
                             "transparent",
 
                         color:
-                            "#dc2626",
+                            "var(--color-danger)",
 
                         display:
                             "flex",

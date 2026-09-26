@@ -55,9 +55,11 @@ import type {
 } from "../../../types/development";
 
 
-import {
-    parseApiDateTime,
-} from "../../../utils/dateTime";
+import PremiumSelect from "../../ui/PremiumSelect";
+import { Save, X } from "lucide-react";
+import { Button } from "../../ui/Button";
+import { useDialogFocus } from "../../../hooks/ui/useDialogFocus";
+import CardCommentsSection from "./CardCommentsSection";
 
 
 // ============================================================
@@ -195,6 +197,11 @@ function CardDetailsPanel({
     onSave,
     onAddComment,
 }: CardDetailsPanelProps) {
+    const dialogRef = useDialogFocus<HTMLElement>({
+        open: Boolean(project),
+        onClose,
+        closeOnEscape: !saving && !addingComment,
+    });
 
     // Sem projeto selecionado não existe painel para renderizar.
     if (!project) {
@@ -208,6 +215,7 @@ function CardDetailsPanel({
 
         <div
             role="presentation"
+            className="card-details-backdrop"
 
             onMouseDown={() => {
                 onClose();
@@ -222,16 +230,19 @@ function CardDetailsPanel({
                 justifyContent: "flex-end",
 
                 background:
-                    "rgba(15, 23, 42, 0.42)",
+                    "var(--color-overlay)",
             }}
         >
 
             <aside
+                ref={dialogRef}
                 role="dialog"
+                className="card-details-drawer"
 
                 aria-modal="true"
 
                 aria-labelledby="card-details-title"
+                tabIndex={-1}
 
                 onMouseDown={(event) => {
                     event.stopPropagation();
@@ -251,13 +262,13 @@ function CardDetailsPanel({
                         "column",
 
                     background:
-                        "var(--surface-color, #ffffff)",
+                        "var(--color-surface-raised)",
 
                     borderLeft:
-                        "1px solid var(--border-color, #dfe3ea)",
+                        "1px solid var(--color-border)",
 
                     boxShadow:
-                        "-20px 0 60px rgba(15, 23, 42, 0.18)",
+                        "var(--shadow-lg)",
 
                     overflow:
                         "hidden",
@@ -269,12 +280,13 @@ function CardDetailsPanel({
                 ============================================= */}
 
                 <div
+                    className="card-details-header"
                     style={{
                         padding:
                             "20px 22px 17px",
 
                         borderBottom:
-                            "1px solid var(--border-color, #e5e7eb)",
+                            "1px solid var(--color-border)",
 
                         display:
                             "flex",
@@ -346,10 +358,8 @@ function CardDetailsPanel({
                     </div>
 
 
-                    <button
-                        type="button"
-
-                        className="secondary-button"
+                    <Button
+                        variant="secondary"
 
                         disabled={
                             saving ||
@@ -366,8 +376,9 @@ function CardDetailsPanel({
                             minWidth: 74,
                         }}
                     >
+                        <X size={15} strokeWidth={1.8} aria-hidden="true" />
                         Fechar
-                    </button>
+                    </Button>
 
                 </div>
 
@@ -377,6 +388,7 @@ function CardDetailsPanel({
                 ============================================= */}
 
                 <div
+                    className="card-details-body"
                     style={{
                         flex: 1,
 
@@ -391,9 +403,10 @@ function CardDetailsPanel({
                         PLANEJAMENTO
                     ========================================= */}
 
-                    <section>
+                    <section className="card-details-section">
 
                         <div
+                            className="card-details-form-grid"
                             style={{
                                 marginBottom: 14,
                             }}
@@ -442,12 +455,13 @@ function CardDetailsPanel({
 
                             <div className="form-field">
 
-                                <label>
+                                <label htmlFor="card-functional-responsible">
                                     Responsável funcional
                                 </label>
 
 
-                                <select
+                                <PremiumSelect
+                                    id="card-functional-responsible"
                                     value={
                                         functionalResponsibleId
                                     }
@@ -489,7 +503,7 @@ function CardDetailsPanel({
                                         )
                                     )}
 
-                                </select>
+                                </PremiumSelect>
 
                             </div>
 
@@ -500,12 +514,13 @@ function CardDetailsPanel({
 
                             <div className="form-field">
 
-                                <label>
+                                <label htmlFor="card-technical-responsible">
                                     Responsável técnico
                                 </label>
 
 
-                                <select
+                                <PremiumSelect
+                                    id="card-technical-responsible"
                                     value={
                                         technicalResponsibleId
                                     }
@@ -547,7 +562,7 @@ function CardDetailsPanel({
                                         )
                                     )}
 
-                                </select>
+                                </PremiumSelect>
 
                             </div>
 
@@ -558,12 +573,13 @@ function CardDetailsPanel({
 
                             <div className="form-field">
 
-                                <label>
+                                <label htmlFor="card-start-date">
                                     Data de início
                                 </label>
 
 
                                 <input
+                                    id="card-start-date"
                                     type="date"
 
                                     value={
@@ -591,12 +607,13 @@ function CardDetailsPanel({
 
                             <div className="form-field">
 
-                                <label>
+                                <label htmlFor="card-due-date">
                                     Previsão de conclusão
                                 </label>
 
 
                                 <input
+                                    id="card-due-date"
                                     type="date"
 
                                     value={
@@ -624,12 +641,13 @@ function CardDetailsPanel({
 
                             <div className="form-field">
 
-                                <label>
+                                <label htmlFor="card-effort-hours">
                                     Horas de esforço
                                 </label>
 
 
                                 <input
+                                    id="card-effort-hours"
                                     type="number"
 
                                     min="0"
@@ -694,355 +712,39 @@ function CardDetailsPanel({
                             }}
                         >
 
-                            <button
-                                type="button"
-
-                                className="primary-button"
+                            <Button
+                                busy={saving}
+                                loadingLabel="Salvando planejamento"
 
                                 disabled={
                                     !canEdit ||
-                                    loading ||
-                                    saving
+                                    loading
                                 }
 
                                 onClick={
                                     onSave
                                 }
                             >
+                                <Save size={15} strokeWidth={1.8} aria-hidden="true" />
                                 {saving
                                     ? "Salvando..."
                                     : "Salvar planejamento"}
-                            </button>
+                            </Button>
 
                         </div>
 
                     </section>
 
 
-                    {/* =========================================
-                        COMENTÁRIOS
-                    ========================================= */}
-
-                    <section
-                        style={{
-                            marginTop: 28,
-
-                            paddingTop: 22,
-
-                            borderTop:
-                                "1px solid var(--border-color, #e5e7eb)",
-                        }}
-                    >
-
-                        <div
-                            style={{
-                                display:
-                                    "flex",
-
-                                alignItems:
-                                    "center",
-
-                                justifyContent:
-                                    "space-between",
-
-                                gap: 12,
-
-                                marginBottom: 14,
-                            }}
-                        >
-
-                            <div>
-
-                                <div
-                                    style={{
-                                        fontSize: 14,
-
-                                        fontWeight: 800,
-                                    }}
-                                >
-                                    Comentários
-                                </div>
-
-
-                                <div
-                                    style={{
-                                        marginTop: 3,
-
-                                        fontSize: 11,
-
-                                        opacity: 0.62,
-                                    }}
-                                >
-                                    Histórico livre da demanda.
-                                </div>
-
-                            </div>
-
-
-                            <span
-                                style={{
-                                    minWidth: 28,
-
-                                    padding:
-                                        "4px 8px",
-
-                                    borderRadius:
-                                        999,
-
-                                    background:
-                                        "var(--surface-hover, rgba(100, 116, 139, 0.10))",
-
-                                    fontSize: 11,
-
-                                    fontWeight: 800,
-
-                                    textAlign:
-                                        "center",
-                                }}
-                            >
-                                {comments.length}
-                            </span>
-
-                        </div>
-
-
-                        {/* =====================================
-                            LISTA DE COMENTÁRIOS
-                        ===================================== */}
-
-                        {loading ? (
-
-                            <div
-                                style={{
-                                    padding:
-                                        "18px 0",
-
-                                    fontSize: 12,
-
-                                    opacity: 0.6,
-                                }}
-                            >
-                                Carregando comentários...
-                            </div>
-
-                        ) : comments.length === 0 ? (
-
-                            <div
-                                style={{
-                                    padding: 16,
-
-                                    border:
-                                        "1px dashed var(--border-color, #dfe3ea)",
-
-                                    borderRadius:
-                                        8,
-
-                                    fontSize: 12,
-
-                                    opacity: 0.6,
-
-                                    textAlign:
-                                        "center",
-                                }}
-                            >
-                                Nenhum comentário neste card.
-                            </div>
-
-                        ) : (
-
-                            <div
-                                style={{
-                                    display:
-                                        "grid",
-
-                                    gap: 10,
-                                }}
-                            >
-
-                                {comments.map(
-                                    (comment) => (
-
-                                        <article
-                                            key={
-                                                comment.id
-                                            }
-
-                                            style={{
-                                                padding:
-                                                    "12px 14px",
-
-                                                border:
-                                                    "1px solid var(--border-color, #e5e7eb)",
-
-                                                borderRadius:
-                                                    9,
-
-                                                background:
-                                                    "var(--surface-hover, rgba(100, 116, 139, 0.045))",
-                                            }}
-                                        >
-
-                                            <div
-                                                style={{
-                                                    display:
-                                                        "flex",
-
-                                                    alignItems:
-                                                        "center",
-
-                                                    justifyContent:
-                                                        "space-between",
-
-                                                    gap: 12,
-
-                                                    marginBottom:
-                                                        7,
-                                                }}
-                                            >
-
-                                                <strong
-                                                    style={{
-                                                        fontSize:
-                                                            11,
-                                                    }}
-                                                >
-                                                    {comment.user_name ||
-                                                        `Usuário #${comment.user_id}`}
-                                                </strong>
-
-
-                                                <span
-                                                    style={{
-                                                        fontSize:
-                                                            10,
-
-                                                        opacity:
-                                                            0.5,
-
-                                                        whiteSpace:
-                                                            "nowrap",
-                                                    }}
-                                                >
-                                                    {comment.created_at
-                                                        ? (
-                                                            parseApiDateTime(
-                                                                comment.created_at
-                                                            )?.toLocaleString(
-                                                                "pt-BR"
-                                                            ) || ""
-                                                        )
-                                                        : ""}
-                                                </span>
-
-                                            </div>
-
-
-                                            <div
-                                                style={{
-                                                    fontSize:
-                                                        12,
-
-                                                    lineHeight:
-                                                        1.55,
-
-                                                    whiteSpace:
-                                                        "pre-wrap",
-
-                                                    overflowWrap:
-                                                        "anywhere",
-                                                }}
-                                            >
-                                                {comment.content}
-                                            </div>
-
-                                        </article>
-                                    )
-                                )}
-
-                            </div>
-                        )}
-
-
-                        {/* =====================================
-                            NOVO COMENTÁRIO
-                        ===================================== */}
-
-                        <div
-                            style={{
-                                marginTop: 14,
-                            }}
-                        >
-
-                            <textarea
-                                rows={4}
-
-                                placeholder="Escreva um comentário..."
-
-                                value={
-                                    newComment
-                                }
-
-                                disabled={
-                                    !canEdit ||
-                                    addingComment
-                                }
-
-                                onChange={(event) => {
-                                    onNewCommentChange(
-                                        event.target.value
-                                    );
-                                }}
-
-                                style={{
-                                    width:
-                                        "100%",
-
-                                    resize:
-                                        "vertical",
-
-                                    boxSizing:
-                                        "border-box",
-                                }}
-                            />
-
-
-                            <div
-                                style={{
-                                    display:
-                                        "flex",
-
-                                    justifyContent:
-                                        "flex-end",
-
-                                    marginTop: 8,
-                                }}
-                            >
-
-                                <button
-                                    type="button"
-
-                                    className="secondary-button"
-
-                                    disabled={
-                                        !canEdit ||
-                                        !newComment.trim() ||
-                                        addingComment
-                                    }
-
-                                    onClick={
-                                        onAddComment
-                                    }
-                                >
-                                    {addingComment
-                                        ? "Adicionando..."
-                                        : "Adicionar comentário"}
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                    </section>
+                    <CardCommentsSection
+                        comments={comments}
+                        loading={loading}
+                        canEdit={canEdit}
+                        addingComment={addingComment}
+                        newComment={newComment}
+                        onNewCommentChange={onNewCommentChange}
+                        onAddComment={onAddComment}
+                    />
 
                 </div>
 

@@ -43,12 +43,17 @@
 
 import {
     ArrowLeft,
+    Columns3,
     Folder,
-    FolderPlus,
+    LayoutGrid,
     Plus,
     Search,
     Trash2,
+    X,
 } from "lucide-react";
+import FeedbackBanner from "../../ui/FeedbackBanner";
+import { Button, IconButton } from "../../ui/Button";
+import { TextField } from "../../ui/TextField";
 
 
 import type {
@@ -314,10 +319,7 @@ function DevelopmentProjectToolbar({
                         // LIXEIRA
                         // =========================================
 
-                        <button
-                            type="button"
-                            className="secondary-button"
-
+                        <Button
                             onClick={() => {
                                 void onBackFromTrash();
                             }}
@@ -330,7 +332,7 @@ function DevelopmentProjectToolbar({
 
                             Voltar aos projetos
 
-                        </button>
+                        </Button>
 
                     ) : (
 
@@ -343,170 +345,50 @@ function DevelopmentProjectToolbar({
                                 SELETOR PROJETOS / KANBAN
                             ================================= */}
 
-                            <div
-                                style={{
-                                    display:
-                                        "flex",
-
-                                    alignItems:
-                                        "center",
-
-                                    gap:
-                                        4,
-
-                                    padding:
-                                        3,
-
-                                    border:
-                                        "1px solid var(--border-color, #dfe3ea)",
-
-                                    borderRadius:
-                                        8,
-                                }}
-                            >
+                            <div className="development-view-switcher" role="group" aria-label="Visualização do desenvolvimento">
 
                                 <button
                                     type="button"
+                                    aria-pressed={viewMode === "projects"}
 
                                     onClick={
                                         onShowProjects
                                     }
 
-                                    style={{
-                                        minHeight:
-                                            30,
-
-                                        padding:
-                                            "5px 10px",
-
-                                        border:
-                                            "none",
-
-                                        borderRadius:
-                                            6,
-
-                                        background:
-                                            viewMode === "projects"
-                                                ? "var(--surface-hover, rgba(100, 116, 139, 0.14))"
-                                                : "transparent",
-
-                                        color:
-                                            "inherit",
-
-                                        fontSize:
-                                            12,
-
-                                        fontWeight:
-                                            700,
-
-                                        cursor:
-                                            "pointer",
-                                    }}
                                 >
-                                    Projetos
+                                    <span className="development-view-switcher__icon"><LayoutGrid size={15} strokeWidth={1.9} aria-hidden="true" /></span>
+                                    <span>Projetos</span>
+                                    <small>{projectCount}</small>
                                 </button>
 
 
                                 <button
                                     type="button"
+                                    aria-pressed={viewMode === "kanban"}
 
                                     onClick={() => {
                                         void onShowKanban();
                                     }}
 
-                                    style={{
-                                        minHeight:
-                                            30,
-
-                                        padding:
-                                            "5px 10px",
-
-                                        border:
-                                            "none",
-
-                                        borderRadius:
-                                            6,
-
-                                        background:
-                                            viewMode === "kanban"
-                                                ? "var(--surface-hover, rgba(100, 116, 139, 0.14))"
-                                                : "transparent",
-
-                                        color:
-                                            "inherit",
-
-                                        fontSize:
-                                            12,
-
-                                        fontWeight:
-                                            700,
-
-                                        cursor:
-                                            "pointer",
-                                    }}
                                 >
-                                    Kanban
+                                    <span className="development-view-switcher__icon"><Columns3 size={15} strokeWidth={1.9} aria-hidden="true" /></span>
+                                    <span>Kanban</span>
+                                    <small>{kanbanProjectCount}</small>
                                 </button>
+
+                                {canViewTrash && (
+                                    <button
+                                        type="button"
+                                        aria-pressed="false"
+                                        onClick={() => void onOpenTrash()}
+                                    >
+                                        <span className="development-view-switcher__icon"><Trash2 size={15} strokeWidth={1.9} aria-hidden="true" /></span>
+                                        <span>Lixeira</span>
+                                        <small>{trashProjectCount}</small>
+                                    </button>
+                                )}
 
                             </div>
-
-
-                            {/* =================================
-                                LIXEIRA
-                            ================================= */}
-
-                            {canViewTrash && (
-
-                                <button
-                                    type="button"
-                                    className="secondary-button"
-
-                                    onClick={() => {
-                                        void onOpenTrash();
-                                    }}
-                                >
-
-                                    <Trash2
-                                        size={15}
-                                        strokeWidth={1.9}
-                                    />
-
-                                    Lixeira
-
-                                </button>
-                            )}
-
-
-                            {/* =================================
-                                NOVA PASTA
-                            =================================
-                                
-                                Mantém exatamente o estado atual:
-                                botão visível, porém desabilitado.
-                            ================================= */}
-
-                            {canCreateDevelopment && (
-
-                                <button
-                                    type="button"
-                                    className="secondary-button"
-
-                                    disabled
-
-                                    title={
-                                        "Pastas serão ligadas ao backend na próxima etapa."
-                                    }
-                                >
-
-                                    <FolderPlus
-                                        size={15}
-                                        strokeWidth={1.9}
-                                    />
-
-                                    Nova pasta
-
-                                </button>
-                            )}
 
 
                             {/* =================================
@@ -515,10 +397,8 @@ function DevelopmentProjectToolbar({
 
                             {canCreateDevelopment && (
 
-                                <button
-                                    type="button"
-                                    className="primary-button"
-
+                                <Button
+                                    variant="primary"
                                     onClick={
                                         onCreateProject
                                     }
@@ -531,7 +411,7 @@ function DevelopmentProjectToolbar({
 
                                     Novo projeto
 
-                                </button>
+                                </Button>
                             )}
 
                         </>
@@ -547,43 +427,21 @@ function DevelopmentProjectToolbar({
             ================================================= */}
 
             {error && (
-
-                <div className="alert alert-error">
-                    {error}
-                </div>
+                <FeedbackBanner
+                    tone="error"
+                    title="A operação de desenvolvimento não foi concluída"
+                    message={error}
+                    hint="Seu trabalho local foi preservado. Revise os dados, permissões e tente novamente."
+                />
             )}
 
 
             {executionMessage && (
-
-                <div
-                    role="status"
-
-                    style={{
-                        marginBottom:
-                            16,
-
-                        padding:
-                            "10px 12px",
-
-                        border:
-                            "1px solid rgba(22, 163, 74, 0.28)",
-
-                        borderRadius:
-                            8,
-
-                        background:
-                            "rgba(22, 163, 74, 0.08)",
-
-                        fontSize:
-                            13,
-
-                        lineHeight:
-                            1.45,
-                    }}
-                >
-                    {executionMessage}
-                </div>
+                <FeedbackBanner
+                    tone="success"
+                    title="Operação confirmada pelo Control Room"
+                    message={executionMessage}
+                />
             )}
 
 
@@ -591,103 +449,40 @@ function DevelopmentProjectToolbar({
                 PESQUISA
             ================================================= */}
 
-            <div
-                style={{
-                    display:
-                        "flex",
-
-                    alignItems:
-                        "center",
-
-                    gap:
-                        10,
-
-                    marginBottom:
-                        18,
-                }}
-            >
-
-                <div
-                    style={{
-                        flex:
-                            1,
-
-                        position:
-                            "relative",
-                    }}
-                >
-
-                    <Search
-                        size={16}
-                        strokeWidth={1.8}
-
-                        style={{
-                            position:
-                                "absolute",
-
-                            left:
-                                12,
-
-                            top:
-                                "50%",
-
-                            transform:
-                                "translateY(-50%)",
-
-                            opacity:
-                                0.65,
-
-                            pointerEvents:
-                                "none",
-                        }}
-                    />
-
-
-                    <input
-                        type="text"
-
-                        value={
-                            search
-                        }
-
-                        placeholder={
-                            searchPlaceholder
-                        }
-
-                        onChange={(event) => {
-
-                            onSearchChange(
-                                event.target.value
-                            );
-                        }}
-
-                        style={{
-                            width:
-                                "100%",
-
-                            boxSizing:
-                                "border-box",
-
-                            paddingLeft:
-                                38,
-                        }}
-                    />
-
-                </div>
+            <div className="development-toolbar-search">
+                <TextField
+                    label={searchPlaceholder}
+                    labelHidden
+                    containerClassName="development-toolbar-search__field"
+                    type="search"
+                    value={search}
+                    placeholder={searchPlaceholder}
+                    leadingIcon={<Search size={16} strokeWidth={1.8} />}
+                    trailingAction={search ? (
+                        <IconButton
+                            label="Limpar pesquisa"
+                            icon={<X size={14} aria-hidden="true" />}
+                            size="sm"
+                            onClick={() => onSearchChange("")}
+                        />
+                    ) : undefined}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                />
 
 
                 {/* =============================================
                     CONTADOR
                 ============================================= */}
 
-                <span className="panel-count">
-                    {count}
-                </span>
+                <div className="panel-header-meta development-count">
+                    <span className="panel-count">
+                        {count}
+                    </span>
 
-
-                <span className="panel-count-label">
-                    {countLabel}
-                </span>
+                    <span className="panel-count-label">
+                        {countLabel}
+                    </span>
+                </div>
 
             </div>
         </>

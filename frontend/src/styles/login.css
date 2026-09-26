@@ -1,162 +1,31 @@
-/* ============================================================
-   DUET CORE - LOGIN
-   ============================================================
-
-   Estilos exclusivos da tela de autenticação.
-
-   Responsabilidade:
-   - layout centralizado da página;
-   - container do formulário;
-   - campos de usuário e senha;
-   - mensagem de erro;
-   - botão de autenticação.
-
-   Este arquivo preserva inicialmente a aparência existente
-   em pages/Login.tsx.
-
-   Uma futura evolução visual da identidade DUET CORE deve ser
-   realizada separadamente da modularização estrutural.
-   ============================================================ */
-
-
-/* ============================================================
-   PÁGINA
-   ============================================================ */
-
-.login-page {
-    min-height: 100vh;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: #f4f6f8;
-
-    padding: 20px;
-}
-
-
-/* ============================================================
-   CONTAINER
-   ============================================================ */
-
-.login-card {
-    width: 100%;
-    max-width: 400px;
-
-    background: #ffffff;
-
-    border-radius: 12px;
-
-    padding: 40px;
-
-    box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.10);
-}
-
-
-/* ============================================================
-   CABEÇALHO
-   ============================================================ */
-
-.login-title {
-    margin: 0 0 8px 0;
-
-    text-align: center;
-
-    font-size: 28px;
-}
-
-
-.login-description {
-    margin: 0 0 30px 0;
-
-    text-align: center;
-
-    color: #666;
-}
-
-
-/* ============================================================
-   CAMPOS
-   ============================================================ */
-
-.login-field {
-    margin-bottom: 20px;
-}
-
-
-.login-field-password {
-    margin-bottom: 25px;
-}
-
-
-.login-label {
-    display: block;
-
-    margin-bottom: 8px;
-
-    font-weight: 600;
-}
-
-
-.login-input {
-    width: 100%;
-
-    box-sizing: border-box;
-
-    padding: 12px;
-
-    border:
-        1px solid #d0d5db;
-
-    border-radius: 6px;
-
-    font-size: 14px;
-}
-
-
-/* ============================================================
-   ERRO
-   ============================================================ */
-
-.login-error {
-    margin-bottom: 20px;
-
-    padding: 10px;
-
-    border-radius: 6px;
-
-    background: #fee2e2;
-
-    color: #b91c1c;
-
-    font-size: 14px;
-
-    text-align: center;
-}
-
-
-/* ============================================================
-   BOTÃO
-   ============================================================ */
-
-.login-submit {
-    width: 100%;
-
-    padding: 12px;
-
-    border: none;
-
-    border-radius: 6px;
-
-    background: #2563eb;
-
-    color: #ffffff;
-
-    font-size: 15px;
-
-    font-weight: 600;
-
-    cursor: pointer;
-}
+.login-page { position: relative; display: grid; min-height: 100vh; grid-template-columns: minmax(0, 1.12fr) minmax(420px, .88fr); color: var(--color-text-primary); background: var(--color-background); }
+.login-topbar { position: absolute; top: 24px; right: 28px; z-index: 2; }
+.login-intro { position: relative; display: flex; min-height: 100vh; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 52px clamp(40px, 7vw, 108px); color: #f5f5f9; background: #15161e; }
+.login-intro::before { position: absolute; inset: auto -16% -32% auto; width: 65vw; max-width: 850px; aspect-ratio: 1; border: 1px solid rgba(139,140,245,.13); border-radius: 50%; box-shadow: 0 0 0 100px rgba(139,140,245,.035), 0 0 0 200px rgba(139,140,245,.025); content: ""; animation: login-orbit 18s ease-in-out infinite alternate; }
+.login-intro::after { position: absolute; inset: 0; opacity: .22; background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(to bottom right, black, transparent 70%); content: ""; pointer-events: none; animation: login-grid 24s linear infinite; }
+.login-intro > * { position: relative; z-index: 1; }
+.login-intro-copy { max-width: 640px; margin: auto 0; padding: 70px 0; animation: login-copy-in 640ms var(--ease-smooth) both; }
+.login-kicker, .login-eyebrow { display: block; color: #9a9bf7; font-size: .72rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+.login-intro h1 { max-width: 620px; margin-top: 20px; font-size: clamp(2.65rem, 5vw, 5rem); font-weight: 680; line-height: .98; letter-spacing: -.06em; }
+.login-intro-copy p { max-width: 520px; margin-top: 28px; color: #aeb0be; font-size: clamp(1rem, 1.4vw, 1.15rem); line-height: 1.7; }
+.login-trust { display: flex; align-items: center; gap: 9px; color: #8f91a1; font-size: .76rem; }
+.login-trust svg { color: #59c39b; }
+.login-panel { display: grid; min-height: 100vh; place-items: center; padding: 88px clamp(28px, 6vw, 88px) 48px; background: var(--color-background); }
+.login-card { width: 100%; max-width: 430px; animation: login-card-in 560ms var(--ease-smooth) 90ms both; }
+.login-card-heading { margin-bottom: 34px; }
+.login-title { margin-top: 10px; color: var(--color-text-primary); font-size: clamp(1.7rem, 3vw, 2.25rem); line-height: 1.15; letter-spacing: -.045em; }
+.login-description { margin-top: 10px; color: var(--color-text-secondary); font-size: .9rem; }
+.login-field { margin-bottom: 19px; }
+.login-field-password { margin-bottom: 24px; }
+.login-panel .ui-input-shell { min-height: 48px; }
+.login-error { margin: -6px 0 18px; padding: 11px 13px; border: 1px solid color-mix(in srgb, var(--color-danger) 25%, transparent); border-radius: var(--radius-md); color: var(--color-danger); background: var(--color-danger-soft); font-size: .78rem; }
+.login-submit { display: flex; width: 100%; height: 47px; align-items: center; justify-content: center; gap: 9px; }
+.login-spinner { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: login-spin .7s linear infinite; }
+.login-help { margin-top: 24px; color: var(--color-text-muted); font-size: .72rem; line-height: 1.5; text-align: center; }
+@keyframes login-spin { to { transform: rotate(360deg); } }
+@keyframes login-orbit { from { transform: translate3d(0, 0, 0) scale(.96); } to { transform: translate3d(-3%, -2%, 0) scale(1.04); } }
+@keyframes login-grid { to { background-position: 48px 48px, 48px 48px; } }
+@keyframes login-copy-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes login-card-in { from { opacity: 0; transform: translateY(18px) scale(.99); } to { opacity: 1; transform: none; } }
+@media (max-width: 900px) { .login-page { grid-template-columns: 1fr; } .login-intro { min-height: auto; padding: 30px 28px 34px; } .login-intro-copy { margin: 70px 0 34px; padding: 0; } .login-intro h1 { font-size: clamp(2.25rem, 10vw, 3.8rem); } .login-trust { display: none; } .login-panel { min-height: auto; padding: 52px 24px 64px; } .login-topbar { top: 24px; right: 22px; } .login-topbar .theme-switcher { color: #b7b9c9; border-color: #343641; background: #20212b; } .login-topbar .theme-switcher select { color: #d9dae2; } }
+@media (max-width: 480px) { .login-intro { padding: 26px 20px 30px; } .login-intro-copy { margin-top: 62px; } .login-intro-copy p { font-size: .94rem; } .login-panel { padding-inline: 20px; } .login-topbar .theme-switcher { width: auto; padding: 2px; } }

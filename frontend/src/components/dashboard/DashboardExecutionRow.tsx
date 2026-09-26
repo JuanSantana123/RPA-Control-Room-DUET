@@ -27,6 +27,7 @@ import type {
 import {
     formatarData,
 } from "../../utils/dashboardFormatters";
+import ExecutionStatusBadge from "../executions/ExecutionStatusBadge";
 
 
 // ============================================================
@@ -50,15 +51,15 @@ function DashboardExecutionRow({
     return (
         <tr>
 
-            <td>
+            <td data-label="ID">
                 {execution.id}
             </td>
 
-            <td>
+            <td data-label="Robô">
                 {execution.robot_name}
             </td>
 
-            <td>
+            <td data-label="Dispositivo">
 
                 <div className="agent-name">
 
@@ -74,14 +75,14 @@ function DashboardExecutionRow({
 
             </td>
 
-            <td>
+            <td data-label="Início">
                 {formatarData(
                     execution.started_at
                 )}
             </td>
 
-            <td>
-                {execution.status}
+            <td data-label="Situação">
+                <ExecutionStatusBadge status={execution.status} />
             </td>
 
         </tr>

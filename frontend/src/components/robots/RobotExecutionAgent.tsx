@@ -29,6 +29,7 @@ import { Server } from "lucide-react";
 import type {
     ExecutionAgent,
 } from "../../types/robots";
+import PremiumSelect from "../ui/PremiumSelect";
 
 
 interface RobotExecutionAgentProps {
@@ -53,10 +54,10 @@ function RobotExecutionAgent({
 
             <div className="form-field">
                 <label htmlFor="execution-agent">
-                    Agent para execução
+                    Dispositivo para execução
                 </label>
 
-                <select
+                <PremiumSelect
                     id="execution-agent"
                     value={selectedExecutionAgent}
                     onChange={(event) =>
@@ -66,7 +67,7 @@ function RobotExecutionAgent({
                     }
                 >
                     <option value="">
-                        Selecione um Agent
+                        Selecione um dispositivo
                     </option>
 
                     {executionAgents.map((agent) => (
@@ -77,7 +78,7 @@ function RobotExecutionAgent({
                             {agent.name} — {agent.agent_id}
                         </option>
                     ))}
-                </select>
+                </PremiumSelect>
             </div>
 
 
@@ -88,7 +89,7 @@ function RobotExecutionAgent({
                 />
 
                 <span>
-                    O robô será executado no Agent selecionado.
+                    O robô será executado no dispositivo selecionado.
                 </span>
             </div>
         </div>

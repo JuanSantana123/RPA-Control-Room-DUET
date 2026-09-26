@@ -38,8 +38,14 @@ import type {
     AvailableProjectLibrary,
 } from "../../../types/robotStudio";
 
+import { PanelSkeleton }
+    from "../../ui/Skeletons";
+import PremiumSelect from "../../ui/PremiumSelect";
+import { useDialogFocus } from "../../../hooks/ui/useDialogFocus";
+import { Button, IconButton } from "../../ui/Button";
 
-interface AddExistingLibrariesModalStyles {
+
+export interface AddExistingLibrariesModalStyles {
     modalBackdrop: CSSProperties;
     modalCardWide: CSSProperties;
     modalHeader: CSSProperties;
@@ -117,6 +123,11 @@ function AddExistingLibrariesModal({
     onSelectVersion,
     onAddLibraries,
 }: AddExistingLibrariesModalProps) {
+    const dialogRef = useDialogFocus<HTMLDivElement>({
+        open,
+        onClose,
+        closeOnEscape: !addingExistingLibraries,
+    });
 
     if (!open) {
         return null;
@@ -142,7 +153,14 @@ function AddExistingLibrariesModal({
             style={styles.modalBackdrop}
             onMouseDown={handleBackdropMouseDown}
         >
-            <div style={styles.modalCardWide}>
+            <div
+                ref={dialogRef}
+                style={styles.modalCardWide}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="studio-add-library-title"
+                tabIndex={-1}
+            >
 
                 {/* =============================================
                     CABEÇALHO
@@ -155,7 +173,7 @@ function AddExistingLibrariesModal({
                             PUBLISHED LIBRARIES
                         </div>
 
-                        <h2 style={styles.modalTitle}>
+                        <h2 id="studio-add-library-title" style={styles.modalTitle}>
                             Adicionar bibliotecas
                         </h2>
 
@@ -167,18 +185,16 @@ function AddExistingLibrariesModal({
                     </div>
 
 
-                    <button
-                        type="button"
+                    <IconButton
+                        label="Fechar"
+                        icon={<X size={16} aria-hidden="true" />}
                         onClick={() =>
                             !addingExistingLibraries &&
                             onClose()
                         }
                         style={styles.modalClose}
                         disabled={addingExistingLibraries}
-                        aria-label="Fechar"
-                    >
-                        <X size={16} />
-                    </button>
+                    />
 
                 </div>
 
@@ -190,10 +206,7 @@ function AddExistingLibrariesModal({
                 <div style={styles.existingLibrariesBody}>
 
                     {loadingAvailableLibraries ? (
-
-                        <div style={styles.libraryEmptyState}>
-                            Carregando bibliotecas publicadas...
-                        </div>
+                        <PanelSkeleton lines={4} />
 
                     ) : availableLibraries.length === 0 ? (
 
@@ -242,13 +255,13 @@ function AddExistingLibrariesModal({
 
                                                 borderColor:
                                                     selected
-                                                        ? "#416ea8"
-                                                        : "#353940",
+                                                        ? "var(--studio-accent)"
+                                                        : "var(--studio-border)",
 
                                                 background:
                                                     selected
-                                                        ? "#202a37"
-                                                        : "#1b1c1f",
+                                                        ? "var(--studio-accent-soft)"
+                                                        : "var(--studio-canvas)",
 
                                                 opacity:
                                                     item.already_added
@@ -338,7 +351,7 @@ function AddExistingLibrariesModal({
                                                     Versão
                                                 </label>
 
-                                                <select
+                                                <PremiumSelect
                                                     value={
                                                         selectedVersionId || ""
                                                     }
@@ -372,7 +385,7 @@ function AddExistingLibrariesModal({
                                                             </option>
                                                         )
                                                     )}
-                                                </select>
+                                                </PremiumSelect>
                                             </div>
 
 
@@ -457,21 +470,22 @@ function AddExistingLibrariesModal({
                     </div>
 
 
-                    <button
-                        type="button"
+                    <Button
+                        variant="secondary"
                         onClick={onClose}
                         disabled={addingExistingLibraries}
                         style={styles.modalSecondaryButton}
                     >
                         Cancelar
-                    </button>
+                    </Button>
 
 
-                    <button
-                        type="button"
+                    <Button
+                        variant="primary"
+                        busy={addingExistingLibraries}
+                        loadingLabel="Adicionando bibliotecas"
                         onClick={onAddLibraries}
                         disabled={
-                            addingExistingLibraries ||
                             selectedExistingLibraries.size === 0
                         }
                         style={{
@@ -489,7 +503,7 @@ function AddExistingLibrariesModal({
                             : selectedExistingLibraries.size === 1
                                 ? "Adicionar biblioteca"
                                 : `Adicionar ${selectedExistingLibraries.size} bibliotecas`}
-                    </button>
+                    </Button>
 
                 </div>
 

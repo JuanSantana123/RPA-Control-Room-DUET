@@ -40,6 +40,7 @@ import type {
     Agent,
     NewAgentForm,
 } from "../../types/agents";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 
 // ============================================================
@@ -72,6 +73,8 @@ export function useAgentsData() {
         error,
         setError,
     ] = useState("");
+
+    const clearError = () => setError("");
 
 
     // ========================================================
@@ -161,14 +164,22 @@ export function useAgentsData() {
             // informado pelo usuário.
             // ====================================================
 
-            if (
-                !newAgent.port.trim()
-            ) {
+            const port = Number(newAgent.port);
+
+            if (!newAgent.port.trim()) {
 
                 setError(
                     "Preencha a porta de comunicação."
                 );
 
+
+                return;
+            }
+
+            if (!Number.isInteger(port) || port < 1 || port > 65535) {
+                setError(
+                    "Informe uma porta inteira entre 1 e 65535. Exemplo: 8000."
+                );
 
                 return;
             }
@@ -199,10 +210,7 @@ export function useAgentsData() {
                     await api.post(
                         "/agents",
                         {
-                            port:
-                                Number(
-                                    newAgent.port
-                                ),
+                            port,
                                 environment:
                                     newAgent.environment,
 
@@ -221,9 +229,19 @@ export function useAgentsData() {
                     "success"
                 ) {
 
+                    const backendMessage =
+                        typeof response.data.message === "string"
+                            ? response.data.message.trim()
+                            : "";
+
+                    const message = response.data.error_code === "agent_token_key_unavailable"
+                        ? backendMessage
+                        : backendMessage === "Não foi possível criar o Agent."
+                            ? "O Control Room recusou o cadastro sem detalhar a causa. Confirme se DUET_AGENT_TOKEN_KEY está configurada e reinicie o serviço; se ela já estiver configurada, consulte o evento agent_creation_failed nos logs."
+                            : backendMessage || "Não foi possível cadastrar o dispositivo. O Control Room não retornou um motivo; consulte os logs do sistema e tente novamente.";
+
                     setError(
-                        response.data.message ||
-                        "Não foi possível cadastrar o Agent."
+                        message
                     );
 
 
@@ -252,7 +270,7 @@ export function useAgentsData() {
                     environment: "development",
                 });
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao cadastrar Agent:",
@@ -260,17 +278,10 @@ export function useAgentsData() {
                 );
 
 
-                console.error(
-                    "Resposta da API:",
-                    err.response?.data
-                );
-
-
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível cadastrar o Agent."
-                );
+                setError(getApiErrorMessage(
+                    err,
+                    "O dispositivo não pôde ser cadastrado. Verifique a configuração do Control Room e tente novamente."
+                ));
 
             } finally {
 
@@ -345,18 +356,17 @@ export function useAgentsData() {
                         )
                 );
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao alterar ambiente do Agent:",
                     err
                 );
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível alterar o ambiente do Device."
-                );
+                setError(getApiErrorMessage(
+                    err,
+                    "Não foi possível alterar o ambiente do dispositivo."
+                ));
             }
         };
 
@@ -434,7 +444,7 @@ export function useAgentsData() {
                         )
                 );
 
-            } catch (err: any) {
+            } catch (err) {
 
                 console.error(
                     "Erro ao alterar display do Agent:",
@@ -442,11 +452,10 @@ export function useAgentsData() {
                 );
 
 
-                setError(
-                    err.response?.data?.detail ||
-                    err.response?.data?.message ||
-                    "Não foi possível alterar o display do Device."
-                );
+                setError(getApiErrorMessage(
+                    err,
+                    "Não foi possível alterar a configuração de display do dispositivo."
+                ));
             }
         };
     // ========================================================
@@ -497,9 +506,9 @@ export function useAgentsData() {
 
                 } else {
 
-                    alert(
+                    setError(
                         response.data.message ||
-                        "Não foi possível excluir o Agent."
+                        "Não foi possível excluir o dispositivo."
                     );
                 }
 
@@ -511,9 +520,10 @@ export function useAgentsData() {
                 );
 
 
-                alert(
-                    "Não foi possível excluir o Agent."
-                );
+                setError(getApiErrorMessage(
+                    err,
+                    "Não foi possível excluir o dispositivo."
+                ));
             }
         };
 
@@ -616,9 +626,10 @@ export function useAgentsData() {
                 );
 
 
-                alert(
-                    "Não foi possível baixar o Agent."
-                );
+                setError(getApiErrorMessage(
+                    err,
+                    "Não foi possível gerar o instalador deste dispositivo."
+                ));
             }
         };
 
@@ -631,6 +642,7 @@ export function useAgentsData() {
         agents,
         loading,
         error,
+        clearError,
 
         newAgent,
         setNewAgent,

@@ -24,6 +24,7 @@ import {
 } from "react";
 
 import api from "../../services/api";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     AutomationProject,
@@ -210,17 +211,17 @@ export function useRobotStudioData({
                         projeto
                     );
 
-                } catch (err: any) {
+                } catch (err) {
 
                     console.error(
                         "Erro ao carregar projeto no DUET Studio:",
                         err
                     );
 
-                    const mensagem =
-                        err.response?.data?.detail ||
-                        err.response?.data?.message ||
-                        "Não foi possível carregar o projeto.";
+                    const mensagem = getApiErrorMessage(
+                err,
+                "Não foi possível carregar o projeto."
+            );
 
                     setProjectError(
                         mensagem

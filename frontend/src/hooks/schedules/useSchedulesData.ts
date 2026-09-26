@@ -165,7 +165,10 @@ export function useSchedulesData() {
         // A lista é consultada assim que o hook é montado.
         // ====================================================
 
-        carregarAgendamentos();
+        const initialLoad = window.setTimeout(
+            carregarAgendamentos,
+            0
+        );
 
 
         // ====================================================
@@ -194,6 +197,7 @@ export function useSchedulesData() {
 
         return () => {
 
+            window.clearTimeout(initialLoad);
             clearInterval(
                 intervalo
             );
