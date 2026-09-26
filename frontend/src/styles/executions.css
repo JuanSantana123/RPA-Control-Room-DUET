@@ -117,6 +117,14 @@
     font-weight: 700;
 }
 
+.execution-summary-card small {
+    display: block;
+    margin-top: 6px;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    line-height: 1.3;
+}
+
 /* ============================================================
    BARRA DE FILTROS
    ============================================================ */
@@ -419,6 +427,50 @@
     border: 1px solid color-mix(in srgb, var(--color-warning) 30%, var(--color-border));
 }
 
+.execution-status-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    min-width: 150px;
+}
+
+.execution-queue-context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 7px;
+    color: var(--color-text-muted);
+    font-size: 9px;
+    line-height: 1.25;
+}
+
+.execution-queue-context--warning {
+    color: var(--color-warning);
+}
+
+.execution-priority {
+    padding: 3px 6px;
+    color: var(--color-text-secondary);
+    font-weight: 700;
+    background: var(--color-surface-muted);
+    border: 1px solid var(--color-border-light);
+    border-radius: 999px;
+}
+
+.execution-priority--high,
+.execution-priority--urgent {
+    color: var(--color-warning);
+    background: var(--color-warning-soft);
+    border-color: color-mix(in srgb, var(--color-warning) 30%, var(--color-border));
+}
+
+.execution-priority--urgent {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 26%, var(--color-border));
+}
+
 /* ============================================================
    AÇÕES
    ============================================================ */
@@ -563,7 +615,7 @@
 
 .execution-timeline {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     padding: 0;
     margin: 0 0 22px;
     list-style: none;
@@ -730,6 +782,69 @@
     border-color: color-mix(in srgb, var(--color-danger) 24%, var(--color-border));
 }
 
+.execution-queue-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 20px;
+    padding: 16px;
+}
+
+.execution-queue-panel--warning {
+    background: color-mix(in srgb, var(--color-warning-soft) 58%, var(--color-surface));
+    border-color: color-mix(in srgb, var(--color-warning) 28%, var(--color-border));
+}
+
+.execution-queue-panel__heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.execution-queue-panel__heading strong {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--color-text-primary);
+    font-size: 13px;
+}
+
+.execution-queue-panel__heading p {
+    margin: 6px 0 0;
+    color: var(--color-text-muted);
+    font-size: 11px;
+}
+
+.execution-queue-attention {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    color: var(--color-warning);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    background: var(--color-warning-soft);
+    border-radius: 999px;
+}
+
+.execution-queue-priority-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.execution-queue-priority-field label {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.execution-queue-priority-field small {
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
 .execution-error-box {
     color: var(--color-danger);
 }
@@ -760,7 +875,7 @@
     }
 
     .execution-summary-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .executions-toolbar {
@@ -805,6 +920,10 @@
         grid-template-columns: 1fr;
     }
 
+    .execution-queue-panel {
+        grid-template-columns: 1fr;
+    }
+
     .execution-modal-overlay {
         padding: 12px;
     }
@@ -845,6 +964,14 @@
     .execution-modal-actions > div,
     .execution-modal-actions > div > .ui-button {
         width: 100%;
+    }
+
+    .execution-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .execution-queue-panel__heading {
+        flex-direction: column;
     }
 }
 /* Célula que exibe o caminho da pasta do robô. */

@@ -168,3 +168,42 @@ export function formatarStatus(
             );
     }
 }
+
+
+export function calcularTempoDeFila(queuedAt: string | null): {
+    seconds: number;
+    label: string;
+} {
+    if (!queuedAt) {
+        return { seconds: 0, label: "Aguardando despacho" };
+    }
+
+    const timestamp = new Date(queuedAt).getTime();
+    if (!Number.isFinite(timestamp)) {
+        return { seconds: 0, label: "Aguardando despacho" };
+    }
+
+    const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    if (hours > 0) {
+        return { seconds, label: `${hours}h ${minutes}min na fila` };
+    }
+
+    if (minutes > 0) {
+        return { seconds, label: `${minutes}min na fila` };
+    }
+
+    return { seconds, label: "Menos de 1min na fila" };
+}
+
+
+export function formatarPrioridade(priority: string): string {
+    switch (priority) {
+        case "urgent": return "Urgente";
+        case "high": return "Alta";
+        case "low": return "Baixa";
+        default: return "Normal";
+    }
+}

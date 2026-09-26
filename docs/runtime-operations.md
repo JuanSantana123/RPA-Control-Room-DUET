@@ -87,3 +87,21 @@ Cada agendamento possui uma política explícita para reinícios e indisponibili
 minutos por padrão). Atrasos dentro dessa janela executam normalmente. A última
 ocorrência ignorada fica visível na página de Agendamentos; um agendamento único
 ignorado é preservado inativo para diagnóstico e reagendamento consciente.
+
+## Prioridade e atenção da fila
+
+Execuções entram com prioridade `normal` e preservam `queued_at` como evidência do
+tempo de espera. O worker ordena cada disputa por `urgent`, `high`, `normal` e
+`low`; dentro da mesma prioridade usa o instante de entrada e o ID como desempate
+determinístico. A alteração de prioridade é atômica e recusada quando o worker já
+retirou a execução da fila.
+
+A Central de Execuções sinaliza esperas acima da janela operacional configurada:
+
+```text
+DUET_QUEUE_WARNING_SECONDS=900
+```
+
+O valor aceito fica entre 60 e 86.400 segundos; ausência ou valor inválido retorna
+ao padrão seguro de 15 minutos. A janela é um indicador de atenção, não cancela,
+repete nem promove trabalho automaticamente.

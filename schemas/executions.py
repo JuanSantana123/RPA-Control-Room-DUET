@@ -52,6 +52,18 @@ class DevelopmentExecutionRequest(BaseModel):
     agent_id: str
 
 
+class ExecutionPriorityUpdateRequest(BaseModel):
+    priority: Literal["low", "normal", "high", "urgent"]
+
+
+class ExecutionPriorityUpdateResponse(BaseModel):
+    status: Literal["success", "error"]
+    message: str
+    execution_id: int = Field(..., gt=0)
+    priority: Literal["low", "normal", "high", "urgent"] | None = None
+    status_atual: str | None = None
+
+
 class ExecutionListItem(BaseModel):
     id: int = Field(..., gt=0)
     source_type: str
@@ -70,6 +82,9 @@ class ExecutionListItem(BaseModel):
     schedule_run_id: str | None
     pid: int | None
     status: str
+    priority: Literal["low", "normal", "high", "urgent"]
+    queued_at: str | None
+    queue_position: int | None
     started_at: str | None
     finished_at: str | None
     error_message: str | None
@@ -78,4 +93,5 @@ class ExecutionListItem(BaseModel):
 class ExecutionListResponse(BaseModel):
     status: Literal["success"]
     total: int = Field(..., ge=0)
+    queue_warning_seconds: int = Field(..., ge=60, le=86400)
     executions: list[ExecutionListItem]

@@ -48,6 +48,7 @@ import ExecutionsFilters from "../components/executions/ExecutionsFilters";
 import ExecutionsTable from "../components/executions/ExecutionsTable";
 import ExecutionDetailsModal from "../components/executions/ExecutionDetailsModal";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
+import { calcularTempoDeFila } from "../utils/executionFormatters";
 
 
 
@@ -66,13 +67,16 @@ function Executions() {
         loading,
         refreshing,
         error,
+        queueWarningSeconds,
 
         parandoExecucao,
         cancelandoExecucao,
+        updatingPriority,
 
         carregarExecucoes,
         pararExecucao,
         cancelarExecucao,
+        alterarPrioridade,
     } = useExecutionsData();
 
 
@@ -138,6 +142,14 @@ function Executions() {
                 "running"
         ).length;
 
+    const queuedExecutions = executions.filter(
+        (execution) => execution.status === "queued"
+    );
+
+    const delayedExecutionsCount = queuedExecutions.filter(
+        (execution) => calcularTempoDeFila(execution.queued_at).seconds > queueWarningSeconds
+    ).length;
+
 
     // ========================================================
     // INTERFACE
@@ -172,6 +184,8 @@ function Executions() {
                 runningExecutionsCount={
                     runningExecutionsCount
                 }
+                queuedExecutionsCount={queuedExecutions.length}
+                delayedExecutionsCount={delayedExecutionsCount}
             />
 
 
@@ -245,6 +259,7 @@ function Executions() {
                 cancelandoExecucao={
                     cancelandoExecucao
                 }
+                queueWarningSeconds={queueWarningSeconds}
                 onViewDetails={
                     (execution: Execution) => setExecucaoSelecionadaId(execution.id)
                 }
@@ -274,8 +289,11 @@ function Executions() {
                     }
                     stopping={parandoExecucao === execucaoSelecionada.id}
                     cancelling={cancelandoExecucao === execucaoSelecionada.id}
+                    updatingPriority={updatingPriority === execucaoSelecionada.id}
+                    queueWarningSeconds={queueWarningSeconds}
                     onStopExecution={pararExecucao}
                     onCancelExecution={cancelarExecucao}
+                    onUpdatePriority={alterarPrioridade}
                 />
             )}
 

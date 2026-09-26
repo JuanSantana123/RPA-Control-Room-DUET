@@ -53,6 +53,7 @@ interface ExecutionsTableProps {
     // IDs das ações atualmente em andamento.
     parandoExecucao: number | null;
     cancelandoExecucao: number | null;
+    queueWarningSeconds: number;
 
     // Ações encaminhadas às linhas.
     onViewDetails: (
@@ -79,6 +80,7 @@ function ExecutionsTable({
     loading,
     parandoExecucao,
     cancelandoExecucao,
+    queueWarningSeconds,
     onViewDetails,
     onStopExecution,
     onCancelExecution,
@@ -197,6 +199,7 @@ function ExecutionsTable({
                                         cancelandoExecucao={
                                             cancelandoExecucao
                                         }
+                                        queueWarningSeconds={queueWarningSeconds}
                                         onViewDetails={
                                             onViewDetails
                                         }

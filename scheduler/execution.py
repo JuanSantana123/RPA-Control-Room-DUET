@@ -482,6 +482,8 @@ def executar_agendamento(
             schedule_run_id=schedule_run_id,
 
             status="queued",
+            priority="normal",
+            queued_at=agora,
             started_at=None,
             finished_at=None,
             error_message=None,

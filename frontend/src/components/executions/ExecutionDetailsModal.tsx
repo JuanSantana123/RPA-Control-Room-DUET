@@ -1,10 +1,11 @@
-import { CircleStop, Copy, X } from "lucide-react";
+import { AlertTriangle, CircleStop, Copy, ListOrdered, X } from "lucide-react";
 
 import { useInteraction } from "../../context/useInteraction";
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
 import type { Execution } from "../../types/executions";
-import { calcularDuracao, formatarData } from "../../utils/executionFormatters";
+import { calcularDuracao, calcularTempoDeFila, formatarData, formatarPrioridade } from "../../utils/executionFormatters";
 import { Button, IconButton } from "../ui/Button";
+import PremiumSelect from "../ui/PremiumSelect";
 import ExecutionStatusBadge from "./ExecutionStatusBadge";
 import ExecutionTimeline from "./ExecutionTimeline";
 
@@ -12,9 +13,12 @@ interface ExecutionDetailsModalProps {
   execution: Execution;
   stopping: boolean;
   cancelling: boolean;
+  updatingPriority: boolean;
+  queueWarningSeconds: number;
   onClose: () => void;
   onStopExecution: (executionId: number, agentId: string) => void | Promise<void>;
   onCancelExecution: (executionId: number) => void | Promise<void>;
+  onUpdatePriority: (executionId: number, priority: Execution["priority"]) => void | Promise<void>;
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
@@ -30,13 +34,18 @@ export default function ExecutionDetailsModal({
   execution,
   stopping,
   cancelling,
+  updatingPriority,
+  queueWarningSeconds,
   onClose,
   onStopExecution,
   onCancelExecution,
+  onUpdatePriority,
 }: ExecutionDetailsModalProps) {
   const { notify } = useInteraction();
-  const busy = stopping || cancelling;
+  const busy = stopping || cancelling || updatingPriority;
   const dialogRef = useDialogFocus<HTMLDivElement>({ open: true, onClose, closeOnEscape: !busy });
+  const queueWait = calcularTempoDeFila(execution.queued_at);
+  const queueDelayed = execution.status === "queued" && queueWait.seconds > queueWarningSeconds;
 
   const copyDiagnostics = async () => {
     const summary = [
@@ -48,6 +57,9 @@ export default function ExecutionDetailsModal({
       `Início: ${execution.started_at ?? "não iniciado"}`,
       `Fim: ${execution.finished_at ?? "não concluído"}`,
       execution.schedule_run_id ? `Ocorrência: ${execution.schedule_run_id}` : "",
+      execution.status === "queued" ? `Prioridade: ${formatarPrioridade(execution.priority)}` : "",
+      execution.status === "queued" ? `Posição no dispositivo: ${execution.queue_position ?? "calculando"}` : "",
+      execution.status === "queued" ? `Entrada na fila: ${execution.queued_at ?? "não informada"}` : "",
     ].filter(Boolean).join("\n");
 
     try {
@@ -88,6 +100,42 @@ export default function ExecutionDetailsModal({
             <Detail label="Início" value={formatarData(execution.started_at)} />
             <Detail label="Duração" value={calcularDuracao(execution.started_at, execution.finished_at)} />
           </div>
+
+          {execution.status === "queued" && (
+            <section className={`execution-detail-section execution-queue-panel${queueDelayed ? " execution-queue-panel--warning" : ""}`}
+              aria-labelledby="execution-queue-title">
+              <div className="execution-queue-panel__heading">
+                <div>
+                  <span className="execution-detail-label" id="execution-queue-title">Gestão da fila</span>
+                  <strong>
+                    <ListOrdered size={16} aria-hidden="true" />
+                    {execution.queue_position ? `${execution.queue_position}ª posição neste dispositivo` : "Posição sendo calculada"}
+                  </strong>
+                  <p>{queueWait.label}. A prioridade pode ser ajustada até o início da execução.</p>
+                </div>
+                {queueDelayed && (
+                  <span className="execution-queue-attention">
+                    <AlertTriangle size={15} aria-hidden="true" /> Requer atenção
+                  </span>
+                )}
+              </div>
+              <div className="execution-queue-priority-field">
+                <label htmlFor={`execution-priority-${execution.id}`}>Prioridade operacional</label>
+                <PremiumSelect
+                  id={`execution-priority-${execution.id}`}
+                  value={execution.priority}
+                  disabled={updatingPriority}
+                  onChange={(event) => void onUpdatePriority(execution.id, event.target.value as Execution["priority"])}
+                >
+                  <option value="low">Baixa — pode aguardar</option>
+                  <option value="normal">Normal — ordem padrão</option>
+                  <option value="high">Alta — atendimento prioritário</option>
+                  <option value="urgent">Urgente — incidente crítico</option>
+                </PremiumSelect>
+                <small>{updatingPriority ? "Reposicionando na fila…" : `Prioridade atual: ${formatarPrioridade(execution.priority)}`}</small>
+              </div>
+            </section>
+          )}
 
           <section className="execution-detail-section" aria-labelledby="execution-identifiers-title">
             <span className="execution-detail-label" id="execution-identifiers-title">Identificadores operacionais</span>

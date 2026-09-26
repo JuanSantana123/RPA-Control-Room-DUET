@@ -42,7 +42,9 @@ import type {
 
 import {
     calcularDuracao,
+    calcularTempoDeFila,
     formatarData,
+    formatarPrioridade,
 } from "../../utils/executionFormatters";
 
 import ExecutionStatusBadge from "./ExecutionStatusBadge";
@@ -61,6 +63,7 @@ interface ExecutionRowProps {
     // IDs usados para representar ações em andamento.
     parandoExecucao: number | null;
     cancelandoExecucao: number | null;
+    queueWarningSeconds: number;
 
     // Abre os detalhes da execução.
     onViewDetails: (
@@ -88,6 +91,7 @@ function ExecutionRow({
     execution,
     parandoExecucao,
     cancelandoExecucao,
+    queueWarningSeconds,
     onViewDetails,
     onStopExecution,
     onCancelExecution,
@@ -242,9 +246,22 @@ function ExecutionRow({
             ================================================= */}
 
             <td>
-                <ExecutionStatusBadge
-                    status={execution.status}
-                />
+                <div className="execution-status-stack">
+                    <ExecutionStatusBadge status={execution.status} />
+                    {execution.status === "queued" && (() => {
+                        const wait = calcularTempoDeFila(execution.queued_at);
+                        const delayed = wait.seconds > queueWarningSeconds;
+                        return (
+                            <div className={`execution-queue-context${delayed ? " execution-queue-context--warning" : ""}`}>
+                                <span className={`execution-priority execution-priority--${execution.priority}`}>
+                                    {formatarPrioridade(execution.priority)}
+                                </span>
+                                {execution.queue_position && <span>#{execution.queue_position} no dispositivo</span>}
+                                <span>{wait.label}</span>
+                            </div>
+                        );
+                    })()}
+                </div>
             </td>
 
 

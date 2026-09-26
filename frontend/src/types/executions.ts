@@ -95,6 +95,11 @@ export interface Execution {
     // Status atual da execução.
     status: string;
 
+    // Ordenação operacional enquanto aguarda na fila.
+    priority: "low" | "normal" | "high" | "urgent";
+    queued_at: string | null;
+    queue_position: number | null;
+
 
     // ========================================================
     // DATAS

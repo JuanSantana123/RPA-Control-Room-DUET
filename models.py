@@ -10,7 +10,8 @@ from sqlalchemy import (
     Numeric,
     Text,
     Boolean,
-    UniqueConstraint
+    UniqueConstraint,
+    CheckConstraint,
 )
 # JSONB é utilizado para armazenar estruturas dinâmicas
 # específicas do PostgreSQL, como as resoluções suportadas
@@ -2009,6 +2010,12 @@ class RobotVersion(Base):
 class Execution(Base):
 
     __tablename__ = "executions"
+    __table_args__ = (
+        CheckConstraint(
+            "priority IN ('low', 'normal', 'high', 'urgent')",
+            name="ck_executions_priority",
+        ),
+    )
 
     id = Column(
         Integer,
@@ -2193,6 +2200,22 @@ class Execution(Base):
         String,
         nullable=False,
         default="running"
+    )
+
+    # Prioridade operacional da fila. Não altera uma execução que já começou.
+    priority = Column(
+        String,
+        nullable=False,
+        default="normal",
+        index=True
+    )
+
+    # Instante em que a solicitação entrou na fila. Permanece preenchido depois
+    # do claim para preservar o tempo de espera observado.
+    queued_at = Column(
+        DateTime,
+        nullable=True,
+        index=True
     )
 
     started_at = Column(

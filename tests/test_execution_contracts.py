@@ -24,6 +24,9 @@ def active_execution_payload(**overrides):
         "schedule_run_id": None,
         "pid": 4872,
         "status": "running",
+        "priority": "normal",
+        "queued_at": None,
+        "queue_position": None,
         "started_at": "2026-09-26T14:45:00",
         "finished_at": None,
         "error_message": None,
@@ -38,6 +41,7 @@ class ExecutionContractTests(unittest.TestCase):
         response = ExecutionListResponse.model_validate({
             "status": "success",
             "total": 1,
+            "queue_warning_seconds": 900,
             "executions": [item],
         })
 
@@ -80,6 +84,26 @@ class ExecutionContractTests(unittest.TestCase):
 
         self.assertIsInstance(response_model, ast.Name)
         self.assertEqual(response_model.id, "ExecutionListResponse")
+
+    def test_priority_route_declares_typed_response(self):
+        source = Path("api/executions.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        priority_route = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "update_execution_priority"
+        )
+        response_model = next(
+            keyword.value
+            for decorator in priority_route.decorator_list
+            if isinstance(decorator, ast.Call)
+            for keyword in decorator.keywords
+            if keyword.arg == "response_model"
+        )
+
+        self.assertIsInstance(response_model, ast.Name)
+        self.assertEqual(response_model.id, "ExecutionPriorityUpdateResponse")
 
 
 if __name__ == "__main__":

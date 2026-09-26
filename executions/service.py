@@ -47,6 +47,7 @@ import uuid
 # não conseguem reservar simultaneamente o mesmo Agent.
 from sqlalchemy import text
 from database import SessionLocal
+from core.timezone import local_now_naive
 
 from models import (
     Agent,
@@ -1710,6 +1711,8 @@ def _executar_robot(
                 user_id=request.user_id,
 
                 status="queued",
+                priority="normal",
+                queued_at=local_now_naive(),
                 started_at=None
             )
 
@@ -1816,6 +1819,8 @@ def _executar_robot(
                     agent_id=agent_id,
                     user_id=request.user_id,
                     status="queued",
+                    priority="normal",
+                    queued_at=local_now_naive(),
                     started_at=None,
                 )
 

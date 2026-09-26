@@ -16,7 +16,6 @@
 # Assim, a migração não altera o contrato atual da API.
 # ============================================================
 from pathlib import Path
-from datetime import datetime
 
 # Logging utilizado pelos endpoints e operações que ainda
 # permanecem sob responsabilidade deste router.
@@ -65,7 +64,11 @@ from schemas.executions import (
     ExecutionRequest,
     DevelopmentExecutionRequest,
     ExecutionListResponse,
+    ExecutionPriorityUpdateRequest,
+    ExecutionPriorityUpdateResponse,
 )
+
+from core.queue_policy import get_queue_warning_seconds, queue_sort_key
 
 from executions.logging_context import (
     obter_contexto_execucao_log,
@@ -873,6 +876,108 @@ def cancel_execution(
     finally:
 
         db.close()
+
+
+@router.patch(
+    "/executions/{execution_id}/priority",
+    response_model=ExecutionPriorityUpdateResponse,
+    summary="Alterar prioridade de uma execução na fila",
+    description=(
+        "Altera a prioridade somente enquanto a execução ainda está aguardando. "
+        "Não interrompe nem reorganiza uma execução que já começou."
+    ),
+)
+def update_execution_priority(
+    execution_id: int,
+    request: ExecutionPriorityUpdateRequest,
+    usuario: User = Depends(require_permission("Executions", "execute")),
+):
+    db = SessionLocal()
+
+    try:
+        execution = (
+            db.query(Execution)
+            .filter(Execution.id == execution_id)
+            .first()
+        )
+
+        if not execution:
+            return {
+                "status": "error",
+                "message": "Execução não encontrada.",
+                "execution_id": execution_id,
+            }
+
+        if execution.status != "queued":
+            return {
+                "status": "error",
+                "message": "A prioridade só pode ser alterada enquanto a execução está na fila.",
+                "execution_id": execution_id,
+                "status_atual": execution.status,
+            }
+
+        previous_priority = execution.priority
+        updated_rows = (
+            db.query(Execution)
+            .filter(
+                Execution.id == execution_id,
+                Execution.status == "queued",
+            )
+            .update(
+                {Execution.priority: request.priority},
+                synchronize_session=False,
+            )
+        )
+
+        if updated_rows != 1:
+            db.rollback()
+            return {
+                "status": "error",
+                "message": "A execução saiu da fila antes da alteração de prioridade.",
+                "execution_id": execution_id,
+                "status_atual": "em processamento",
+            }
+
+        db.commit()
+
+        logger.info(
+            "Prioridade da execução atualizada",
+            extra={
+                "event": "queued_execution_priority_updated",
+                "execution_id": execution_id,
+                "user_id": usuario.id,
+                "priority_before": previous_priority,
+                "priority_after": request.priority,
+                "status": "success",
+            },
+        )
+
+        return {
+            "status": "success",
+            "message": "Prioridade da execução atualizada.",
+            "execution_id": execution_id,
+            "priority": request.priority,
+        }
+
+    except Exception as error:
+        db.rollback()
+        logger.exception(
+            "Falha ao atualizar prioridade da execução",
+            extra={
+                "event": "queued_execution_priority_update_failed",
+                "execution_id": execution_id,
+                "error_type": type(error).__name__,
+                "status": "error",
+            },
+        )
+        return {
+            "status": "error",
+            "message": "Não foi possível atualizar a prioridade da execução.",
+            "execution_id": execution_id,
+        }
+
+    finally:
+        db.close()
 # ============================================================
 # LISTAR EXECUÇÕES EM ANDAMENTO
 # ============================================================
@@ -964,6 +1069,30 @@ def list_executions(
             )
             .all()
         )
+
+        queue_positions = {}
+        positions_by_agent = {}
+
+        queued_executions = sorted(
+            (
+                execution
+                for execution, _robot, _agent, _user in executions
+                if execution.status == "queued"
+            ),
+            key=lambda execution: (
+                execution.agent_id,
+                *queue_sort_key(
+                    execution.priority,
+                    execution.queued_at,
+                    execution.id,
+                ),
+            ),
+        )
+
+        for queued_execution in queued_executions:
+            next_position = positions_by_agent.get(queued_execution.agent_id, 0) + 1
+            positions_by_agent[queued_execution.agent_id] = next_position
+            queue_positions[queued_execution.id] = next_position
 
         resultado = []
 
@@ -1071,6 +1200,16 @@ def list_executions(
 
                 "status": execution.status,
 
+                "priority": execution.priority,
+
+                "queued_at": (
+                    execution.queued_at.isoformat()
+                    if execution.queued_at
+                    else None
+                ),
+
+                "queue_position": queue_positions.get(execution.id),
+
                 "started_at": (
                     execution.started_at.isoformat()
                     if execution.started_at
@@ -1091,6 +1230,7 @@ def list_executions(
         return {
             "status": "success",
             "total": len(resultado),
+            "queue_warning_seconds": get_queue_warning_seconds(),
             "executions": resultado
         }
 

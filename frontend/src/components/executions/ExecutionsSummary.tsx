@@ -25,6 +25,7 @@
 import {
     Clock3,
     Loader2,
+    ListOrdered,
     Server,
 } from "lucide-react";
 
@@ -43,6 +44,8 @@ interface ExecutionsSummaryProps {
 
     // Quantidade de execuções com status "running".
     runningExecutionsCount: number;
+    queuedExecutionsCount: number;
+    delayedExecutionsCount: number;
 }
 
 
@@ -54,6 +57,8 @@ function ExecutionsSummary({
     visibleExecutionsCount,
     agentsCount,
     runningExecutionsCount,
+    queuedExecutionsCount,
+    delayedExecutionsCount,
 }: ExecutionsSummaryProps) {
 
     return (
@@ -80,6 +85,19 @@ function ExecutionsSummary({
                     </strong>
                 </div>
 
+            </div>
+
+            <div className="execution-summary-card">
+                <div className="execution-summary-icon">
+                    <ListOrdered size={19} />
+                </div>
+                <div>
+                    <span>Na fila</span>
+                    <strong>{queuedExecutionsCount}</strong>
+                    <small>{delayedExecutionsCount > 0
+                        ? `${delayedExecutionsCount} acima da janela de atenção`
+                        : "Dentro da janela de atenção"}</small>
+                </div>
             </div>
 
 

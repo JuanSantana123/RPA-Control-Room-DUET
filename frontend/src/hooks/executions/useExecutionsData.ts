@@ -65,6 +65,7 @@ export function useExecutionsData() {
     ] = useState("");
 
     const [refreshing, setRefreshing] = useState(false);
+    const [queueWarningSeconds, setQueueWarningSeconds] = useState(900);
     const requestSequence = useRef(0);
 
 
@@ -84,6 +85,8 @@ export function useExecutionsData() {
     ] = useState<number | null>(
         null
     );
+
+    const [updatingPriority, setUpdatingPriority] = useState<number | null>(null);
 
 
     // ========================================================
@@ -117,6 +120,13 @@ export function useExecutionsData() {
                     response.data.executions ??
                     []
                 );
+
+                if (
+                    typeof response.data.queue_warning_seconds === "number"
+                    && response.data.queue_warning_seconds >= 60
+                ) {
+                    setQueueWarningSeconds(response.data.queue_warning_seconds);
+                }
 
 
                 setError("");
@@ -343,6 +353,49 @@ export function useExecutionsData() {
         };
 
 
+    const alterarPrioridade = async (
+        executionId: number,
+        priority: Execution["priority"],
+    ) => {
+        try {
+            setUpdatingPriority(executionId);
+            const response = await api.patch(
+                `/executions/${executionId}/priority`,
+                { priority },
+            );
+
+            if (response.status < 200 || response.status >= 300 || response.data.status !== "success") {
+                notify({
+                    tone: "danger",
+                    title: "A prioridade não foi alterada",
+                    message: response.data.message || "O Control Room recusou a alteração da fila.",
+                });
+                return;
+            }
+
+            setExecutions((current) => current.map((execution) => (
+                execution.id === executionId
+                    ? { ...execution, priority }
+                    : execution
+            )));
+            await carregarExecucoes();
+            notify({
+                tone: "success",
+                title: "Prioridade atualizada",
+                message: `A execução #${executionId} foi reposicionada na fila.`,
+            });
+        } catch (err) {
+            notify({
+                tone: "danger",
+                title: "Não foi possível alterar a prioridade",
+                message: getApiErrorMessage(err, "Falha de comunicação com o Control Room."),
+            });
+        } finally {
+            setUpdatingPriority(null);
+        }
+    };
+
+
     // ========================================================
     // CONTRATO PÚBLICO
     // ========================================================
@@ -352,12 +405,15 @@ export function useExecutionsData() {
         loading,
         refreshing,
         error,
+        queueWarningSeconds,
 
         parandoExecucao,
         cancelandoExecucao,
+        updatingPriority,
 
         carregarExecucoes,
         pararExecucao,
         cancelarExecucao,
+        alterarPrioridade,
     };
 }

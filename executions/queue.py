@@ -29,6 +29,7 @@ import logging
 import threading
 
 import requests
+from sqlalchemy import case
 
 from database import SessionLocal
 
@@ -53,6 +54,7 @@ from executions.service import (
 from agents.token_security import (
     descriptografar_agent_token,
 )
+from core.queue_policy import PRIORITY_RANK
 
 
 logger = logging.getLogger(
@@ -69,7 +71,7 @@ queue_stop_event = threading.Event()
 # ============================================================
 def buscar_execucoes_fila():
     """
-    Retorna as Executions queued ordenadas por antiguidade.
+    Retorna as Executions queued por prioridade e, dentro dela, antiguidade.
 
     Não aplicamos um LIMIT global fixo porque os primeiros
     registros podem pertencer a Agents offline ou ocupados.
@@ -89,7 +91,12 @@ def buscar_execucoes_fila():
                 Execution.status == "queued"
             )
             .order_by(
-                Execution.id.asc()
+                case(
+                    *((Execution.priority == priority, rank) for priority, rank in PRIORITY_RANK.items()),
+                    else_=PRIORITY_RANK["normal"],
+                ).asc(),
+                Execution.queued_at.asc().nullslast(),
+                Execution.id.asc(),
             )
             .all()
         )
@@ -113,6 +120,12 @@ def buscar_execucoes_fila():
 
                 "user_id":
                     execucao.user_id,
+
+                "priority":
+                    execucao.priority,
+
+                "queued_at":
+                    execucao.queued_at,
 
                 "schedule_id":
                     getattr(
