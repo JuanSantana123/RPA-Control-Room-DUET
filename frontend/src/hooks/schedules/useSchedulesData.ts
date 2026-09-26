@@ -29,12 +29,14 @@
 // ============================================================
 
 import {
-    useEffect,
+    useRef,
     useState,
 } from "react";
 
 import api from "../../services/api";
 import { useInteraction } from "../../context/useInteraction";
+import { usePollingTask } from "../async/usePollingTask";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     Schedule,
@@ -74,6 +76,8 @@ export function useSchedulesData() {
         setError,
     ] = useState("");
 
+    const requestSequence = useRef(0);
+
 
     // ========================================================
     // CARREGAR AGENDAMENTOS
@@ -87,15 +91,22 @@ export function useSchedulesData() {
     // compartilhada de services/api.
     // ========================================================
 
-    const carregarAgendamentos =
-        async () => {
+    const carregarAgendamentosComSinal =
+        async (signal?: AbortSignal) => {
+
+            const requestId = ++requestSequence.current;
 
             try {
 
                 const response =
                     await api.get(
-                        "/schedules"
+                        "/schedules",
+                        { signal },
                     );
+
+                if (requestId !== requestSequence.current) {
+                    return;
+                }
 
 
                 const data =
@@ -126,21 +137,30 @@ export function useSchedulesData() {
 
             } catch (err) {
 
+                if (signal?.aborted || requestId !== requestSequence.current) {
+                    return;
+                }
+
                 console.error(
                     "Erro ao carregar agendamentos:",
                     err
                 );
 
 
-                setError(
-                    "Não foi possível carregar os agendamentos."
-                );
+                setError(getApiErrorMessage(
+                    err,
+                    "Não foi possível carregar os agendamentos.",
+                ));
 
             } finally {
 
-                setLoading(false);
+                if (!signal?.aborted && requestId === requestSequence.current) {
+                    setLoading(false);
+                }
             }
         };
+
+    const carregarAgendamentos = () => carregarAgendamentosComSinal();
 
 
     // ========================================================
@@ -158,55 +178,10 @@ export function useSchedulesData() {
     // abertura da tela -> carga imediata -> atualização a cada 5s.
     // ========================================================
 
-    useEffect(() => {
-
-        // ====================================================
-        // PRIMEIRA CARGA
-        // ====================================================
-        //
-        // Não esperamos os primeiros 5 segundos.
-        // A lista é consultada assim que o hook é montado.
-        // ====================================================
-
-        const initialLoad = window.setTimeout(
-            carregarAgendamentos,
-            0
-        );
-
-
-        // ====================================================
-        // POLLING
-        // ====================================================
-        //
-        // Depois da primeira carga, mantém a lista sincronizada
-        // com o Control Room a cada 5 segundos.
-        // ====================================================
-
-        const intervalo =
-            setInterval(() => {
-
-                carregarAgendamentos();
-
-            }, 5000);
-
-
-        // ====================================================
-        // CLEANUP
-        // ====================================================
-        //
-        // Quando a página deixa de existir, o intervalo precisa
-        // ser encerrado para não continuar realizando requisições.
-        // ====================================================
-
-        return () => {
-
-            window.clearTimeout(initialLoad);
-            clearInterval(
-                intervalo
-            );
-        };
-
-    }, []);
+    usePollingTask(
+        (signal) => carregarAgendamentosComSinal(signal),
+        { intervalMs: 5000 },
+    );
 
     // ========================================================
     // EXCLUIR AGENDAMENTO

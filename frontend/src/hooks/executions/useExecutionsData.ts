@@ -25,12 +25,14 @@
 // ============================================================
 
 import {
-    useEffect,
+    useRef,
     useState,
 } from "react";
 
 import api from "../../services/api";
 import { useInteraction } from "../../context/useInteraction";
+import { usePollingTask } from "../async/usePollingTask";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
     Execution,
@@ -62,6 +64,9 @@ export function useExecutionsData() {
         setError,
     ] = useState("");
 
+    const [refreshing, setRefreshing] = useState(false);
+    const requestSequence = useRef(0);
+
 
     // ID da execução que está recebendo comando de parada.
     const [
@@ -85,15 +90,26 @@ export function useExecutionsData() {
     // CARREGAR EXECUÇÕES
     // ========================================================
 
-    const carregarExecucoes =
-        async () => {
+    const carregarExecucoesComSinal =
+        async (signal?: AbortSignal) => {
+
+            const requestId = ++requestSequence.current;
+
+            if (!loading) {
+                setRefreshing(true);
+            }
 
             try {
 
                 const response =
                     await api.get(
-                        "/executions"
+                        "/executions",
+                        { signal },
                     );
+
+                if (requestId !== requestSequence.current) {
+                    return;
+                }
 
 
                 // Mantém exatamente o fallback existente.
@@ -107,21 +123,31 @@ export function useExecutionsData() {
 
             } catch (err) {
 
+                if (signal?.aborted || requestId !== requestSequence.current) {
+                    return;
+                }
+
                 console.error(
                     "Erro ao carregar execuções:",
                     err
                 );
 
 
-                setError(
-                    "Não foi possível carregar as execuções."
-                );
+                setError(getApiErrorMessage(
+                    err,
+                    "Não foi possível carregar as execuções.",
+                ));
 
             } finally {
 
-                setLoading(false);
+                if (!signal?.aborted && requestId === requestSequence.current) {
+                    setLoading(false);
+                    setRefreshing(false);
+                }
             }
         };
+
+    const carregarExecucoes = () => carregarExecucoesComSinal();
 
 
     // ========================================================
@@ -135,30 +161,10 @@ export function useExecutionsData() {
     // deixa de existir.
     // ========================================================
 
-    useEffect(() => {
-
-        const initialLoad = window.setTimeout(
-            carregarExecucoes,
-            0
-        );
-
-
-        const intervalo =
-            window.setInterval(
-                carregarExecucoes,
-                5000
-            );
-
-
-        return () => {
-
-            window.clearTimeout(initialLoad);
-            window.clearInterval(
-                intervalo
-            );
-        };
-
-    }, []);
+    usePollingTask(
+        (signal) => carregarExecucoesComSinal(signal),
+        { intervalMs: 5000 },
+    );
 
 
     // ========================================================
@@ -344,6 +350,7 @@ export function useExecutionsData() {
     return {
         executions,
         loading,
+        refreshing,
         error,
 
         parandoExecucao,

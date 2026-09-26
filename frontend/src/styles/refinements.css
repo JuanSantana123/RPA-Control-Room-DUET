@@ -57,6 +57,7 @@
 .feedback-banner__content strong { color: var(--color-text-primary); font-size: var(--text-sm); }
 .feedback-banner__content span { overflow-wrap: anywhere; font-size: var(--text-sm); }
 .feedback-banner__content small { margin-top: 3px; color: var(--color-text-muted); font-size: var(--text-xs); }
+.feedback-banner__actions { display: flex; align-items: center; gap: 6px; }
 .feedback-banner__dismiss { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 0; border-radius: var(--radius-sm); color: var(--color-text-muted); background: transparent; }
 .feedback-banner__dismiss:hover { color: var(--color-text-primary); background: var(--color-surface-subtle); }
 
@@ -663,7 +664,7 @@
   .development-view-switcher button small { display: none; }
   .development-toolbar-search { width: auto; margin-inline: 12px; padding: 0; grid-template-columns: minmax(0, 1fr) auto; }
   .feedback-banner { grid-template-columns: auto minmax(0, 1fr); }
-  .feedback-banner__dismiss { grid-column: 2; grid-row: 1; justify-self: end; }
+  .feedback-banner__actions { grid-column: 1 / -1; justify-content: flex-end; }
   .project-create-panel { margin-inline: 12px; }
   .project-create-panel__header { padding: 16px; }
   .project-create-panel__progress { display: none; }

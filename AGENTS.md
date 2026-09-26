@@ -9,5 +9,6 @@
 - Use `Button`/`IconButton`, `TextField`, `PremiumSelect`, semantic tokens and `useDialogFocus` for new or migrated interactive UI. Domain-specific controls may compose these primitives; do not create parallel generic button, field, select or modal behavior.
 - Use `useInteraction` for confirmations and transient notifications. Do not introduce `window.alert`, `window.confirm` or `window.prompt`; destructive actions must explain impact and use typed confirmation when recovery is not available.
 - Use the shared `services/api` client and `config/runtime` for HTTP and WebSocket endpoints. Keep environment-specific hosts out of components and hooks.
+- Use `usePollingTask` for recurring server reads: do not overlap requests, keep useful stale data visible during refresh failures, and expose an explicit retry action.
 - Keep `/component-lab` development-only and free of operational data/actions. Run `npm run test:components` after changing shared controls, focus, themes or motion.
 - Track route coverage, evidence and remaining validation in `docs/frontend-reconstruction.md`. A successful build is not proof of full product reconstruction or backend integration.

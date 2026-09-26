@@ -17,11 +17,19 @@
 // ============================================================
 
 
+import { RefreshCw } from "lucide-react";
+import { Button } from "../ui/Button";
+
 // ============================================================
 // COMPONENTE
 // ============================================================
 
-function HistoryHeader() {
+interface HistoryHeaderProps {
+    refreshing?: boolean;
+    onRefresh: () => void | Promise<void>;
+}
+
+function HistoryHeader({ refreshing = false, onRefresh }: HistoryHeaderProps) {
 
     return (
         <section className="page-heading">
@@ -41,6 +49,15 @@ function HistoryHeader() {
                 </p>
 
             </div>
+
+            <Button
+                onClick={onRefresh}
+                busy={refreshing}
+                loadingLabel="Atualizando histórico"
+            >
+                <RefreshCw size={16} aria-hidden="true" />
+                Atualizar
+            </Button>
 
         </section>
     );

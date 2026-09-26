@@ -24,8 +24,7 @@
 // ============================================================
 
 import {
-    useCallback,
-    useEffect,
+    useRef,
     useState,
 } from "react";
 
@@ -35,6 +34,8 @@ import api
 import type {
     HistoryExecution,
 } from "../../types/history";
+import { usePollingTask } from "../async/usePollingTask";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 
 // ============================================================
@@ -74,21 +75,35 @@ export function useHistoryData() {
         setError,
     ] = useState("");
 
+    const [refreshing, setRefreshing] = useState(false);
+
+    const requestSequence = useRef(0);
+
 
     // ========================================================
     // CARREGAR HISTÓRICO
     // ========================================================
 
     const carregarHistorico =
-        useCallback(
-            async () => {
+            async (signal?: AbortSignal, background = false) => {
+
+                const requestId = ++requestSequence.current;
+
+                if (background && executions.length > 0) {
+                    setRefreshing(true);
+                }
 
                 try {
 
                     const response =
                         await api.get(
-                            "/executions/history"
+                            "/executions/history",
+                            { signal },
                         );
+
+                    if (requestId !== requestSequence.current) {
+                        return;
+                    }
 
 
                     // Caso executions não exista,
@@ -107,64 +122,39 @@ export function useHistoryData() {
 
                 } catch (err) {
 
+                    if (signal?.aborted || requestId !== requestSequence.current) {
+                        return;
+                    }
+
                     console.error(
                         "Erro ao carregar histórico:",
                         err
                     );
 
 
-                    setError(
-                        "Não foi possível carregar o histórico."
-                    );
+                    setError(getApiErrorMessage(
+                        err,
+                        "Não foi possível carregar o histórico.",
+                    ));
 
                 } finally {
 
-                    setLoading(
-                        false
-                    );
+                    if (!signal?.aborted && requestId === requestSequence.current) {
+                        setLoading(false);
+                        setRefreshing(false);
+                    }
                 }
-            },
-            []
-        );
+            };
 
 
     // ========================================================
     // PRIMEIRA CARGA + POLLING
     // ========================================================
 
-    useEffect(() => {
-
-        // Carrega imediatamente ao abrir a página.
-        const initialLoad = window.setTimeout(
-            carregarHistorico,
-            0
-        );
-
-
-        // Mantém a atualização automática de 5 segundos.
-        const intervalo =
-            setInterval(
-                () => {
-
-                    carregarHistorico();
-
-                },
-                5000
-            );
-
-
-        // Remove o intervalo quando a página for desmontada.
-        return () => {
-
-            window.clearTimeout(initialLoad);
-            clearInterval(
-                intervalo
-            );
-        };
-
-    }, [
-        carregarHistorico,
-    ]);
+    usePollingTask(
+        (signal) => carregarHistorico(signal, executions.length > 0),
+        { intervalMs: 5000 },
+    );
 
 
     // ========================================================
@@ -174,6 +164,8 @@ export function useHistoryData() {
     return {
         executions,
         loading,
+        refreshing,
         error,
+        carregarHistorico: () => carregarHistorico(undefined, true),
     };
 }

@@ -47,6 +47,7 @@ import HistoryTable
 import {
     useHistoryData,
 } from "../hooks/history/useHistoryData";
+import FeedbackBanner from "../components/ui/FeedbackBanner";
 
 
 // ============================================================
@@ -71,7 +72,9 @@ function History() {
     const {
         executions,
         loading,
+        refreshing,
         error,
+        carregarHistorico,
     } = useHistoryData();
 
 
@@ -86,7 +89,24 @@ function History() {
                 CABEÇALHO
                 ================================================== */}
 
-            <HistoryHeader />
+            <HistoryHeader
+                refreshing={refreshing}
+                onRefresh={carregarHistorico}
+            />
+
+            {error && (
+                <FeedbackBanner
+                    tone="error"
+                    title="Não foi possível atualizar o histórico"
+                    message={error}
+                    hint="Os registros já carregados continuam visíveis abaixo."
+                    action={{
+                        label: "Atualizar agora",
+                        onClick: carregarHistorico,
+                        busy: refreshing,
+                    }}
+                />
+            )}
 
 
             {/* ==================================================
@@ -99,9 +119,6 @@ function History() {
                 }
                 loading={
                     loading
-                }
-                error={
-                    error
                 }
             />
 

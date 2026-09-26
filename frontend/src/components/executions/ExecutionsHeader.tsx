@@ -36,6 +36,7 @@ interface ExecutionsHeaderProps {
 
     // Solicita uma atualização manual das execuções.
     onRefresh: () => void | Promise<void>;
+    refreshing?: boolean;
 }
 
 
@@ -64,6 +65,7 @@ function ActivityIndicator() {
 
 function ExecutionsHeader({
     onRefresh,
+    refreshing = false,
 }: ExecutionsHeaderProps) {
 
     return (
@@ -95,6 +97,8 @@ function ExecutionsHeader({
             <Button
                 onClick={onRefresh}
                 title="Atualizar execuções"
+                busy={refreshing}
+                loadingLabel="Atualizando execuções"
             >
                 <RefreshCw size={16} />
 

@@ -1,5 +1,11 @@
 import { CheckCircle2, CircleAlert, Info, X } from "lucide-react";
-import { IconButton } from "./Button";
+import { Button, IconButton } from "./Button";
+
+interface FeedbackAction {
+  label: string;
+  onClick: () => void | Promise<void>;
+  busy?: boolean;
+}
 
 interface FeedbackBannerProps {
   tone?: "error" | "success" | "info";
@@ -7,6 +13,7 @@ interface FeedbackBannerProps {
   message: string;
   hint?: string;
   onDismiss?: () => void;
+  action?: FeedbackAction;
 }
 
 const icons = {
@@ -15,7 +22,7 @@ const icons = {
   info: Info,
 };
 
-export default function FeedbackBanner({ tone = "info", title, message, hint, onDismiss }: FeedbackBannerProps) {
+export default function FeedbackBanner({ tone = "info", title, message, hint, onDismiss, action }: FeedbackBannerProps) {
   const Icon = icons[tone];
 
   return (
@@ -28,14 +35,29 @@ export default function FeedbackBanner({ tone = "info", title, message, hint, on
         <span>{message}</span>
         {hint && <small>{hint}</small>}
       </div>
-      {onDismiss && (
-        <IconButton
-          size="sm"
-          className="feedback-banner__dismiss"
-          label="Fechar mensagem"
-          icon={<X size={16} aria-hidden="true" />}
-          onClick={onDismiss}
-        />
+      {(action || onDismiss) && (
+        <div className="feedback-banner__actions">
+          {action && (
+            <Button
+              size="sm"
+              variant="ghost"
+              busy={action.busy}
+              loadingLabel={`${action.label} em andamento`}
+              onClick={action.onClick}
+            >
+              {action.label}
+            </Button>
+          )}
+          {onDismiss && (
+            <IconButton
+              size="sm"
+              className="feedback-banner__dismiss"
+              label="Fechar mensagem"
+              icon={<X size={16} aria-hidden="true" />}
+              onClick={onDismiss}
+            />
+          )}
+        </div>
       )}
     </div>
   );

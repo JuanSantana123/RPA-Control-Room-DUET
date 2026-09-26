@@ -21,6 +21,7 @@ const allCases = [
   { name: "development-390-dark", route: "/development", width: 390, height: 844, colorScheme: "dark", authenticated: true },
   { name: "development-1440-light", route: "/development", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "executions-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
+  { name: "executions-filter-navigation-768-dark", route: "/executions", width: 768, height: 900, colorScheme: "dark", authenticated: true, interaction: "execution-filters" },
   { name: "executions-empty-1440-light", route: "/executions", width: 1440, height: 900, colorScheme: "light", authenticated: true, forceEmpty: true },
   { name: "history-1440-dark", route: "/history", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "history-1440-light", route: "/history", width: 1440, height: 900, colorScheme: "light", authenticated: true },
@@ -148,6 +149,18 @@ try {
       await page.getByRole("heading", { name: "Nova pasta" }).waitFor();
       await page.waitForTimeout(180);
     }
+    let filterNavigationWorks = null;
+    if (testCase.interaction === "execution-filters") {
+      await page.getByRole("combobox", { name: "Robô" }).click();
+      await page.getByRole("option", { name: "Conciliação financeira", exact: true }).click();
+      await page.waitForURL(/robot=Concilia/);
+      await page.waitForFunction(() => document.querySelector('#filtro-robo')?.textContent?.includes("Conciliação financeira"));
+      await page.goBack();
+      await page.waitForURL((url) => !url.searchParams.has("robot"));
+      await page.waitForFunction(() => document.querySelector('#filtro-robo')?.textContent?.includes("Todos os robôs"));
+      await page.waitForFunction(() => document.querySelector('button') && [...document.querySelectorAll('button')].find((button) => button.textContent?.includes("Limpar filtros"))?.disabled);
+      filterNavigationWorks = true;
+    }
     const metrics = await page.evaluate(() => {
       const visible = (element) => {
         const style = getComputedStyle(element);
@@ -214,13 +227,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, mobileNavigation, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, mobileNavigation, filterNavigationWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.filterNavigationWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

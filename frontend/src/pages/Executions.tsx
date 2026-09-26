@@ -30,10 +30,6 @@ import {
     useState,
 } from "react";
 
-import {
-    AlertCircle,
-} from "lucide-react";
-
 import type {
     Execution,
 } from "../types/executions";
@@ -51,6 +47,7 @@ import ExecutionsSummary from "../components/executions/ExecutionsSummary";
 import ExecutionsFilters from "../components/executions/ExecutionsFilters";
 import ExecutionsTable from "../components/executions/ExecutionsTable";
 import ExecutionDetailsModal from "../components/executions/ExecutionDetailsModal";
+import FeedbackBanner from "../components/ui/FeedbackBanner";
 
 
 
@@ -67,6 +64,7 @@ function Executions() {
     const {
         executions,
         loading,
+        refreshing,
         error,
 
         parandoExecucao,
@@ -149,6 +147,7 @@ function Executions() {
             ================================================= */}
 
             <ExecutionsHeader
+                refreshing={refreshing}
                 onRefresh={
                     carregarExecucoes
                 }
@@ -211,14 +210,17 @@ function Executions() {
             ================================================= */}
 
             {error && (
-
-                <div className="execution-error-alert">
-
-                    <AlertCircle size={17} />
-
-                    {error}
-
-                </div>
+                <FeedbackBanner
+                    tone="error"
+                    title="Não foi possível atualizar as execuções"
+                    message={error}
+                    hint="A lista existente foi preservada e pode estar desatualizada."
+                    action={{
+                        label: "Atualizar agora",
+                        onClick: carregarExecucoes,
+                        busy: refreshing,
+                    }}
+                />
             )}
 
 

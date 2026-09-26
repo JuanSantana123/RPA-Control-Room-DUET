@@ -73,6 +73,8 @@ function ExecutionsFilters({
     onClearFilters,
 }: ExecutionsFiltersProps) {
 
+    const activeFilters = Number(Boolean(filtroRobo)) + Number(Boolean(filtroAgent));
+
     return (
         <div className="executions-toolbar">
 
@@ -87,6 +89,12 @@ function ExecutionsFilters({
                 <span>
                     Filtros
                 </span>
+
+                {activeFilters > 0 && (
+                    <span className="executions-toolbar-count" aria-label={`${activeFilters} filtros ativos`}>
+                        {activeFilters}
+                    </span>
+                )}
 
             </div>
 
@@ -180,6 +188,7 @@ function ExecutionsFilters({
             <Button
                 size="sm"
                 onClick={onClearFilters}
+                disabled={activeFilters === 0}
             >
                 Limpar filtros
             </Button>

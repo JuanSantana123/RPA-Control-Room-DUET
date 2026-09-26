@@ -107,7 +107,7 @@ export default function ComponentLab() {
         <div className="component-lab__feedback">
           <FeedbackBanner tone="info" title="Atualização disponível" message="Há dados mais recentes no servidor." hint="Atualize quando concluir a edição atual." />
           <FeedbackBanner tone="success" title="Configuração salva" message="As alterações já estão disponíveis para a equipe." />
-          <FeedbackBanner tone="error" title="Não foi possível publicar" message="O pacote não possui um arquivo de entrada válido." hint="Defina o arquivo principal e tente novamente." />
+          <FeedbackBanner tone="error" title="Não foi possível publicar" message="O pacote não possui um arquivo de entrada válido." hint="Defina o arquivo principal e tente novamente." action={{ label: "Tentar novamente", onClick: () => undefined }} />
           <EmptyState icon={<Inbox />} title="Nenhum item disponível" description="Novos itens aparecerão nesta área quando forem cadastrados." />
         </div>
         <div className="component-lab__skeletons">

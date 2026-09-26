@@ -24,8 +24,8 @@
 
 import {
     useMemo,
-    useState,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type {
     Execution,
@@ -40,16 +40,26 @@ export function useExecutionFilters(
     // ESTADOS DOS FILTROS
     // ========================================================
 
-    const [
-        filtroRobo,
-        setFiltroRobo,
-    ] = useState("");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const filtroRobo = searchParams.get("robot") ?? "";
+    const filtroAgent = searchParams.get("agent") ?? "";
 
+    const updateFilter = (key: "robot" | "agent", value: string) => {
+        setSearchParams((current) => {
+            const next = new URLSearchParams(current);
 
-    const [
-        filtroAgent,
-        setFiltroAgent,
-    ] = useState("");
+            if (value) {
+                next.set(key, value);
+            } else {
+                next.delete(key);
+            }
+
+            return next;
+        });
+    };
+
+    const setFiltroRobo = (value: string) => updateFilter("robot", value);
+    const setFiltroAgent = (value: string) => updateFilter("agent", value);
 
 
     // ========================================================
@@ -138,10 +148,12 @@ export function useExecutionFilters(
     // ========================================================
 
     const limparFiltros = () => {
-
-        setFiltroRobo("");
-
-        setFiltroAgent("");
+        setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            next.delete("robot");
+            next.delete("agent");
+            return next;
+        });
     };
 
 

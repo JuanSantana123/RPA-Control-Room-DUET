@@ -183,6 +183,10 @@ function Schedules() {
                     title="Não foi possível atualizar os agendamentos"
                     message={error}
                     hint="Os dados exibidos podem estar desatualizados. Tente novamente em instantes."
+                    action={{
+                        label: "Atualizar agora",
+                        onClick: carregarAgendamentos,
+                    }}
                 />
             )}
 

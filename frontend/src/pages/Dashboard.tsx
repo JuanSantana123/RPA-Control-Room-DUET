@@ -75,7 +75,10 @@ function Dashboard() {
         stats,
         executions,
         loading,
+        refreshing,
         error,
+        executionsError,
+        recarregar,
     } = useDashboardData();
 
 
@@ -110,6 +113,11 @@ function Dashboard() {
                     title="Não foi possível carregar a visão geral"
                     message={error}
                     hint="Verifique a conexão com o Control Room e tente atualizar a página."
+                    action={{
+                        label: "Tentar novamente",
+                        onClick: recarregar,
+                        busy: refreshing,
+                    }}
                 />
             </div>
         );
@@ -122,6 +130,22 @@ function Dashboard() {
 
     return (
         <div>
+
+            {executionsError && (
+                <div className="page-container dashboard-partial-warning">
+                    <FeedbackBanner
+                        tone="error"
+                        title="Execuções temporariamente indisponíveis"
+                        message={executionsError}
+                        hint="Os demais indicadores continuam disponíveis."
+                        action={{
+                            label: "Atualizar",
+                            onClick: recarregar,
+                            busy: refreshing,
+                        }}
+                    />
+                </div>
+            )}
 
             <DashboardCommandCenter
                 stats={stats}

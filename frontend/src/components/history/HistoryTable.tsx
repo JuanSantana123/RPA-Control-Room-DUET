@@ -46,8 +46,6 @@ interface HistoryTableProps {
     loading:
         boolean;
 
-    error:
-        string;
 }
 
 
@@ -58,7 +56,6 @@ interface HistoryTableProps {
 function HistoryTable({
     executions,
     loading,
-    error,
 }: HistoryTableProps) {
 
     return (
@@ -142,28 +139,10 @@ function HistoryTable({
 
 
                         {/* ======================================
-                            ERRO
-                            ====================================== */}
-
-                        {!loading && error && (
-
-                            <tr>
-
-                                <td colSpan={10}>
-                                    {error}
-                                </td>
-
-                            </tr>
-
-                        )}
-
-
-                        {/* ======================================
                             ESTADO VAZIO
                             ====================================== */}
 
                         {!loading &&
-                            !error &&
                             executions.length === 0 && (
 
                                 <tr>
@@ -186,7 +165,6 @@ function HistoryTable({
                             ====================================== */}
 
                         {!loading &&
-                            !error &&
                             executions.map(
                                 (execution) => (
 

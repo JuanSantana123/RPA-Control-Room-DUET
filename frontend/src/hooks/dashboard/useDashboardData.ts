@@ -33,6 +33,7 @@
 
 import {
     useEffect,
+    useEffectEvent,
     useState,
 } from "react";
 
@@ -43,6 +44,7 @@ import type {
     DashboardExecution,
     DashboardStats,
 } from "../../types/dashboard";
+import { getApiErrorMessage } from "../../utils/apiErrors";
 
 
 // ============================================================
@@ -94,80 +96,64 @@ export function useDashboardData() {
         setError,
     ] = useState("");
 
-
-    // ========================================================
-    // CARREGAR ESTATÍSTICAS
-    // ========================================================
-    //
-    // Mantém o primeiro useEffect existente no Dashboard.
-    // ========================================================
-
-    useEffect(() => {
-
-        api.get(
-            "/dashboard/stats"
-        )
-            .then((response) => {
-
-                setStats(
-                    response.data
-                );
-
-            })
-            .catch((err) => {
-
-                console.error(
-                    "Erro ao buscar estatísticas do Dashboard:",
-                    err
-                );
+    const [executionsError, setExecutionsError] = useState("");
+    const [refreshing, setRefreshing] = useState(false);
 
 
-                setError(
-                    "Não foi possível carregar as estatísticas do Dashboard."
-                );
+    const carregarDashboard = async (signal?: AbortSignal) => {
+        if (stats) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
 
-            })
-            .finally(() => {
+        const [statsResult, executionsResult] = await Promise.allSettled([
+            api.get("/dashboard/stats", { signal }),
+            api.get("/executions", { signal }),
+        ]);
 
-                setLoading(false);
+        if (signal?.aborted) {
+            return;
+        }
 
-            });
+        if (statsResult.status === "fulfilled") {
+            setStats(statsResult.value.data);
+            setError("");
+        } else {
+            console.error("Erro ao buscar estatísticas do Dashboard:", statsResult.reason);
+            setError(getApiErrorMessage(
+                statsResult.reason,
+                "Não foi possível carregar as estatísticas do Dashboard.",
+            ));
+        }
 
-    }, []);
+        if (executionsResult.status === "fulfilled") {
+            setExecutions(executionsResult.value.data.executions ?? []);
+            setExecutionsError("");
+        } else {
+            console.error("Erro ao buscar execuções:", executionsResult.reason);
+            setExecutionsError(getApiErrorMessage(
+                executionsResult.reason,
+                "Não foi possível atualizar as execuções em andamento.",
+            ));
+        }
 
+        setLoading(false);
+        setRefreshing(false);
+    };
 
-    // ========================================================
-    // CARREGAR EXECUÇÕES
-    // ========================================================
-    //
-    // Mantém o segundo useEffect existente no Dashboard.
-    //
-    // IMPORTANTE:
-    // O erro desta consulta continua somente no console,
-    // exatamente como no arquivo original.
-    // ========================================================
+    const carregarDashboardEvent = useEffectEvent(carregarDashboard);
 
     useEffect(() => {
-
-        api.get(
-            "/executions"
-        )
-            .then((response) => {
-
-                setExecutions(
-                    response.data.executions
-                );
-
-            })
-            .catch((err) => {
-
-                console.error(
-                    "Erro ao buscar execuções:",
-                    err
-                );
-
-            });
-
+        const controller = new AbortController();
+        const initialLoad = window.setTimeout(
+            () => void carregarDashboardEvent(controller.signal),
+            0,
+        );
+        return () => {
+            window.clearTimeout(initialLoad);
+            controller.abort();
+        };
     }, []);
 
 
@@ -179,6 +165,9 @@ export function useDashboardData() {
         stats,
         executions,
         loading,
+        refreshing,
         error,
+        executionsError,
+        recarregar: () => carregarDashboard(),
     };
 }
