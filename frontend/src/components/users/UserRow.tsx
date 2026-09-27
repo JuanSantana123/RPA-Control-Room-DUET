@@ -32,11 +32,12 @@ import { Button } from "../ui/Button";
 // ============================================================
 
 interface UserRowProps {
+    canEdit: boolean;
+
+    canDelete: boolean;
+
     user:
         User;
-
-    permissions:
-        string[];
 
     onEditRoles:
         (user: User) => void;
@@ -57,8 +58,9 @@ interface UserRowProps {
 // ============================================================
 
 function UserRow({
+    canEdit,
+    canDelete,
     user,
-    permissions,
     onEditRoles,
     onChangePassword,
     onDelete,
@@ -184,9 +186,7 @@ function UserRow({
 
                 <div className="users-actions">
 
-                    {permissions.includes(
-                        "Users:edit"
-                    ) && (
+                    {canEdit && (
 
                         <Button
                             variant="secondary"
@@ -203,9 +203,7 @@ function UserRow({
                     )}
 
 
-                    {permissions.includes(
-                        "Users:edit"
-                    ) && (
+                    {canEdit && (
 
                         <Button
                             variant="secondary"
@@ -222,9 +220,7 @@ function UserRow({
                     )}
 
 
-                    {permissions.includes(
-                        "Users:delete"
-                    ) && (
+                    {canDelete && (
 
                         <Button
                             variant="danger"
@@ -241,9 +237,7 @@ function UserRow({
                     )}
 
 
-                    {permissions.includes(
-                        "Users:edit"
-                    ) && (
+                    {canEdit && (
 
                         <Button
                             variant={user.is_active === 1 ? "secondary" : "primary"}
@@ -260,6 +254,10 @@ function UserRow({
                             }
                         </Button>
 
+                    )}
+
+                    {!canEdit && !canDelete && (
+                        <span className="users-actions-readonly">Consulta</span>
                     )}
 
                 </div>

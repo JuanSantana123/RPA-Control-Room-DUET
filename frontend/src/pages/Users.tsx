@@ -72,6 +72,7 @@ import {
     useUserPassword,
 } from "../hooks/users/useUserPassword";
 import { CircleCheck, TriangleAlert } from "lucide-react";
+import { useAuth } from "../context/useAuth";
 
 
 // ============================================================
@@ -79,6 +80,12 @@ import { CircleCheck, TriangleAlert } from "lucide-react";
 // ============================================================
 
 function Users() {
+
+    const { can } = useAuth();
+    const canCreateUsers = can("Users:create");
+    const canEditUsers = can("Users:edit");
+    const canDeleteUsers = can("Users:delete");
+    const canViewUsers = can("Users:view");
 
     // ========================================================
     // DADOS PRINCIPAIS
@@ -97,7 +104,6 @@ function Users() {
     const {
         users,
 
-        permissions,
         permissionsLoaded,
 
         loading,
@@ -208,7 +214,9 @@ function Users() {
                 CABEÇALHO
                 ================================================== */}
 
-            <UsersHeader />
+            <UsersHeader
+                readOnly={!canCreateUsers && !canEditUsers && !canDeleteUsers}
+            />
 
 
             {/* ==================================================
@@ -256,9 +264,7 @@ function Users() {
                 ================================================== */}
 
             {permissionsLoaded &&
-                permissions.includes(
-                    "Users:create"
-                ) && (
+                canCreateUsers && (
 
                     <UserCreatePanel
                         username={
@@ -300,7 +306,7 @@ function Users() {
                 EDIÇÃO DE ROLES
                 ================================================== */}
 
-            {editingUserId !== null && (
+            {canEditUsers && editingUserId !== null && (
 
                 <UserRolesEditPanel
                     roles={
@@ -327,7 +333,7 @@ function Users() {
                 ALTERAÇÃO DE SENHA
                 ================================================== */}
 
-            {changingPasswordUserId !== null && (
+            {canEditUsers && changingPasswordUserId !== null && (
 
                 <UserPasswordPanel
                     newPassword={
@@ -364,16 +370,13 @@ function Users() {
                 ================================================== */}
 
             {permissionsLoaded &&
-                permissions.includes(
-                    "Users:view"
-                ) && (
+                canViewUsers && (
 
                     <UsersTable
+                        canEdit={canEditUsers}
+                        canDelete={canDeleteUsers}
                         users={
                             users
-                        }
-                        permissions={
-                            permissions
                         }
                         loading={
                             loading

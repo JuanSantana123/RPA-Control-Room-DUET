@@ -34,6 +34,7 @@ import {
 
 import api
     from "../../services/api";
+import { useAuth } from "../../context/useAuth";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 
 import type {
@@ -63,6 +64,8 @@ export function useRolePermissions({
     setError,
     setSuccess,
 }: UseRolePermissionsProps) {
+
+    const { can } = useAuth();
 
     // ========================================================
     // ROLE SELECIONADA
@@ -107,6 +110,7 @@ export function useRolePermissions({
     // esta modularização.
     const [
         savingPermissions,
+        setSavingPermissions,
     ] = useState(false);
 
 
@@ -245,6 +249,10 @@ export function useRolePermissions({
             permissionId: number
         ) => {
 
+            if (!can("Roles:edit")) {
+                return;
+            }
+
             setSelectedPermissions(
                 (permissoesAtuais) => {
 
@@ -278,6 +286,11 @@ export function useRolePermissions({
     const salvarPermissoes =
         async () => {
 
+            if (!can("Roles:edit")) {
+                setError("Você não possui permissão para alterar este perfil de acesso.");
+                return;
+            }
+
             if (!selectedRole) {
 
                 setError(
@@ -287,8 +300,14 @@ export function useRolePermissions({
                 return;
             }
 
+            if (savingPermissions) {
+                return;
+            }
+
 
             try {
+
+                setSavingPermissions(true);
 
                 setError("");
                 setSuccess("");
@@ -354,6 +373,9 @@ export function useRolePermissions({
 
 
                 setError(getApiErrorMessage(err, "Não foi possível salvar as permissões."));
+            } finally {
+
+                setSavingPermissions(false);
             }
         };
 

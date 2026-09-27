@@ -33,6 +33,10 @@ import { Button } from "../ui/Button";
 interface RoleCardProps {
     role: Role;
 
+    canEdit: boolean;
+
+    canDelete: boolean;
+
     selected: boolean;
 
     onConfigure:
@@ -49,6 +53,8 @@ interface RoleCardProps {
 
 function RoleCard({
     role,
+    canEdit,
+    canDelete,
     selected,
     onConfigure,
     onDelete,
@@ -97,11 +103,10 @@ function RoleCard({
                         onConfigure(role)
                     }
                 >
-                    Configurar
+                    {canEdit ? "Configurar" : "Consultar"}
                 </Button>
 
-
-                <Button
+                {canDelete && <Button
                     size="sm"
                     variant="danger"
                     onClick={() =>
@@ -109,7 +114,7 @@ function RoleCard({
                     }
                 >
                     Excluir
-                </Button>
+                </Button>}
 
             </div>
 

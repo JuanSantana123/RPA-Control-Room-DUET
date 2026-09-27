@@ -28,6 +28,7 @@ import {
 import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useAuth } from "../../context/useAuth";
 
 import type {
     User,
@@ -55,6 +56,8 @@ export function useUserPassword({
     setError,
     setSuccess,
 }: UseUserPasswordProps) {
+
+    const { can } = useAuth();
 
     const [
         changingPasswordUserId,
@@ -84,6 +87,11 @@ export function useUserPassword({
         (
             user: User
         ) => {
+
+            if (!can("Users:edit")) {
+                setError("Você não possui permissão para alterar a senha deste usuário.");
+                return;
+            }
 
             setChangingPasswordUserId(
                 user.id
@@ -119,6 +127,11 @@ export function useUserPassword({
 
     const salvarNovaSenha =
         async () => {
+
+            if (!can("Users:edit")) {
+                setError("Você não possui permissão para alterar a senha deste usuário.");
+                return;
+            }
 
             if (
                 changingPasswordUserId ===

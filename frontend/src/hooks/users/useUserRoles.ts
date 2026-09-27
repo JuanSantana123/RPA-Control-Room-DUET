@@ -30,6 +30,7 @@ import {
 import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
+import { useAuth } from "../../context/useAuth";
 
 import type {
     User,
@@ -62,6 +63,8 @@ export function useUserRoles({
     reloadUsers,
 }: UseUserRolesProps) {
 
+    const { can } = useAuth();
+
     const [
         editingUserId,
         setEditingUserId,
@@ -84,6 +87,11 @@ export function useUserRoles({
         (
             user: User
         ) => {
+
+            if (!can("Users:edit")) {
+                setError("Você não possui permissão para editar os perfis deste usuário.");
+                return;
+            }
 
             setEditingUserId(
                 user.id
@@ -111,6 +119,10 @@ export function useUserRoles({
         (
             roleId: number
         ) => {
+
+            if (!can("Users:edit")) {
+                return;
+            }
 
             if (
                 editingRoleIds.includes(
@@ -159,6 +171,11 @@ export function useUserRoles({
 
     const salvarRolesUsuario =
         async () => {
+
+            if (!can("Users:edit")) {
+                setError("Você não possui permissão para editar os perfis deste usuário.");
+                return;
+            }
 
             if (
                 editingUserId === null

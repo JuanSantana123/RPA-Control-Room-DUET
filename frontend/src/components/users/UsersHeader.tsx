@@ -17,11 +17,13 @@
 // ============================================================
 
 
+import AccessModeBadge from "../ui/AccessModeBadge";
+
 // ============================================================
 // COMPONENTE
 // ============================================================
 
-function UsersHeader() {
+function UsersHeader({ readOnly }: { readOnly: boolean }) {
 
     return (
         <header className="page-heading users-page-header">
@@ -41,6 +43,8 @@ function UsersHeader() {
                 </p>
 
             </div>
+
+            {readOnly && <AccessModeBadge />}
 
         </header>
     );

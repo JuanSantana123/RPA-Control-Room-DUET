@@ -39,6 +39,7 @@ import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 import { useInteraction } from "../../context/useInteraction";
+import { useAuth } from "../../context/useAuth";
 
 import type {
     User,
@@ -53,6 +54,14 @@ import type {
 export function useUsersData() {
 
     const { confirm } = useInteraction();
+    const { user, loading: authLoading, can } = useAuth();
+    const permissions = user?.permissions ?? [];
+    const permissionsLoaded = !authLoading;
+    const canViewUsers = can("Users:view");
+    const canCreateUsers = can("Users:create");
+    const canEditUsers = can("Users:edit");
+    const canDeleteUsers = can("Users:delete");
+    const canViewRoles = can("Roles:view");
 
     // ========================================================
     // USUÁRIOS / PERMISSÕES
@@ -65,21 +74,9 @@ export function useUsersData() {
 
 
     const [
-        permissions,
-        setPermissions,
-    ] = useState<string[]>([]);
-
-
-    const [
-        permissionsLoaded,
-        setPermissionsLoaded,
-    ] = useState(false);
-
-
-    const [
         loading,
         setLoading,
-    ] = useState(true);
+    ] = useState(canViewUsers);
 
 
     // ========================================================
@@ -222,84 +219,36 @@ export function useUsersData() {
     // CARREGAMENTO INICIAL
     // ========================================================
     //
-    // Preserva a ordem original:
-    //
-    // 1. GET /auth/me
-    // 2. Users:view -> carregar usuários
-    // 3. Roles:view -> carregar Roles
-    // 4. permissionsLoaded = true
+    // O AuthProvider é a fonte única da sessão e das permissões.
+    // Este hook reage somente às capacidades já carregadas.
     // ========================================================
 
     useEffect(() => {
 
-        const carregarDados =
-            async () => {
+        if (authLoading) {
+            return;
+        }
 
-                try {
+        const initialLoad = window.setTimeout(() => {
+            const requests: Promise<void>[] = [];
 
-                    const response =
-                        await api.get(
-                            "/auth/me"
-                        );
+            if (canViewUsers) {
+                requests.push(carregarUsuarios());
+            }
 
+            if (canViewRoles) {
+                requests.push(carregarRoles());
+            }
 
-                    const permissoes =
-                        response.data?.user
-                            ?.permissions || [];
+            void Promise.all(requests);
+        }, 0);
 
-
-                    setPermissions(
-                        permissoes
-                    );
-
-
-                    if (
-                        permissoes.includes(
-                            "Users:view"
-                        )
-                    ) {
-
-                        await carregarUsuarios();
-
-                    } else {
-
-                        setLoading(false);
-                    }
-
-
-                    if (
-                        permissoes.includes(
-                            "Roles:view"
-                        )
-                    ) {
-
-                        await carregarRoles();
-                    }
-
-                } catch (err) {
-
-                    console.error(
-                        "Erro ao carregar permissões do usuário:",
-                        err
-                    );
-
-
-                    setPermissions([]);
-
-                    setLoading(false);
-
-                } finally {
-
-                    setPermissionsLoaded(
-                        true
-                    );
-                }
-            };
-
-
-        carregarDados();
+        return () => window.clearTimeout(initialLoad);
 
     }, [
+        authLoading,
+        canViewRoles,
+        canViewUsers,
         carregarRoles,
         carregarUsuarios,
     ]);
@@ -311,6 +260,11 @@ export function useUsersData() {
 
     const criarUsuario =
         async () => {
+
+            if (!canCreateUsers) {
+                setError("Você não possui permissão para criar usuários.");
+                return;
+            }
 
             setError("");
             setSuccess("");
@@ -420,6 +374,11 @@ export function useUsersData() {
             ) => void
         ) => {
 
+            if (!canDeleteUsers) {
+                setError("Você não possui permissão para excluir usuários.");
+                return;
+            }
+
             const confirmar = await confirm({
                 title: "Excluir usuário?",
                 description: "O acesso será removido, mas registros históricos devem continuar identificando o autor das operações.",
@@ -482,6 +441,11 @@ export function useUsersData() {
         async (
             user: User
         ) => {
+
+            if (!canEditUsers) {
+                setError("Você não possui permissão para alterar o status de usuários.");
+                return;
+            }
 
             const novoStatus =
                 user.is_active !== 1;

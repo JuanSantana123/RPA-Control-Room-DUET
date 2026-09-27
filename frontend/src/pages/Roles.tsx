@@ -65,6 +65,7 @@ import {
     groupPermissionsByResource,
 } from "../utils/rolePermissions";
 import { CircleCheck, TriangleAlert } from "lucide-react";
+import { useAuth } from "../context/useAuth";
 
 
 // ============================================================
@@ -72,6 +73,11 @@ import { CircleCheck, TriangleAlert } from "lucide-react";
 // ============================================================
 
 function Roles() {
+
+    const { can } = useAuth();
+    const canCreateRoles = can("Roles:create");
+    const canEditRoles = can("Roles:edit");
+    const canDeleteRoles = can("Roles:delete");
 
     // ========================================================
     // ROLES
@@ -189,6 +195,8 @@ function Roles() {
                 ================================================== */}
 
             <RolesHeader
+                canCreate={canCreateRoles}
+                readOnly={!canCreateRoles && !canEditRoles && !canDeleteRoles}
                 showCreateForm={
                     showCreateForm
                 }
@@ -202,7 +210,7 @@ function Roles() {
                 CRIAÇÃO DE ROLE
                 ================================================== */}
 
-            {showCreateForm && (
+            {canCreateRoles && showCreateForm && (
 
                 <RoleCreatePanel
                     roleName={
@@ -276,6 +284,8 @@ function Roles() {
                     ============================================== */}
 
                 <RolesList
+                    canEdit={canEditRoles}
+                    canDelete={canDeleteRoles}
                     roles={
                         roles
                     }
@@ -299,6 +309,7 @@ function Roles() {
                     ============================================== */}
 
                 <RolePermissionsPanel
+                    canEdit={canEditRoles}
                     selectedRole={
                         selectedRole
                     }

@@ -30,6 +30,7 @@ import type {
 } from "../../types/users";
 import { UsersRound } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
+import AccessModeBadge from "../ui/AccessModeBadge";
 
 
 // ============================================================
@@ -37,11 +38,12 @@ import EmptyState from "../ui/EmptyState";
 // ============================================================
 
 interface UsersTableProps {
+    canEdit: boolean;
+
+    canDelete: boolean;
+
     users:
         User[];
-
-    permissions:
-        string[];
 
     loading:
         boolean;
@@ -65,8 +67,9 @@ interface UsersTableProps {
 // ============================================================
 
 function UsersTable({
+    canEdit,
+    canDelete,
     users,
-    permissions,
     loading,
     onEditRoles,
     onChangePassword,
@@ -104,9 +107,12 @@ function UsersTable({
                 </div>
 
 
-                <span className="users-panel-count">
-                    {users.length}
-                </span>
+                <div className="users-panel-meta">
+                    {!canEdit && !canDelete && <AccessModeBadge />}
+                    <span className="users-panel-count">
+                        {users.length}
+                    </span>
+                </div>
 
             </div>
 
@@ -167,11 +173,10 @@ function UsersTable({
                                 (user) => (
 
                                     <UserRow
+                                        canEdit={canEdit}
+                                        canDelete={canDelete}
                                         key={user.id}
                                         user={user}
-                                        permissions={
-                                            permissions
-                                        }
                                         onEditRoles={
                                             onEditRoles
                                         }

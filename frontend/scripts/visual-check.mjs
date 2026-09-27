@@ -51,7 +51,9 @@ const allCases = [
   { name: "vault-automation-data-1440-dark", route: "/vault", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, vaultData: true, interaction: "vault-automation-data" },
   { name: "vault-readonly-1440-light", route: "/vault", width: 1440, height: 1000, colorScheme: "light", authenticated: true, vaultData: true, readOnly: true, interaction: "vault-readonly" },
   { name: "roles-1440-dark", route: "/roles", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
+  { name: "roles-readonly-1440-light", route: "/roles", width: 1440, height: 1000, colorScheme: "light", authenticated: true, roleData: true, readOnlyDomain: "Roles", interaction: "capability-readonly" },
   { name: "users-390-light", route: "/users", width: 390, height: 844, colorScheme: "light", authenticated: true },
+  { name: "users-readonly-1440-dark", route: "/users", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, userData: true, readOnlyDomain: "Users", interaction: "capability-readonly" },
   { name: "logs-390-light", route: "/logs", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "logs-explorer-1440-dark", route: "/logs", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, interaction: "logs-filter" },
   { name: "studio-390-dark", route: "/development/1/studio", width: 390, height: 844, colorScheme: "dark", authenticated: true, studio: true },
@@ -102,7 +104,7 @@ try {
           "Development:restore", "Development:permanent_delete", "Development:checkout",
           "Development:force_checkout_release", "Robots:view", "Robots:create", "Robots:delete", "Executions:view", "Executions:execute", "Executions:stop", "Executions:cancel",
           "History:view", "Schedules:view", "Schedules:create", "Schedules:edit", "Schedules:delete", "Vault:view", "Vault:create", "Vault:edit", "Vault:delete",
-          "DeviceCredentials:view", "DeviceCredentials:create", "DeviceCredentials:edit", "DeviceCredentials:delete", "Roles:view",
+          "DeviceCredentials:view", "DeviceCredentials:create", "DeviceCredentials:edit", "DeviceCredentials:delete", "Roles:view", "Roles:create", "Roles:edit", "Roles:delete",
           "Users:view", "Users:create", "Users:edit", "Users:delete", "Logs:view", "Libraries:view",
           "Libraries:create", "Libraries:edit", "Libraries:delete", "Libraries:publish", "Libraries:use",
         ].filter((permission) => {
@@ -112,6 +114,8 @@ try {
           if (testCase.readOnlyDomain === "Libraries" && /^Libraries:(?:create|edit|delete|publish|use)$/.test(permission)) return false;
           if (testCase.readOnlyDomain === "Executions" && /^Executions:(?:execute|stop|cancel)$/.test(permission)) return false;
           if (testCase.readOnlyDomain === "Schedules" && /^Schedules:(?:create|edit|delete)$/.test(permission)) return false;
+          if (testCase.readOnlyDomain === "Roles" && /^Roles:(?:create|edit|delete)$/.test(permission)) return false;
+          if (testCase.readOnlyDomain === "Users" && /^Users:(?:create|edit|delete)$/.test(permission)) return false;
           return true;
         });
         const emptyCollections = {
@@ -175,8 +179,14 @@ try {
               ? { status: "success", total: testCase.scheduleData ? 1 : 0, schedules: testCase.scheduleData ? [{ id: 18, robot_id: 12, robot_name: "Conciliação financeira", agent_id: null, agent_name: "Automático", tipo: "daily", data_inicio: "2026-09-20T08:00:00", horario: "08:00", dias_semana: null, ativo: true, proxima_execucao: "2026-09-27T08:00:00", ultima_execucao: "2026-09-25T08:00:05", intervalo_ativo: false, intervalo_valor: null, intervalo_unidade: null, horario_fim: null, misfire_policy: "skip", misfire_grace_seconds: 600, ultima_ocorrencia_perdida: "2026-09-26T08:00:00" }] : [] }
             : pathname === "/schedules/options"
               ? { status: "success", timezone: "America/Sao_Paulo", robots: [{ id: 12, name: "Conciliação financeira" }], agents: [{ agent_id: "runner-01", name: "Dispositivo Financeiro", status: "online" }] }
-            : pathname === "/roles" || pathname === "/roles/permissions" || pathname === "/auth/users"
-              ? []
+            : pathname === "/roles/permissions"
+              ? testCase.roleData ? [{ id: 1, resource: "Robots", action: "view" }, { id: 2, resource: "Robots", action: "create" }] : []
+            : pathname === "/roles/7/permissions"
+              ? testCase.roleData ? [{ id: 1, resource: "Robots", action: "view" }] : []
+            : pathname === "/roles"
+              ? testCase.roleData ? [{ id: 7, name: "Operação assistida", description: "Consulta execuções e dispositivos sem alterar configurações." }] : []
+            : pathname === "/auth/users"
+              ? testCase.userData ? [{ id: 12, username: "ana.operacao", name: "Ana Operação", is_active: 1, roles: [{ id: 7, name: "Operação assistida" }] }] : []
             : pathname === "/executions"
               ? { status: "success", total: testCase.forceEmpty ? 0 : 1, queue_warning_seconds: 900, executions: testCase.forceEmpty ? [] : [{ id: 142, source_type: "robot", robot_id: 9, robot_version: 3, project_id: null, robot_name: "Conciliação financeira", filename: "conciliacao.zip", folder_name: "Financeiro / Fechamento", user_id: 1, username: "operador", user_name: "Operador DUET", agent_id: "runner-03", agent_name: "Financeiro 03", schedule_id: null, schedule_run_id: null, pid: testCase.queueData ? null : 4872, status: testCase.queueData ? "queued" : "running", priority: testCase.queueData ? "urgent" : "normal", queued_at: testCase.queueData ? "2026-09-26T10:00:00Z" : null, queue_position: testCase.queueData ? 1 : null, started_at: testCase.queueData ? null : "2026-09-26T14:45:00Z", finished_at: null, error_message: null }] }
               : pathname === "/logs"
@@ -406,6 +416,21 @@ try {
         capabilityReadOnlyWorks = libraryReadOnlyChecks.badges >= 1
           && libraryReadOnlyChecks.forbiddenActions === 0
           && libraryReadOnlyChecks.detailsVisible;
+      }
+      if (testCase.readOnlyDomain === "Roles") {
+        await page.getByText("Operação assistida", { exact: true }).waitFor();
+        await page.getByRole("button", { name: "Consultar" }).click();
+        await page.getByRole("heading", { name: "Operação assistida" }).last().waitFor();
+        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() >= 1
+          && await page.getByRole("button", { name: /Novo perfil|Excluir|Salvar permissões/ }).count() === 0
+          && await page.getByRole("switch").count() === 2
+          && await page.getByRole("switch").first().isDisabled();
+      }
+      if (testCase.readOnlyDomain === "Users") {
+        await page.getByText("Ana Operação", { exact: true }).waitFor();
+        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() >= 1
+          && await page.getByRole("button", { name: /Editar perfis|Alterar senha|Excluir|Desativar|Ativar/ }).count() === 0
+          && await page.getByText("Consulta", { exact: true }).isVisible();
       }
       await page.waitForTimeout(180);
     }

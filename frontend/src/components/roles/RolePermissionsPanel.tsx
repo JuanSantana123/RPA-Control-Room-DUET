@@ -32,6 +32,8 @@ import { PanelSkeleton }
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 import { Button } from "../ui/Button";
 import EmptyState from "../ui/EmptyState";
+import AccessModeBadge from "../ui/AccessModeBadge";
+import { Switch } from "../ui/Switch";
 
 
 // ============================================================
@@ -39,6 +41,8 @@ import EmptyState from "../ui/EmptyState";
 // ============================================================
 
 interface RolePermissionsPanelProps {
+    canEdit: boolean;
+
     selectedRole:
         Role | null;
 
@@ -73,6 +77,7 @@ interface RolePermissionsPanelProps {
 // ============================================================
 
 function RolePermissionsPanel({
+    canEdit,
     selectedRole,
     permissions,
     permissionsByResource,
@@ -130,7 +135,9 @@ function RolePermissionsPanel({
                         </h2>
 
                         <p>
-                            Configure as permissões deste perfil
+                            {canEdit
+                                ? "Configure as permissões deste perfil"
+                                : "Consulte as permissões efetivas deste perfil"}
                         </p>
 
                     </div>
@@ -138,7 +145,9 @@ function RolePermissionsPanel({
                 </div>
 
 
-                {permissions.length > 0 && (
+                {!canEdit && <AccessModeBadge />}
+
+                {canEdit && permissions.length > 0 && (
 
                     <Button
                         variant="primary"
@@ -219,27 +228,13 @@ function RolePermissionsPanel({
                                                 className="permission-item"
                                             >
 
-                                                <label className="permission-checkbox-label">
-
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            selectedPermissions.includes(
-                                                                permission.id
-                                                            )
-                                                        }
-                                                        onChange={() =>
-                                                            onTogglePermission(
-                                                                permission.id
-                                                            )
-                                                        }
-                                                    />
-
-                                                    <span>
-                                                        {permission.action}
-                                                    </span>
-
-                                                </label>
+                                                <Switch
+                                                    compact
+                                                    label={permission.action}
+                                                    checked={selectedPermissions.includes(permission.id)}
+                                                    disabled={!canEdit}
+                                                    onChange={() => onTogglePermission(permission.id)}
+                                                />
 
                                             </div>
 

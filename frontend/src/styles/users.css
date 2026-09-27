@@ -145,6 +145,12 @@
     font-weight: 750;
 }
 
+.users-panel-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 /* =========================================================
    FORMULÁRIOS
    ========================================================= */
@@ -475,6 +481,12 @@
     align-items: center;
     gap: 7px;
     white-space: nowrap;
+}
+
+.users-actions-readonly {
+    color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 650;
 }
 
 .users-action-button {

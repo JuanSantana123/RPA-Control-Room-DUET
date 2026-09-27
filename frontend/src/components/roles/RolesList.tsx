@@ -38,6 +38,10 @@ import EmptyState from "../ui/EmptyState";
 interface RolesListProps {
     roles: Role[];
 
+    canEdit: boolean;
+
+    canDelete: boolean;
+
     selectedRole:
         Role | null;
 
@@ -57,6 +61,8 @@ interface RolesListProps {
 
 function RolesList({
     roles,
+    canEdit,
+    canDelete,
     selectedRole,
     loadingRoles,
     onConfigure,
@@ -110,6 +116,8 @@ function RolesList({
                         (role) => (
 
                             <RoleCard
+                                canEdit={canEdit}
+                                canDelete={canDelete}
                                 key={role.id}
                                 role={role}
                                 selected={

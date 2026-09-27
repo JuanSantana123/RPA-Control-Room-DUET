@@ -2,6 +2,7 @@
 
 import { ShieldPlus } from "lucide-react";
 import { Button } from "../ui/Button";
+import AccessModeBadge from "../ui/AccessModeBadge";
 // DUET CORE - ROLES - HEADER
 // ============================================================
 //
@@ -28,6 +29,8 @@ import { Button } from "../ui/Button";
 // ============================================================
 
 interface RolesHeaderProps {
+    canCreate: boolean;
+    readOnly: boolean;
     showCreateForm: boolean;
 
     onCreate:
@@ -40,6 +43,8 @@ interface RolesHeaderProps {
 // ============================================================
 
 function RolesHeader({
+    canCreate,
+    readOnly,
     showCreateForm,
     onCreate,
 }: RolesHeaderProps) {
@@ -64,7 +69,9 @@ function RolesHeader({
             </div>
 
 
-            {!showCreateForm && (
+            {readOnly && <AccessModeBadge />}
+
+            {canCreate && !showCreateForm && (
 
                 <Button
                     variant="primary"

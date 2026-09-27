@@ -37,6 +37,7 @@ import api
     from "../../services/api";
 import { getApiErrorMessage } from "../../utils/apiErrors";
 import { useInteraction } from "../../context/useInteraction";
+import { useAuth } from "../../context/useAuth";
 
 import type {
     Role,
@@ -50,6 +51,7 @@ import type {
 export function useRolesData() {
 
     const { confirm } = useInteraction();
+    const { can } = useAuth();
 
     // ========================================================
     // ROLES
@@ -185,6 +187,11 @@ export function useRolesData() {
 
     const abrirFormulario = () => {
 
+        if (!can("Roles:create")) {
+            setError("Você não possui permissão para criar perfis de acesso.");
+            return;
+        }
+
         setRoleName("");
         setRoleDescription("");
 
@@ -220,6 +227,11 @@ export function useRolesData() {
 
     const criarRole =
         async () => {
+
+            if (!can("Roles:create")) {
+                setError("Você não possui permissão para criar perfis de acesso.");
+                return;
+            }
 
             if (
                 !roleName.trim()
@@ -334,6 +346,11 @@ export function useRolesData() {
                 roleId: number
             ) => void
         ) => {
+
+            if (!can("Roles:delete")) {
+                setError("Você não possui permissão para excluir perfis de acesso.");
+                return;
+            }
 
             const confirmar = await confirm({
                 title: "Excluir perfil de acesso?",
