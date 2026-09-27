@@ -14,17 +14,21 @@ from fastapi.responses import FileResponse
 
 from database import SessionLocal
 from models import (
+    AutomationProject,
     Robot,
     RobotVersion,
     Library,
     LibraryVersion,
     RobotVersionLibraryDependency,
+    User,
 )
 from releases.service import resolve_robot_version
+from robots.serializers import serialize_robot_version_catalog_item
 
 
 def download_robot_service(
-    robot_id: int
+    robot_id: int,
+    robot_version: int | None = None,
 ):
     """
     Baixa o artefato da versão atualmente vigente do Robot.
@@ -93,13 +97,19 @@ def download_robot_service(
         # imutável usada pela arquitetura de versionamento.
         # ========================================================
 
+        requested_version = (
+            robot.version
+            if robot_version is None
+            else robot_version
+        )
+
         (
             robot_version,
             caminho_arquivo
         ) = resolve_robot_version(
             db,
             robot.id,
-            robot.version
+            requested_version,
         )
 
 
@@ -116,6 +126,8 @@ def download_robot_service(
         # ========================================================
 
         if (
+            requested_version == robot.version
+            and
             robot.file_hash
             != robot_version.file_hash
         ):
@@ -177,6 +189,76 @@ def download_robot_service(
 
         # A sessão é encerrada tanto no sucesso quanto em qualquer
         # HTTPException levantada durante as validações.
+        db.close()
+
+
+def list_robot_versions_service(
+    robot_id: int,
+):
+    """Lista o histórico imutável de releases de um Robot.
+
+    A resposta apresenta apenas metadados operacionais. Caminhos físicos do
+    servidor nunca são expostos e a integridade do artefato continua sendo
+    validada no momento do download ou da execução.
+    """
+
+    db = SessionLocal()
+
+    try:
+        robot = db.get(Robot, robot_id)
+
+        if not robot:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "ROBOT_NOT_FOUND",
+                    "message": "Não foi possível consultar as versões porque o Robô não existe.",
+                    "robot_id": robot_id,
+                },
+            )
+
+        records = (
+            db.query(
+                RobotVersion,
+                User,
+                AutomationProject,
+            )
+            .outerjoin(
+                User,
+                User.id == RobotVersion.published_by,
+            )
+            .outerjoin(
+                AutomationProject,
+                AutomationProject.id == RobotVersion.source_project_id,
+            )
+            .filter(RobotVersion.robot_id == robot.id)
+            .order_by(
+                RobotVersion.version.desc(),
+                RobotVersion.id.desc(),
+            )
+            .all()
+        )
+
+        return {
+            "status": "success",
+            "robot": {
+                "id": robot.id,
+                "name": robot.name,
+                "filename": robot.filename,
+                "current_version": robot.version,
+            },
+            "total": len(records),
+            "versions": [
+                serialize_robot_version_catalog_item(
+                    version,
+                    current_version=robot.version,
+                    publisher=publisher,
+                    source_project=project,
+                )
+                for version, publisher, project in records
+            ],
+        }
+    finally:
         db.close()
 
 

@@ -36,6 +36,30 @@ export function useDialogFocus<T extends HTMLElement>({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    // Enquanto um diálogo modal estiver ativo, todo conteúdo adjacente fica
+    // indisponível também para leitores de tela e navegação programática.
+    // O percurso por ancestrais funciona sem exigir um portal específico.
+    const hiddenSiblings: Array<{
+      element: HTMLElement;
+      inert: boolean;
+      ariaHidden: string | null;
+    }> = [];
+    let currentNode: HTMLElement | null = dialogRef.current;
+    while (currentNode?.parentElement && currentNode.parentElement !== document.body) {
+      const parent: HTMLElement = currentNode.parentElement;
+      for (const sibling of parent.children) {
+        if (sibling === currentNode || !(sibling instanceof HTMLElement)) continue;
+        hiddenSiblings.push({
+          element: sibling,
+          inert: sibling.inert,
+          ariaHidden: sibling.getAttribute("aria-hidden"),
+        });
+        sibling.inert = true;
+        sibling.setAttribute("aria-hidden", "true");
+      }
+      currentNode = parent;
+    }
+
     const focusInitialControl = window.requestAnimationFrame(() => {
       const dialog = dialogRef.current;
       const preferredControl = dialog?.querySelector<HTMLElement>("[data-autofocus]");
@@ -80,6 +104,11 @@ export function useDialogFocus<T extends HTMLElement>({
       window.cancelAnimationFrame(focusInitialControl);
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
+      for (const { element, inert, ariaHidden } of hiddenSiblings) {
+        element.inert = inert;
+        if (ariaHidden === null) element.removeAttribute("aria-hidden");
+        else element.setAttribute("aria-hidden", ariaHidden);
+      }
       previousFocus?.focus();
     };
   }, [closeOnEscape, open]);

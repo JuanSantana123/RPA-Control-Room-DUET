@@ -22,6 +22,8 @@ const allCases = [
   { name: "robots-390-light", route: "/robots", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "robots-1440-dark", route: "/robots", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "robots-folder-create-768-light", route: "/robots", width: 768, height: 900, colorScheme: "light", authenticated: true, interaction: "robot-folder-create" },
+  { name: "robots-versions-390-dark", route: "/robots", width: 390, height: 844, colorScheme: "dark", authenticated: true, robotData: true, interaction: "robot-versions" },
+  { name: "robots-versions-1440-light", route: "/robots", width: 1440, height: 1000, colorScheme: "light", authenticated: true, robotData: true, interaction: "robot-versions" },
   { name: "development-390-dark", route: "/development", width: 390, height: 844, colorScheme: "dark", authenticated: true },
   { name: "development-1440-light", route: "/development", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "executions-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
@@ -114,6 +116,19 @@ try {
                 { agent_id: "runner-fiscal-02", name: "Fiscal 02", environment: "development", host: "FISCAL-RPA-02", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: false, maintenance_reason: "Atualização programada do Windows", availability_updated_at: "2026-09-26T13:40:00", last_heartbeat: "2026-09-26T14:57:10", heartbeat_age_seconds: 20, health_state: "healthy", session_status: "ready", username: "duet.fiscal", execution_username: "duet.fiscal", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
                 { agent_id: "runner-rh-03", name: "Recursos Humanos 03", environment: "production", host: "RH-RPA-03", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: true, maintenance_reason: null, availability_updated_at: null, last_heartbeat: "2026-09-26T14:55:00", heartbeat_age_seconds: 210, health_state: "stale", session_status: "ready", username: "duet.rh", execution_username: "duet.rh", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
               ] : [] }
+          : pathname === "/robots/root"
+            ? { status: "success", total: testCase.robotData ? 1 : 0, robots: testCase.robotData ? [{ id: 12, name: "Conciliação financeira", filename: "conciliacao-financeira.zip", version: 4, file_hash: "a".repeat(64), file_path: "storage/releases/12/v4.zip" }] : [] }
+          : pathname === "/robots/12/versions"
+            ? { status: "success", robot: { id: 12, name: "Conciliação financeira", filename: "conciliacao-financeira.zip", current_version: 4 }, total: 3, versions: [
+                { id: 104, version: 4, filename: "conciliacao-financeira-v4.zip", file_hash: "a".repeat(64), published_at: "2026-09-26T18:30:00Z", created_at: "2026-09-26T18:30:02Z", is_current: true, publisher: { id: 1, name: "Operador DUET", username: "operador" }, source_project: { id: 37, name: "Conciliação — regra fiscal setembro" } },
+                { id: 103, version: 3, filename: "conciliacao-financeira-v3.zip", file_hash: "b".repeat(64), published_at: "2026-08-18T11:20:00Z", created_at: "2026-08-18T11:20:01Z", is_current: false, publisher: { id: 2, name: "Marina Costa", username: "marina" }, source_project: { id: 31, name: "Conciliação — tolerância bancária" } },
+                { id: 102, version: 2, filename: "conciliacao-financeira-v2.zip", file_hash: "c".repeat(64), published_at: null, created_at: "2026-07-02T09:10:00Z", is_current: false, publisher: null, source_project: null },
+              ] }
+          : pathname === "/robots/12/versions/4/libraries"
+            ? { status: "success", total: 2, libraries: [
+                { library_id: 8, name: "Integração Bancária", import_name: "duet_bank", library_version_id: 19, version: "2.4.0", is_current_production: true },
+                { library_id: 11, name: "Documentos Fiscais", import_name: "duet_fiscal", library_version_id: 22, version: "1.8.2", is_current_production: false },
+              ] }
           : pathname === "/schedules"
               ? { status: "success", total: testCase.scheduleData ? 1 : 0, schedules: testCase.scheduleData ? [{ id: 18, robot_id: 12, robot_name: "Conciliação financeira", agent_id: null, agent_name: "Automático", tipo: "daily", data_inicio: "2026-09-20T08:00:00", horario: "08:00", dias_semana: null, ativo: true, proxima_execucao: "2026-09-27T08:00:00", ultima_execucao: "2026-09-25T08:00:05", intervalo_ativo: false, intervalo_valor: null, intervalo_unidade: null, horario_fim: null, misfire_policy: "skip", misfire_grace_seconds: 600, ultima_ocorrencia_perdida: "2026-09-26T08:00:00" }] : [] }
             : pathname === "/schedules/options"
@@ -179,6 +194,18 @@ try {
     if (testCase.interaction === "robot-folder-create") {
       await page.locator(".robots-folders-panel").getByRole("button", { name: "Nova pasta" }).click();
       await page.getByRole("heading", { name: "Nova pasta" }).waitFor();
+      await page.waitForTimeout(180);
+    }
+    let robotVersionsWorks = null;
+    if (testCase.interaction === "robot-versions") {
+      await page.getByRole("button", { name: "Versões", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Conciliação financeira" });
+      await dialog.waitFor();
+      await dialog.getByRole("button", { name: "Bibliotecas" }).first().click();
+      robotVersionsWorks = await dialog.locator(".robot-version-number").filter({ hasText: "v4" }).isVisible()
+        && await dialog.getByText("Vigente", { exact: true }).isVisible()
+        && await dialog.getByText("Integração Bancária").isVisible()
+        && await dialog.getByRole("button", { name: "Baixar v3" }).isVisible();
       await page.waitForTimeout(180);
     }
     let filterNavigationWorks = null;
@@ -314,7 +341,7 @@ try {
     });
 
     const rootUploadAvailable = testCase.route === "/robots"
-      ? await page.getByRole("button", { name: "Enviar pacote" }).first().isEnabled()
+      ? await page.locator("button").filter({ hasText: "Enviar pacote" }).first().isEnabled()
       : null;
     const schedulePolicyWorks = testCase.scheduleData
       ? await page.getByText("Ignora atraso > 10 min").isVisible()
@@ -331,13 +358,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

@@ -56,7 +56,7 @@ from auth.permissions import require_permission
 # Contratos HTTP/Pydantic utilizados pelo router.
 # ============================================================
 
-from schemas.robots import RobotFolderRequest
+from schemas.robots import RobotFolderRequest, RobotVersionsResponse
 
 
 # ============================================================
@@ -87,6 +87,7 @@ from robots.folders_service import (
 
 from robots.version_service import (
     download_robot_service,
+    list_robot_versions_service,
     list_robot_version_libraries_service,
 )
 
@@ -207,6 +208,32 @@ def download_robot(
 
     return download_robot_service(
         robot_id=robot_id
+    )
+
+
+@router.get(
+    "/robots/{robot_id}/versions",
+    summary="Listar versões publicadas do robô",
+    response_model=RobotVersionsResponse,
+    dependencies=[Depends(require_permission("Robots", "view"))],
+)
+def list_robot_versions(robot_id: int):
+    """Retorna autoria, origem e integridade registrada de cada release."""
+
+    return list_robot_versions_service(robot_id=robot_id)
+
+
+@router.get(
+    "/robots/{robot_id}/versions/{robot_version}/download",
+    summary="Baixar uma versão publicada do robô",
+    dependencies=[Depends(require_permission("Robots", "view"))],
+)
+def download_robot_version(robot_id: int, robot_version: int):
+    """Baixa uma RobotVersion histórica após validar arquivo e SHA-256."""
+
+    return download_robot_service(
+        robot_id=robot_id,
+        robot_version=robot_version,
     )
 # ============================================================
 # EXCLUSÃO DE ROBÔ

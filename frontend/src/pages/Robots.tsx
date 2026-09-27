@@ -35,6 +35,7 @@ import RobotExecutionAgent from "../components/robots/RobotExecutionAgent";
 import RobotsGrid from "../components/robots/RobotsGrid";
 import RobotsOverview from "../components/robots/RobotsOverview";
 import RobotsToolbar, { type RobotSort, type RobotView } from "../components/robots/RobotsToolbar";
+import RobotVersionsDialog from "../components/robots/RobotVersionsDialog";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { Button } from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
@@ -54,6 +55,7 @@ import {
 import {
     useRobotLibraries,
 } from "../hooks/robots/useRobotLibraries";
+import { useRobotVersions } from "../hooks/robots/useRobotVersions";
 
 // ============================================================
 
@@ -199,6 +201,8 @@ function Robots() {
     } = useRobotLibraries({
         setError,
     });
+
+    const robotVersions = useRobotVersions();
 
     const visibleRobots = useMemo(() => {
         const term = robotQuery.trim().toLocaleLowerCase("pt-BR");
@@ -547,6 +551,7 @@ function Robots() {
                             onCreateNewVersion={
                                 criarProjetoDeAlteracao
                             }
+                            onOpenVersions={robotVersions.open}
 
                             onExecuteRobot={
                                 executarRobo
@@ -583,6 +588,23 @@ function Robots() {
                 </div>
             </div>
             <LibrariesPanel />
+
+            {robotVersions.selectedRobot && (
+                <RobotVersionsDialog
+                    robot={robotVersions.selectedRobot}
+                    versions={robotVersions.versions}
+                    loading={robotVersions.loading}
+                    error={robotVersions.error}
+                    downloadingVersion={robotVersions.downloadingVersion}
+                    expandedVersion={robotVersions.expandedVersion}
+                    loadingLibraries={robotVersions.loadingLibraries}
+                    librariesByVersion={robotVersions.librariesByVersion}
+                    onClose={robotVersions.close}
+                    onRetry={robotVersions.retry}
+                    onDownload={robotVersions.downloadVersion}
+                    onToggleLibraries={robotVersions.toggleLibraries}
+                />
+            )}
         </div>
 );
 }

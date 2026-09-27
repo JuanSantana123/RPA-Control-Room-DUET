@@ -11,6 +11,8 @@
 # alteração de campos, tipos ou validações.
 # ============================================================
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -26,3 +28,40 @@ class RobotFolderRequest(
         None,
         description="ID da pasta pai. Deixe vazio para criar uma pasta na raiz."
     )
+
+
+class RobotVersionPublisher(BaseModel):
+    id: int
+    name: str
+    username: str
+
+
+class RobotVersionSourceProject(BaseModel):
+    id: int
+    name: str
+
+
+class RobotVersionCatalogItem(BaseModel):
+    id: int
+    version: int
+    filename: str
+    file_hash: str
+    published_at: str | None
+    created_at: str
+    is_current: bool
+    publisher: RobotVersionPublisher | None
+    source_project: RobotVersionSourceProject | None
+
+
+class RobotVersionCatalogRobot(BaseModel):
+    id: int
+    name: str
+    filename: str
+    current_version: int
+
+
+class RobotVersionsResponse(BaseModel):
+    status: Literal["success"]
+    robot: RobotVersionCatalogRobot
+    total: int = Field(ge=0)
+    versions: list[RobotVersionCatalogItem]

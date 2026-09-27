@@ -77,6 +77,10 @@ interface RobotsGridProps {
         robot: Robot
     ) => void;
 
+    onOpenVersions: (
+        robot: Robot
+    ) => void;
+
     onExecuteRobot: (
         robot: Robot
     ) => void;
@@ -103,6 +107,7 @@ function RobotsGrid({
     onDeleteRobot,
     onToggleLibraries,
     onCreateNewVersion,
+    onOpenVersions,
     onExecuteRobot,
     onClearFilter,
 }: RobotsGridProps) {
@@ -162,6 +167,7 @@ function RobotsGrid({
                             onCreateNewVersion={
                                 onCreateNewVersion
                             }
+                            onOpenVersions={onOpenVersions}
                             onExecuteRobot={
                                 onExecuteRobot
                             }

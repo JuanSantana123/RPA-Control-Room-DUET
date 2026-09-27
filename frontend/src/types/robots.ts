@@ -138,3 +138,36 @@ export interface RobotLibrariesResponse {
 
     libraries: RobotLibraryDependency[];
 }
+
+
+export interface RobotReleaseVersion {
+    id: number;
+    version: number;
+    filename: string;
+    file_hash: string;
+    published_at: string | null;
+    created_at: string;
+    is_current: boolean;
+    publisher: {
+        id: number;
+        name: string;
+        username: string;
+    } | null;
+    source_project: {
+        id: number;
+        name: string;
+    } | null;
+}
+
+
+export interface RobotVersionsResponse {
+    status: string;
+    robot: {
+        id: number;
+        name: string;
+        filename: string;
+        current_version: number;
+    };
+    total: number;
+    versions: RobotReleaseVersion[];
+}

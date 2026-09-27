@@ -35,6 +35,7 @@ import {
     CirclePlay,
     Code2,
     Download,
+    History,
     MoreVertical,
     Package,
     Trash2,
@@ -86,6 +87,10 @@ interface RobotCardProps {
         robot: Robot
     ) => void;
 
+    onOpenVersions: (
+        robot: Robot
+    ) => void;
+
     onExecuteRobot: (
         robot: Robot
     ) => void;
@@ -106,6 +111,7 @@ function RobotCard({
     onDeleteRobot,
     onToggleLibraries,
     onCreateNewVersion,
+    onOpenVersions,
     onExecuteRobot,
 }: RobotCardProps) {
 
@@ -279,6 +285,15 @@ function RobotCard({
 
 
             <div className="robot-card-actions">
+
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onOpenVersions(robot)}
+                >
+                    <History size={15} strokeWidth={1.9} />
+                    Versões
+                </Button>
 
                 {/* Cria uma nova versão editável a partir do Robot. */}
                 <Button
