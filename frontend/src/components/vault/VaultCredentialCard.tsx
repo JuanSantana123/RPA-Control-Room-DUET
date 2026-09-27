@@ -33,6 +33,9 @@ interface VaultCredentialCardProps {
     credential:
         VaultCredential;
 
+    canEdit: boolean;
+    canDelete: boolean;
+
     onEdit:
         (credential: VaultCredential) =>
             void;
@@ -49,6 +52,8 @@ interface VaultCredentialCardProps {
 
 function VaultCredentialCard({
     credential,
+    canEdit,
+    canDelete,
     onEdit,
     onDelete,
 }: VaultCredentialCardProps) {
@@ -87,9 +92,9 @@ function VaultCredentialCard({
                 </h3>
 
 
-                <div className="vault-credential-actions">
+                {(canEdit || canDelete) && <div className="vault-credential-actions">
 
-                    <Button
+                    {canEdit && <Button
                         variant="secondary"
                         size="sm"
                         onClick={() =>
@@ -99,10 +104,10 @@ function VaultCredentialCard({
                         }
                     >
                         Editar
-                    </Button>
+                    </Button>}
 
 
-                    <Button
+                    {canDelete && <Button
                         variant="danger"
                         size="sm"
                         onClick={() =>
@@ -112,9 +117,9 @@ function VaultCredentialCard({
                         }
                     >
                         Excluir
-                    </Button>
+                    </Button>}
 
-                </div>
+                </div>}
 
             </div>
 

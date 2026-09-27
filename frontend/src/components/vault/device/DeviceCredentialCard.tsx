@@ -57,6 +57,9 @@ interface DeviceCredentialCardProps {
     deleting:
         boolean;
 
+    canEdit: boolean;
+    canDelete: boolean;
+
     // Solicita abertura do fluxo de edição.
     onEdit:
         (
@@ -166,6 +169,8 @@ const formatDate =
 function DeviceCredentialCard({
     credential,
     deleting,
+    canEdit,
+    canDelete,
     onEdit,
     onDelete,
 }: DeviceCredentialCardProps) {
@@ -219,9 +224,9 @@ function DeviceCredentialCard({
                     AÇÕES
                     ============================================== */}
 
-                <div className="device-credential-card-actions">
+                {(canEdit || canDelete) && <div className="device-credential-card-actions">
 
-                    <Button
+                    {canEdit && <Button
                         variant="secondary"
                         size="sm"
                         className="device-credential-action-button"
@@ -242,10 +247,10 @@ function DeviceCredentialCard({
 
                         Editar
 
-                    </Button>
+                    </Button>}
 
 
-                    <Button
+                    {canDelete && <Button
                         variant="danger"
                         size="sm"
                         className="device-credential-delete-button"
@@ -265,9 +270,9 @@ function DeviceCredentialCard({
 
                         Excluir
 
-                    </Button>
+                    </Button>}
 
-                </div>
+                </div>}
 
             </div>
 

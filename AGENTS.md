@@ -25,3 +25,4 @@
 - Treat `RobotVersion` as an immutable release. Version catalogs may expose provenance and checksums, never server storage paths; historical downloads must resolve the exact version and validate its SHA-256 before sending bytes.
 - A modal must make adjacent page content non-interactive in addition to trapping focus. Keep `useDialogFocus` responsible for scroll lock, Escape policy, temporary `inert`/`aria-hidden`, cleanup and focus restoration.
 - Scope Vault automation-credential reads by `folder_id`; never fetch the entire vault for a client-side folder filter. Search and clipboard actions must exclude secret fields, and refresh failures may preserve data only when it belongs to the same selected folder.
+- Derive mutation affordances from the backend's exact RBAC permissions. Read-only users must keep useful access to permitted data without seeing controls they cannot execute; the server remains the final authorization authority.

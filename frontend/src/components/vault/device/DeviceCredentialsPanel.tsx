@@ -91,6 +91,10 @@ interface DeviceCredentialsPanelProps {
     setSuccessMessage:
         (message: string) => void;
 
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+
     // Token opcional usado pelo VaultHeader.
     //
     // Sempre que o valor aumenta, o painel abre o formulário
@@ -108,6 +112,9 @@ interface DeviceCredentialsPanelProps {
 function DeviceCredentialsPanel({
     setError,
     setSuccessMessage,
+    canCreate,
+    canEdit,
+    canDelete,
     createRequestToken = 0,
 }: DeviceCredentialsPanelProps) {
 
@@ -362,7 +369,7 @@ function DeviceCredentialsPanel({
                 </div>
 
 
-                <Button
+                {canCreate ? <Button
                     disabled={
                         creatingCredential
                     }
@@ -378,7 +385,9 @@ function DeviceCredentialsPanel({
 
                     Nova credencial
 
-                </Button>
+                </Button> : (
+                    <span className="vault-readonly-badge">Somente leitura</span>
+                )}
 
             </div>
 
@@ -483,10 +492,10 @@ function DeviceCredentialsPanel({
                     title="Nenhuma credencial de dispositivo"
                     description="Crie a primeira identidade Windows para utilização controlada pelos dispositivos."
                     action={(
-                        <Button onClick={openCreateForm}>
+                        canCreate ? <Button onClick={openCreateForm}>
                             <Plus size={16} aria-hidden="true" />
                             Criar credencial
-                        </Button>
+                        </Button> : undefined
                     )}
                 />
 
@@ -517,6 +526,8 @@ function DeviceCredentialsPanel({
                                     deletingCredentialId ===
                                     credential.id
                                 }
+                                canEdit={canEdit}
+                                canDelete={canDelete}
                                 onEdit={
                                     openEditForm
                                 }

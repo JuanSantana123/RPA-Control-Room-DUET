@@ -43,6 +43,9 @@ interface VaultFoldersPanelProps {
     loading:
         boolean;
 
+    canCreate: boolean;
+    canDelete: boolean;
+
     onSelect:
         (folder: VaultFolder) => void;
 
@@ -63,6 +66,8 @@ function VaultFoldersPanel({
     folders,
     selectedFolder,
     loading,
+    canCreate,
+    canDelete,
     onSelect,
     onNewSubfolder,
     onDelete,
@@ -76,6 +81,10 @@ function VaultFoldersPanel({
                 <h2>
                     Pastas
                 </h2>
+
+                {!canCreate && !canDelete && (
+                    <span className="vault-readonly-badge">Somente leitura</span>
+                )}
 
             </div>
 
@@ -105,6 +114,8 @@ function VaultFoldersPanel({
                                 selectedFolder={
                                     selectedFolder
                                 }
+                                canCreate={canCreate}
+                                canDelete={canDelete}
                                 onSelect={
                                     onSelect
                                 }

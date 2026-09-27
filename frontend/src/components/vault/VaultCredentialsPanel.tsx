@@ -67,6 +67,9 @@ interface VaultCredentialsPanelProps {
     refreshingCredentials: boolean;
     lastUpdatedAt: Date | null;
     onRefresh: () => void | Promise<void>;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
 
 
     // --------------------------------------------------------
@@ -173,6 +176,9 @@ function VaultCredentialsPanel({
     refreshingCredentials,
     lastUpdatedAt,
     onRefresh,
+    canCreate,
+    canEdit,
+    canDelete,
 
     showNewCredentialForm,
     newCredentialName,
@@ -246,7 +252,11 @@ function VaultCredentialsPanel({
                 </div>
 
 
-                {selectedFolder &&
+                {!canCreate && !canEdit && !canDelete && (
+                    <span className="vault-readonly-badge">Somente leitura</span>
+                )}
+
+                {canCreate && selectedFolder &&
                     selectedFolder.parent_id !==
                         null && (
 
@@ -402,7 +412,10 @@ function VaultCredentialsPanel({
                     compact
                     icon={<KeyRound />}
                     title="Nenhuma credencial nesta pasta"
-                    description="Adicione a primeira credencial para disponibilizá-la às automações autorizadas."
+                    description={canCreate
+                        ? "Adicione a primeira credencial para disponibilizá-la às automações autorizadas."
+                        : "Esta pasta ainda não possui credenciais. Seu perfil tem acesso somente para consulta."}
+                    action={canCreate ? <Button size="sm" onClick={onOpenCreate}>Nova credencial</Button> : undefined}
                 />
 
             ) : filteredCredentials.length === 0 ? (
@@ -429,6 +442,8 @@ function VaultCredentialsPanel({
                                 credential={
                                     credential
                                 }
+                                canEdit={canEdit}
+                                canDelete={canDelete}
                                 onEdit={
                                     onEdit
                                 }

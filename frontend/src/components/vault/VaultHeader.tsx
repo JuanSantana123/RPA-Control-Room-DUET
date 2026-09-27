@@ -24,6 +24,7 @@ import { Button } from "../ui/Button";
 // ============================================================
 
 interface VaultHeaderProps {
+    canCreateFolders: boolean;
     onNewFolder:
         () => void;
 }
@@ -34,6 +35,7 @@ interface VaultHeaderProps {
 // ============================================================
 
 function VaultHeader({
+    canCreateFolders,
     onNewFolder,
 }: VaultHeaderProps) {
 
@@ -57,12 +59,12 @@ function VaultHeader({
             </div>
 
 
-            <Button
-                onClick={onNewFolder}
-            >
-                <FolderPlus size={17} strokeWidth={1.9} aria-hidden="true" />
-                Nova pasta
-            </Button>
+            {canCreateFolders && (
+                <Button onClick={onNewFolder}>
+                    <FolderPlus size={17} strokeWidth={1.9} aria-hidden="true" />
+                    Nova pasta
+                </Button>
+            )}
 
         </section>
     );

@@ -44,6 +44,7 @@ const allCases = [
   { name: "vault-1440-light", route: "/vault", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "vault-automation-data-390-light", route: "/vault", width: 390, height: 844, colorScheme: "light", authenticated: true, vaultData: true, interaction: "vault-automation-data" },
   { name: "vault-automation-data-1440-dark", route: "/vault", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, vaultData: true, interaction: "vault-automation-data" },
+  { name: "vault-readonly-1440-light", route: "/vault", width: 1440, height: 1000, colorScheme: "light", authenticated: true, vaultData: true, readOnly: true, interaction: "vault-readonly" },
   { name: "roles-1440-dark", route: "/roles", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "users-390-light", route: "/users", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "logs-390-light", route: "/logs", width: 390, height: 844, colorScheme: "light", authenticated: true },
@@ -95,10 +96,11 @@ try {
           "Development:move_stage", "Development:delete", "Development:publish", "Development:trash_view",
           "Development:restore", "Development:permanent_delete", "Development:checkout",
           "Development:force_checkout_release", "Robots:view", "Executions:view", "Executions:execute",
-          "History:view", "Schedules:view", "Vault:view", "DeviceCredentials:view", "Roles:view",
+          "History:view", "Schedules:view", "Vault:view", "Vault:create", "Vault:edit", "Vault:delete",
+          "DeviceCredentials:view", "DeviceCredentials:create", "DeviceCredentials:edit", "DeviceCredentials:delete", "Roles:view",
           "Users:view", "Users:create", "Users:edit", "Users:delete", "Logs:view", "Libraries:view",
           "Libraries:create", "Libraries:use",
-        ];
+        ].filter((permission) => !testCase.readOnly || !/^(?:Vault|DeviceCredentials):(?:create|edit|delete)$/.test(permission));
         const emptyCollections = {
           agents: [], robots: [], folders: [], executions: [], schedules: [], roles: [], users: [],
           permissions: [], credentials: [], logs: [], projects: [], cards: [], columns: [], libraries: [],
@@ -244,6 +246,22 @@ try {
         && await page.getByText("Portal Bancário", { exact: true }).isVisible()
         && await page.getByText("2 campos protegidos", { exact: true }).isVisible()
         && await page.getByRole("button", { name: "Copiar Login" }).isVisible();
+      await page.waitForTimeout(180);
+    }
+    let vaultReadOnlyWorks = null;
+    if (testCase.interaction === "vault-readonly") {
+      const credentialRequest = page.waitForRequest((request) => {
+        const url = new URL(request.url());
+        return url.pathname === "/vault/credentials" && url.searchParams.get("folder_id") === "7";
+      });
+      await page.getByRole("button", { name: "Produção", exact: true }).click();
+      await credentialRequest;
+      await page.getByText("ERP Financeiro", { exact: true }).waitFor();
+      vaultReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() === 2
+        && await page.getByRole("button", { name: "Nova pasta" }).count() === 0
+        && await page.getByRole("button", { name: "Nova credencial" }).count() === 0
+        && await page.getByRole("button", { name: /Editar|Excluir|Subpasta/ }).count() === 0
+        && await page.getByRole("button", { name: "Copiar Usuário" }).isVisible();
       await page.waitForTimeout(180);
     }
     let filterNavigationWorks = null;
@@ -396,13 +414,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, vaultAutomationWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, vaultAutomationWorks, vaultReadOnlyWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.vaultAutomationWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.vaultAutomationWorks === false || result.vaultReadOnlyWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

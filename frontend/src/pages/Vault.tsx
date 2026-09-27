@@ -116,6 +116,12 @@ function Vault() {
 
     const { can } = useAuth();
     const canViewDeviceCredentials = can("DeviceCredentials:view");
+    const canCreateVault = can("Vault:create");
+    const canEditVault = can("Vault:edit");
+    const canDeleteVault = can("Vault:delete");
+    const canCreateDeviceCredentials = can("DeviceCredentials:create");
+    const canEditDeviceCredentials = can("DeviceCredentials:edit");
+    const canDeleteDeviceCredentials = can("DeviceCredentials:delete");
 
     // ========================================================
     // MENSAGENS GLOBAIS
@@ -464,6 +470,7 @@ function Vault() {
                 ================================================== */}
 
             <VaultHeader
+                canCreateFolders={canCreateVault}
                 onNewFolder={
                     handleHeaderNewFolder
                 }
@@ -585,6 +592,8 @@ function Vault() {
                     loading={
                         loadingFolders
                     }
+                    canCreate={canCreateVault}
+                    canDelete={canDeleteVault}
                     onSelect={
                         selecionarPasta
                     }
@@ -616,6 +625,9 @@ function Vault() {
                     onRefresh={() => selectedFolder
                         ? carregarCredenciais(selectedFolder.id)
                         : Promise.resolve()}
+                    canCreate={canCreateVault}
+                    canEdit={canEditVault}
+                    canDelete={canDeleteVault}
 
                     // ----------------------------------------------
                     // CRIAÇÃO
@@ -724,6 +736,9 @@ function Vault() {
                         <DeviceCredentialsPanel
                             setError={setError}
                             setSuccessMessage={setSuccessMessage}
+                            canCreate={canCreateDeviceCredentials}
+                            canEdit={canEditDeviceCredentials}
+                            canDelete={canDeleteDeviceCredentials}
                         />
                     ) : (
                         <section className="device-credentials-panel device-credentials-access-state">

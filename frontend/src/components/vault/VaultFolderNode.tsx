@@ -34,6 +34,9 @@ interface VaultFolderNodeProps {
     selectedFolder:
         VaultFolder | null;
 
+    canCreate: boolean;
+    canDelete: boolean;
+
     onSelect:
         (folder: VaultFolder) => void;
 
@@ -53,6 +56,8 @@ interface VaultFolderNodeProps {
 function VaultFolderNode({
     folder,
     selectedFolder,
+    canCreate,
+    canDelete,
     onSelect,
     onNewSubfolder,
     onDelete,
@@ -88,31 +93,27 @@ function VaultFolderNode({
                 </button>
 
 
-                <button
-                    type="button"
-                    className="vault-folder-action-button"
-                    onClick={() =>
-                        onNewSubfolder(
-                            folder
-                        )
-                    }
-                >
-                    <FolderPlus size={14} strokeWidth={1.9} aria-hidden="true" />
-                    Subpasta
-                </button>
+                {canCreate && (
+                    <button
+                        type="button"
+                        className="vault-folder-action-button"
+                        onClick={() => onNewSubfolder(folder)}
+                    >
+                        <FolderPlus size={14} strokeWidth={1.9} aria-hidden="true" />
+                        Subpasta
+                    </button>
+                )}
 
 
-                <button
-                    type="button"
-                    className="vault-folder-action-button"
-                    onClick={() =>
-                        onDelete(
-                            folder
-                        )
-                    }
-                >
-                    Excluir
-                </button>
+                {canDelete && (
+                    <button
+                        type="button"
+                        className="vault-folder-action-button"
+                        onClick={() => onDelete(folder)}
+                    >
+                        Excluir
+                    </button>
+                )}
 
             </div>
 
@@ -138,6 +139,8 @@ function VaultFolderNode({
                                     selectedFolder={
                                         selectedFolder
                                     }
+                                    canCreate={canCreate}
+                                    canDelete={canDelete}
                                     onSelect={
                                         onSelect
                                     }
