@@ -30,7 +30,6 @@
 # DEPENDÊNCIAS PADRÃO
 # ============================================================
 
-from datetime import datetime
 import logging
 
 from database import SessionLocal
@@ -39,6 +38,7 @@ from models import Agent
 from schemas.agent_heartbeat import (
     AgentHeartbeatRequest,
 )
+from core.timezone import local_now_naive
 
 
 # ============================================================
@@ -256,7 +256,7 @@ def processar_agent_heartbeat_service(
         # ÚLTIMO HEARTBEAT
         # ====================================================
 
-        agent.last_heartbeat = datetime.now()
+        agent.last_heartbeat = local_now_naive()
 
 
         # ====================================================

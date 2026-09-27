@@ -18,6 +18,7 @@ const allCases = [
   { name: "agents-maintenance-390-light", route: "/agents", width: 390, height: 844, colorScheme: "light", authenticated: true, agentData: true, interaction: "agent-maintenance" },
   { name: "agents-maintenance-1440-dark", route: "/agents", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, agentData: true, interaction: "agent-maintenance" },
   { name: "agents-maintenance-editor-768-dark", route: "/agents", width: 768, height: 900, colorScheme: "dark", authenticated: true, agentData: true, interaction: "agent-maintenance-editor" },
+  { name: "agents-health-attention-1440-light", route: "/agents", width: 1440, height: 1000, colorScheme: "light", authenticated: true, agentData: true, interaction: "agent-health-attention" },
   { name: "robots-390-light", route: "/robots", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "robots-1440-dark", route: "/robots", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "robots-folder-create-768-light", route: "/robots", width: 768, height: 900, colorScheme: "light", authenticated: true, interaction: "robot-folder-create" },
@@ -100,7 +101,7 @@ try {
           dependencies: [], versions: [], tree: [],
         };
         const body = method === "PATCH" && pathname.endsWith("/availability")
-          ? { status: "success", message: "Device colocado em manutenção.", agent: { agent_id: "runner-fin-01", name: "Financeiro 01", environment: "production", host: "FIN-RPA-01", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: false, maintenance_reason: "Atualização preventiva do runtime", availability_updated_at: "2026-09-26T15:00:00", last_heartbeat: "2026-09-26T14:58:30", session_status: "ready", username: "duet.rpa", execution_username: "duet.rpa", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] } }
+          ? { status: "success", message: "Device colocado em manutenção.", agent: { agent_id: "runner-fin-01", name: "Financeiro 01", environment: "production", host: "FIN-RPA-01", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: false, maintenance_reason: "Atualização preventiva do runtime", availability_updated_at: "2026-09-26T15:00:00", last_heartbeat: "2026-09-26T14:58:30", heartbeat_age_seconds: 8, health_state: "healthy", session_status: "ready", username: "duet.rpa", execution_username: "duet.rpa", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] } }
           : pathname === "/auth/me"
           ? testCase.authenticated
             ? { status: "success", user: { id: 1, username: "operador", name: "Operador DUET", is_active: 1, permissions } }
@@ -108,9 +109,10 @@ try {
           : pathname === "/dashboard/stats"
             ? { total_agents: 12, agents_online: 9, total_robots: 48 }
           : pathname === "/agents"
-            ? { status: "success", total: testCase.agentData ? 2 : 0, agents: testCase.agentData ? [
-                { agent_id: "runner-fin-01", name: "Financeiro 01", environment: "production", host: "FIN-RPA-01", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: true, maintenance_reason: null, availability_updated_at: "2026-09-26T10:00:00", last_heartbeat: "2026-09-26T14:58:30", session_status: "ready", username: "duet.rpa", execution_username: "duet.rpa", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
-                { agent_id: "runner-fiscal-02", name: "Fiscal 02", environment: "development", host: "FISCAL-RPA-02", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: false, maintenance_reason: "Atualização programada do Windows", availability_updated_at: "2026-09-26T13:40:00", last_heartbeat: "2026-09-26T14:57:10", session_status: "ready", username: "duet.fiscal", execution_username: "duet.fiscal", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
+            ? { status: "success", total: testCase.agentData ? 3 : 0, agents: testCase.agentData ? [
+                { agent_id: "runner-fin-01", name: "Financeiro 01", environment: "production", host: "FIN-RPA-01", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: true, maintenance_reason: null, availability_updated_at: "2026-09-26T10:00:00", last_heartbeat: "2026-09-26T14:58:30", heartbeat_age_seconds: 8, health_state: "healthy", session_status: "ready", username: "duet.rpa", execution_username: "duet.rpa", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
+                { agent_id: "runner-fiscal-02", name: "Fiscal 02", environment: "development", host: "FISCAL-RPA-02", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: false, maintenance_reason: "Atualização programada do Windows", availability_updated_at: "2026-09-26T13:40:00", last_heartbeat: "2026-09-26T14:57:10", heartbeat_age_seconds: 20, health_state: "healthy", session_status: "ready", username: "duet.fiscal", execution_username: "duet.fiscal", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
+                { agent_id: "runner-rh-03", name: "Recursos Humanos 03", environment: "production", host: "RH-RPA-03", port: 8000, rpa_directory: "C:\\DUET\\Robots", status: "online", accepting_work: true, maintenance_reason: null, availability_updated_at: null, last_heartbeat: "2026-09-26T14:55:00", heartbeat_age_seconds: 210, health_state: "stale", session_status: "ready", username: "duet.rh", execution_username: "duet.rh", execution_domain: "CORP", display_width: 1920, display_height: 1080, display_scale: 100, display_current: { width: 1920, height: 1080 }, display_supported: [{ width: 1920, height: 1080 }] },
               ] : [] }
           : pathname === "/schedules"
               ? { status: "success", total: testCase.scheduleData ? 1 : 0, schedules: testCase.scheduleData ? [{ id: 18, robot_id: 12, robot_name: "Conciliação financeira", agent_id: null, agent_name: "Automático", tipo: "daily", data_inicio: "2026-09-20T08:00:00", horario: "08:00", dias_semana: null, ativo: true, proxima_execucao: "2026-09-27T08:00:00", ultima_execucao: "2026-09-25T08:00:05", intervalo_ativo: false, intervalo_valor: null, intervalo_unidade: null, horario_fim: null, misfire_policy: "skip", misfire_grace_seconds: 600, ultima_ocorrencia_perdida: "2026-09-26T08:00:00" }] : [] }
@@ -236,7 +238,7 @@ try {
     let agentMaintenanceEditorWorks = null;
     if (testCase.interaction === "agent-maintenance-editor") {
       const card = page.locator(".agent-card").filter({ hasText: "Financeiro 01" });
-      await card.getByRole("switch", { name: /Aceitando novas execuções/ }).click();
+      await card.getByRole("switch", { name: /Novas reservas habilitadas/ }).click();
       const reason = card.getByRole("textbox", { name: "Motivo da manutenção" });
       await reason.waitFor();
       const submit = card.getByRole("button", { name: "Pausar novas execuções" });
@@ -246,6 +248,17 @@ try {
       await card.getByText("Atualização preventiva do runtime").waitFor();
       agentMaintenanceEditorWorks = requiredStateWorks
         && await card.locator(".agent-maintenance-badge").isVisible();
+      await page.waitForTimeout(180);
+    }
+    let agentHealthAttentionWorks = null;
+    if (testCase.interaction === "agent-health-attention") {
+      await page.getByRole("combobox", { name: "Disponibilidade" }).click();
+      await page.getByRole("option", { name: "Requer atenção" }).click();
+      const card = page.locator(".agent-card").filter({ hasText: "Recursos Humanos 03" });
+      await card.waitFor();
+      agentHealthAttentionWorks = await page.locator(".agent-card").count() === 1
+        && await card.getByText("Heartbeat atrasado").isVisible()
+        && await card.getByText("Há 3 min").isVisible();
       await page.waitForTimeout(180);
     }
     const metrics = await page.evaluate(() => {
@@ -318,13 +331,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

@@ -11,7 +11,7 @@
 # Este módulo não possui endpoints HTTP.
 # ============================================================
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 import logging
 import threading
 
@@ -21,6 +21,8 @@ from agents.repository import (
     listar_agents_ativos,
     listar_execucoes_running_agent,
 )
+from core.agent_health import get_agent_heartbeat_timeout_seconds
+from core.timezone import local_now_naive
 
 
 logger = logging.getLogger("control_room")
@@ -36,7 +38,7 @@ def monitor_agents_esta_ativo():
 
 def verificar_agents_offline():
     """
-    Verifica Agents sem heartbeat há mais de 60 segundos.
+    Verifica Agents fora da janela configurada de heartbeat.
 
     Ao detectar um Agent offline:
     - altera seu status;
@@ -47,8 +49,10 @@ def verificar_agents_offline():
 
     try:
 
-        agora = datetime.now()
-        limite = agora - timedelta(seconds=60)
+        agora = local_now_naive()
+        limite = agora - timedelta(
+            seconds=get_agent_heartbeat_timeout_seconds(),
+        )
 
         agents = listar_agents_ativos(db)
 

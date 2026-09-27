@@ -89,6 +89,21 @@ interface AgentCardProps {
         ) => void | Promise<void>;
 }
 
+const healthLabels: Record<Agent["health_state"], string> = {
+    healthy: "Saudável",
+    stale: "Heartbeat atrasado",
+    offline: "Offline",
+    never_seen: "Aguardando heartbeat",
+};
+
+function formatHeartbeatAge(ageSeconds: number | null) {
+    if (ageSeconds === null) return "Nunca recebido";
+    if (ageSeconds < 10) return "Agora";
+    if (ageSeconds < 60) return `Há ${ageSeconds} s`;
+    if (ageSeconds < 3600) return `Há ${Math.floor(ageSeconds / 60)} min`;
+    return `Há ${Math.floor(ageSeconds / 3600)} h`;
+}
+
 
 // ============================================================
 // COMPONENTE
@@ -105,12 +120,6 @@ function AgentCard({
 
     const { confirm } = useInteraction();
 
-    // Mantém exatamente a regra visual existente:
-    // somente status "online", ignorando maiúsculas/minúsculas,
-    // recebe a classe visual de Agent online.
-    const isOnline =
-        agent.status?.toLowerCase() ===
-        "online";
     const [editingAvailability, setEditingAvailability] = useState(false);
     const [maintenanceReason, setMaintenanceReason] = useState("");
     // Nome amigável apresentado ao usuário.
@@ -168,9 +177,11 @@ function AgentCard({
     const heartbeatLabel = agent.last_heartbeat
         ? new Date(agent.last_heartbeat).toLocaleString("pt-BR")
         : "Ainda não recebido";
+    const heartbeatAgeLabel = formatHeartbeatAge(agent.heartbeat_age_seconds);
+    const healthLabel = healthLabels[agent.health_state];
 
     return (
-        <article className={`agent-card${agent.accepting_work ? "" : " agent-card--maintenance"}`}>
+        <article className={`agent-card${agent.accepting_work ? "" : " agent-card--maintenance"}${agent.health_state === "healthy" ? "" : " agent-card--attention"}`}>
 
             {/* ==================================================
                 CABEÇALHO
@@ -216,16 +227,15 @@ function AgentCard({
 
 
                 <div
-                    className={
-                        isOnline
-                            ? "agent-status agent-status-online"
-                            : "agent-status agent-status-offline"
-                    }
+                    className={`agent-status agent-status-${agent.health_state}`}
+                    title={agent.health_state === "healthy"
+                        ? "Heartbeat dentro da janela operacional"
+                        : "Verifique a conexão e o serviço do Agent"}
                 >
 
                     <span className="status-dot"></span>
 
-                    {agent.status || "Offline"}
+                    {healthLabel}
 
                 </div>
 
@@ -236,9 +246,11 @@ function AgentCard({
                     compact
                     checked={agent.accepting_work}
                     disabled={availabilityBusy}
-                    label={agent.accepting_work ? "Aceitando novas execuções" : "Device em manutenção"}
+                    label={agent.accepting_work ? "Novas reservas habilitadas" : "Device em manutenção"}
                     description={agent.accepting_work
-                        ? "Novas reservas podem usar este Device."
+                        ? agent.health_state === "healthy"
+                            ? "O Device está apto para receber trabalho."
+                            : "A fila aceita trabalho, mas o despacho aguarda a conexão normalizar."
                         : agent.maintenance_reason || "Novas reservas estão pausadas."}
                     onChange={async (event) => {
                         if (!event.target.checked) {
@@ -325,7 +337,8 @@ function AgentCard({
                     <Clock3 size={15} strokeWidth={1.8} />
                     <div>
                         <span>Último heartbeat</span>
-                        <strong title={heartbeatLabel}>{heartbeatLabel}</strong>
+                        <strong title={heartbeatLabel}>{heartbeatAgeLabel}</strong>
+                        <small>{heartbeatLabel}</small>
                     </div>
                 </div>
 

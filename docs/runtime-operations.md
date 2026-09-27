@@ -118,3 +118,15 @@ Execuções já em andamento não são interrompidas. Itens já enfileirados per
 na fila, preservando prioridade e `queued_at`, mas o worker não os despacha enquanto
 o Device estiver em manutenção. Agendamentos automáticos não selecionam Devices
 pausados; agendamentos vinculados aguardam disponibilidade sem serem descartados.
+
+A janela que classifica heartbeat atrasado e aciona o monitor é única:
+
+```text
+DUET_AGENT_HEARTBEAT_TIMEOUT_SECONDS=60
+```
+
+São aceitos valores entre 15 e 3.600 segundos; valores ausentes ou inválidos usam
+60 segundos. A API deriva `health_state` e `heartbeat_age_seconds` no relógio civil
+do Control Room, evitando depender do fuso ou do relógio do navegador. A página de
+Devices atualiza a cada 10 segundos, pausa em aba oculta, cancela respostas obsoletas
+e preserva o último catálogo válido quando uma atualização falha.

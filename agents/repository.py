@@ -29,12 +29,13 @@ def listar_agents_ativos(db: Session):
 
 
 def listar_agents_para_execucao(db: Session):
-    """Retorna somente Devices ativos que aceitam novas reservas."""
+    """Retorna Devices conectados e liberados para seleção manual."""
 
     return (
         db.query(Agent)
         .filter(
             Agent.is_active == 1,
+            Agent.status == "online",
             Agent.accepting_work.is_(True),
         )
         .all()

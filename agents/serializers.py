@@ -8,6 +8,8 @@
 # Nenhum serializer expõe agent_token.
 # ============================================================
 
+from core.agent_health import describe_agent_health
+
 
 def _normalizar_resolucoes(display_supported):
     """Mantém apenas modos de vídeo válidos recebidos de telemetria externa."""
@@ -42,6 +44,11 @@ def serializar_agent_lista(agent):
     Serializa um Agent para a tela administrativa.
     """
 
+    health_state, heartbeat_age_seconds = describe_agent_health(
+        agent.status,
+        agent.last_heartbeat,
+    )
+
     return {
         "agent_id": agent.agent_id,
         "name": agent.name,
@@ -62,6 +69,8 @@ def serializar_agent_lista(agent):
             if agent.last_heartbeat
             else None
         ),
+        "heartbeat_age_seconds": heartbeat_age_seconds,
+        "health_state": health_state,
         # Identidade Windows configurada para execução Desktop.
         #
         # Estes campos não contêm senha.
@@ -129,6 +138,11 @@ def serializar_agent_consulta(agent):
     Serializa os dados retornados pela consulta individual.
     """
 
+    health_state, heartbeat_age_seconds = describe_agent_health(
+        agent.status,
+        agent.last_heartbeat,
+    )
+
     return {
         "agent_id": agent.agent_id,
         "name": agent.name,
@@ -149,6 +163,8 @@ def serializar_agent_consulta(agent):
             if agent.last_heartbeat
             else None
         ),
+        "heartbeat_age_seconds": heartbeat_age_seconds,
+        "health_state": health_state,
         "session_status": agent.session_status,
         "username": agent.username,
 

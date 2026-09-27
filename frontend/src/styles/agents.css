@@ -122,7 +122,7 @@
 
 .agents-operations__toolbar {
   display: grid;
-  grid-template-columns: minmax(230px, 1fr) minmax(240px, 0.8fr) 210px auto;
+  grid-template-columns: minmax(230px, 1fr) minmax(240px, 1fr) 210px;
   align-items: end;
   gap: 14px;
   padding: 17px 20px;
@@ -136,16 +136,20 @@
 
 .agents-operations__legend {
   display: flex;
+  grid-column: 1 / -1;
   min-height: var(--control-height-md);
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 10px;
+  padding-top: 10px;
   color: var(--color-text-muted);
   font-size: 10px;
-  white-space: nowrap;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .agents-operations__legend span { display: inline-flex; align-items: center; gap: 5px; }
+.agents-operations__legend .agents-refresh-status { margin-left: auto; }
 
 /* =========================================================
    FORMULÁRIO DE CADASTRO
@@ -429,6 +433,10 @@
   border-color: color-mix(in srgb, var(--color-warning) 28%, var(--color-border));
 }
 
+.agent-card--attention:not(.agent-card--maintenance) {
+  border-color: color-mix(in srgb, var(--color-danger) 24%, var(--color-border));
+}
+
 .agent-card-header {
   display: flex;
   align-items: flex-start;
@@ -499,13 +507,17 @@
   white-space: nowrap;
 }
 
-.agent-status-online {
+.agent-status-online,
+.agent-status-healthy {
   color: var(--color-success);
 }
 
-.agent-status-offline {
+.agent-status-offline,
+.agent-status-never_seen {
   color: var(--color-text-muted);
 }
+
+.agent-status-stale { color: var(--color-warning); }
 
 .status-dot {
   width: 7px;
@@ -730,6 +742,16 @@
   min-width: 82px;
 }
 
+.agent-detail small {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* =========================================================
    RESPONSIVIDADE
    ========================================================= */
@@ -769,6 +791,7 @@
   .agents-operations__summary { grid-template-columns: 1fr; }
   .agents-operations__summary > div + div { border-top: 1px solid var(--color-border-light); border-left: 0; }
   .agents-operations__toolbar { grid-template-columns: 1fr; }
+  .agents-operations__legend .agents-refresh-status { flex: 1 1 180px; margin-left: 0; }
 
   .agents-grid {
     padding: 16px;

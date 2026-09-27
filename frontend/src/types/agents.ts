@@ -56,6 +56,8 @@ export interface Agent {
     maintenance_reason: string | null;
     availability_updated_at: string | null;
     last_heartbeat: string | null;
+    heartbeat_age_seconds: number | null;
+    health_state: "healthy" | "stale" | "offline" | "never_seen";
 
     // Ambiente operacional administrado pelo Control Room.
     environment: AgentEnvironment;

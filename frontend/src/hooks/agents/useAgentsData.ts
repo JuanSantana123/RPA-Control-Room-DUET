@@ -30,7 +30,7 @@
 // ============================================================
 
 import {
-    useEffect,
+    useRef,
     useState,
 } from "react";
 
@@ -42,6 +42,7 @@ import type {
 } from "../../types/agents";
 import { getApiErrorDetails, getApiErrorMessage } from "../../utils/apiErrors";
 import { useInteraction } from "../../context/useInteraction";
+import { usePollingTask } from "../async/usePollingTask";
 
 
 // ============================================================
@@ -79,6 +80,9 @@ export function useAgentsData() {
 
     const clearError = () => setError("");
     const [updatingAvailability, setUpdatingAvailability] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const requestSequence = useRef(0);
 
 
     // ========================================================
@@ -113,44 +117,46 @@ export function useAgentsData() {
     //
     // GET /agents
     //
-    // Mantém o mesmo comportamento da página original:
-    // a consulta é executada uma vez quando a feature monta.
+    // Mantém dados úteis durante falhas de atualização, cancela requisições
+    // obsoletas e pausa o polling quando a aba não está visível.
     // ========================================================
 
-    useEffect(() => {
+    const carregarAgentsComSinal = async (
+        background = false,
+        signal?: AbortSignal,
+    ) => {
+        const requestId = ++requestSequence.current;
+        if (background) setRefreshing(true);
 
-        api
-            .get("/agents")
+        try {
+            const response = await api.get("/agents", { signal });
+            if (requestId !== requestSequence.current) return;
 
-            .then((response) => {
+            setAgents(response.data.agents ?? []);
+            setLastUpdated(new Date());
+            setError("");
+        } catch (err) {
+            if (signal?.aborted || requestId !== requestSequence.current) return;
+            setError(getApiErrorMessage(
+                err,
+                agents.length > 0
+                    ? "Não foi possível atualizar a saúde dos Devices. Os últimos dados válidos foram preservados."
+                    : "Não foi possível carregar os Devices.",
+            ));
+        } finally {
+            if (!signal?.aborted && requestId === requestSequence.current) {
+                setLoading(false);
+                setRefreshing(false);
+            }
+        }
+    };
 
-                // Guarda os Agents retornados pelo backend.
-                setAgents(
-                    response.data.agents
-                );
-            })
+    usePollingTask(
+        (signal) => carregarAgentsComSinal(agents.length > 0, signal),
+        { intervalMs: 10_000 },
+    );
 
-            .catch((err) => {
-
-                console.error(
-                    "Erro ao buscar Agents:",
-                    err
-                );
-
-
-                setError(
-                    "Não foi possível carregar os Agents."
-                );
-            })
-
-            .finally(() => {
-
-                setLoading(
-                    false
-                );
-            });
-
-    }, []);
+    const carregarAgents = () => carregarAgentsComSinal(true);
 
 
     // ========================================================
@@ -257,12 +263,7 @@ export function useAgentsData() {
                 // ATUALIZAR LISTA LOCAL
                 // =================================================
 
-                setAgents(
-                    (agentsAtuais) => [
-                        ...agentsAtuais,
-                        response.data.agent,
-                    ]
-                );
+                await carregarAgentsComSinal(true);
 
 
                 // =================================================
@@ -695,6 +696,9 @@ export function useAgentsData() {
 
         creatingAgent,
         updatingAvailability,
+        refreshing,
+        lastUpdated,
+        carregarAgents,
         alterarAmbienteAgent,
         alterarDisponibilidadeAgent,
         alterarDisplayAgent,

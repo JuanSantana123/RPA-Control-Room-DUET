@@ -1,7 +1,7 @@
 // ============================================================
 
 import { useMemo, useState } from "react";
-import { MonitorCheck, Search, Wrench } from "lucide-react";
+import { MonitorCheck, RefreshCw, Search, TriangleAlert, Wrench } from "lucide-react";
 // DUET CORE - AGENTS PAGE
 // ============================================================
 //
@@ -56,6 +56,7 @@ import {
 import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { TextField } from "../components/ui/TextField";
 import PremiumSelect from "../components/ui/PremiumSelect";
+import { IconButton } from "../components/ui/Button";
 
 
 // ============================================================
@@ -86,6 +87,8 @@ function Agents() {
 
         creatingAgent,
         updatingAvailability,
+        refreshing,
+        lastUpdated,
 
         cadastrarAgent,
         alterarAmbienteAgent,
@@ -93,6 +96,7 @@ function Agents() {
         alterarDisplayAgent,
         excluirAgent,
         baixarAgent,
+        carregarAgents,
     } = useAgentsData();
 
     const [search, setSearch] = useState("");
@@ -104,18 +108,21 @@ function Agents() {
             const matchesSearch = !normalizedSearch || [agent.name, agent.agent_id, agent.host]
                 .some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedSearch));
             const matchesAvailability = availabilityFilter === "all"
-                || (availabilityFilter === "available" && agent.accepting_work && agent.status.toLowerCase() === "online")
+                || (availabilityFilter === "available" && agent.accepting_work && agent.health_state === "healthy")
                 || (availabilityFilter === "maintenance" && !agent.accepting_work)
-                || (availabilityFilter === "offline" && agent.status.toLowerCase() !== "online");
+                || (availabilityFilter === "attention" && agent.health_state !== "healthy");
             return matchesSearch && matchesAvailability;
         });
     }, [agents, availabilityFilter, search]);
 
     const availableCount = agents.filter(
-        (agent) => agent.accepting_work && agent.status.toLowerCase() === "online"
+        (agent) => agent.accepting_work && agent.health_state === "healthy"
     ).length;
     const maintenanceCount = agents.filter((agent) => !agent.accepting_work).length;
-    const offlineCount = agents.filter((agent) => agent.status.toLowerCase() !== "online").length;
+    const attentionCount = agents.filter((agent) => agent.health_state !== "healthy").length;
+    const syncStatusLabel = lastUpdated
+        ? `Atualizado às ${lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+        : "Aguardando primeira leitura";
 
 
     // ========================================================
@@ -141,7 +148,14 @@ function Agents() {
                     tone="error"
                     title="Não foi possível concluir a operação"
                     message={error}
-                    hint="Os dados preenchidos foram preservados para você corrigir a configuração e tentar novamente."
+                    hint={agents.length > 0
+                        ? "O último estado válido permanece visível enquanto você tenta novamente."
+                        : "Verifique a conexão com o Control Room e tente novamente."}
+                    action={{
+                        label: "Tentar novamente",
+                        onClick: carregarAgents,
+                        busy: refreshing,
+                    }}
                     onDismiss={clearError}
                 />
             )}
@@ -179,9 +193,9 @@ function Agents() {
                         <small>reservas pausadas conscientemente</small>
                     </div>
                     <div>
-                        <span>Sem conexão</span>
-                        <strong>{offlineCount}</strong>
-                        <small>exigem verificação operacional</small>
+                        <span>Requer atenção</span>
+                        <strong>{attentionCount}</strong>
+                        <small>heartbeat atrasado, ausente ou offline</small>
                     </div>
                 </div>
                 <div className="agents-operations__toolbar">
@@ -208,12 +222,24 @@ function Agents() {
                             <option value="all">Todos os Devices</option>
                             <option value="available">Disponíveis</option>
                             <option value="maintenance">Em manutenção</option>
-                            <option value="offline">Sem conexão</option>
+                            <option value="attention">Requer atenção</option>
                         </PremiumSelect>
                     </div>
                     <div className="agents-operations__legend" aria-label="Legenda operacional">
                         <span><MonitorCheck size={14} /> Disponível</span>
                         <span><Wrench size={14} /> Manutenção</span>
+                        <span><TriangleAlert size={14} /> Atenção</span>
+                        <span className="agents-refresh-status" aria-live="polite">
+                            {refreshing ? "Atualizando…" : syncStatusLabel}
+                        </span>
+                        <IconButton
+                            size="sm"
+                            label="Atualizar Devices agora"
+                            tooltip="Atualizar saúde dos Devices"
+                            busy={refreshing}
+                            icon={<RefreshCw size={15} aria-hidden="true" />}
+                            onClick={carregarAgents}
+                        />
                     </div>
                 </div>
             </section>

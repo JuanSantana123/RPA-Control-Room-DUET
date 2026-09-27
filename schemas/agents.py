@@ -265,6 +265,8 @@ class AgentCatalogItem(BaseModel):
     maintenance_reason: str | None
     availability_updated_at: str | None
     last_heartbeat: str | None
+    heartbeat_age_seconds: int | None = Field(default=None, ge=0)
+    health_state: Literal["healthy", "stale", "offline", "never_seen"]
     session_status: str
     username: str | None
     execution_username: str | None
