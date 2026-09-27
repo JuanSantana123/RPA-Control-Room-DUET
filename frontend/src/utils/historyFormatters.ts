@@ -99,4 +99,3 @@ export function calculateHistoryDuration(
     return `${minutos}m ${resto}s`;
 }
 
-
