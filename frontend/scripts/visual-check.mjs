@@ -26,6 +26,7 @@ const allCases = [
   { name: "robots-versions-390-dark", route: "/robots", width: 390, height: 844, colorScheme: "dark", authenticated: true, robotData: true, interaction: "robot-versions" },
   { name: "robots-versions-1440-light", route: "/robots", width: 1440, height: 1000, colorScheme: "light", authenticated: true, robotData: true, interaction: "robot-versions" },
   { name: "robots-readonly-1440-dark", route: "/robots", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, robotData: true, readOnlyDomain: "Robots", interaction: "capability-readonly" },
+  { name: "libraries-readonly-1440-light", route: "/robots", width: 1440, height: 1100, colorScheme: "light", authenticated: true, libraryData: true, readOnlyDomain: "Libraries", interaction: "capability-readonly" },
   { name: "development-390-dark", route: "/development", width: 390, height: 844, colorScheme: "dark", authenticated: true },
   { name: "development-1440-light", route: "/development", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "executions-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
@@ -108,6 +109,7 @@ try {
           if (testCase.readOnly && /^(?:Vault|DeviceCredentials):(?:create|edit|delete)$/.test(permission)) return false;
           if (testCase.readOnlyDomain === "Agents" && /^Agents:(?:create|edit|delete|bootstrap)$/.test(permission)) return false;
           if (testCase.readOnlyDomain === "Robots" && /^(?:Robots:(?:create|delete)|Executions:execute|Development:create|Libraries:)/.test(permission)) return false;
+          if (testCase.readOnlyDomain === "Libraries" && /^Libraries:(?:create|edit|delete|publish|use)$/.test(permission)) return false;
           if (testCase.readOnlyDomain === "Executions" && /^Executions:(?:execute|stop|cancel)$/.test(permission)) return false;
           if (testCase.readOnlyDomain === "Schedules" && /^Schedules:(?:create|edit|delete)$/.test(permission)) return false;
           return true;
@@ -144,6 +146,12 @@ try {
                 { library_id: 8, name: "Integração Bancária", import_name: "duet_bank", library_version_id: 19, version: "2.4.0", is_current_production: true },
                 { library_id: 11, name: "Documentos Fiscais", import_name: "duet_fiscal", library_version_id: 22, version: "1.8.2", is_current_production: false },
               ] }
+          : pathname === "/libraries/tree"
+            ? { status: "success", total_folders: testCase.libraryData ? 1 : 0, total_libraries: testCase.libraryData ? 1 : 0, tree: testCase.libraryData ? [{
+                type: "folder", id: 31, name: "Integrações", parent_id: null, created_by: 1, created_at: "2026-08-10T12:00:00Z", updated_at: "2026-09-20T09:00:00Z", is_active: true, children: [{
+                  type: "library", id: 44, name: "Conectores ERP", import_name: "duet_erp", description: "Conectores reutilizáveis para os ERPs homologados.", folder_id: 31, created_by: 1, created_at: "2026-08-11T12:00:00Z", updated_at: "2026-09-21T09:00:00Z", is_active: true,
+                }],
+              }] : [] }
           : pathname === "/vault/folders"
             ? { status: "success", folders: testCase.vaultData ? [
                 { id: 4, name: "Financeiro", parent_id: null, children: [
@@ -385,6 +393,19 @@ try {
         capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() === 2
           && await page.getByRole("button", { name: /Novo agendamento|Editar|Ativar|Desativar|Excluir/ }).count() === 0
           && await page.getByText("Consulta", { exact: true }).isVisible();
+      }
+      if (testCase.readOnlyDomain === "Libraries") {
+        const module = page.locator(".libraries-module");
+        await module.getByText("Conectores ERP", { exact: true }).waitFor();
+        await module.getByRole("button", { name: "Ações de Conectores ERP" }).click();
+        const libraryReadOnlyChecks = {
+          badges: await module.getByText("Somente leitura", { exact: true }).count(),
+          forbiddenActions: await module.getByRole("button", { name: /Nova pasta|Nova biblioteca|Criar pasta|Criar subpasta|Editar metadados|Mover para pasta|Desativar/ }).count(),
+          detailsVisible: await module.getByRole("button", { name: "Ver detalhes" }).isVisible(),
+        };
+        capabilityReadOnlyWorks = libraryReadOnlyChecks.badges >= 1
+          && libraryReadOnlyChecks.forbiddenActions === 0
+          && libraryReadOnlyChecks.detailsVisible;
       }
       await page.waitForTimeout(180);
     }

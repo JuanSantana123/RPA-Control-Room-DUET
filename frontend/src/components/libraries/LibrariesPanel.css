@@ -413,8 +413,8 @@
 
 .libraries-module .library-catalog-expand,
 .libraries-module .library-catalog-spacer {
-    width: 22px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
 
     display: inline-flex;
     align-items: center;

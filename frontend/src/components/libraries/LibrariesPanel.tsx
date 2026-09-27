@@ -21,12 +21,14 @@ import {
     X,
 } from "lucide-react";
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
+import { useAuth } from "../../context/useAuth";
 
 import api from "../../services/api";
 import { PanelSkeleton } from "../ui/Skeletons";
 import { Button, IconButton } from "../ui/Button";
 import { TextField } from "../ui/TextField";
 import { TextAreaField } from "../ui/TextAreaField";
+import AccessModeBadge from "../ui/AccessModeBadge";
 // Componente visual utilizado para selecionar a pasta de destino.
 import LibraryFolderPicker from "./LibraryFolderPicker";
 
@@ -461,6 +463,10 @@ function formatarData(
 // ============================================================
 
 function LibrariesPanel() {
+    const { can } = useAuth();
+    const canCreateLibraries = can("Libraries:create");
+    const canEditLibraries = can("Libraries:edit");
+    const canDeleteLibraries = can("Libraries:delete");
     // ========================================================
     // ESTADOS - CATÁLOGO
     // ========================================================
@@ -1915,7 +1921,7 @@ const carregarRobosDaLibrary = async (
                                         <span>Ver detalhes</span>
                                     </button>
 
-                                    <button
+                                    {canEditLibraries && <button
                                         type="button"
                                         onClick={() =>
                                             abrirEdicaoLibrary(node)
@@ -1923,9 +1929,9 @@ const carregarRobosDaLibrary = async (
                                     >
                                         <Pencil size={15} />
                                         <span>Editar metadados</span>
-                                    </button>
+                                    </button>}
 
-                                    <button
+                                    {canEditLibraries && <button
                                         type="button"
                                         onClick={() =>
                                             abrirPickerMoverLibrary(node)
@@ -1933,9 +1939,9 @@ const carregarRobosDaLibrary = async (
                                     >
                                         <Move size={15} />
                                         <span>Mover para pasta</span>
-                                    </button>
+                                    </button>}
 
-                                    <button
+                                    {canDeleteLibraries && <button
                                         type="button"
                                         className="library-context-danger"
                                         onClick={() => {
@@ -1948,7 +1954,7 @@ const carregarRobosDaLibrary = async (
                                     >
                                         <Trash2 size={15} />
                                         <span>Desativar</span>
-                                    </button>
+                                    </button>}
                                 </div>
                             )}
                         </div>
@@ -2029,7 +2035,7 @@ const carregarRobosDaLibrary = async (
                         </span>
                     </button>
 
-                    <div className="library-catalog-actions">
+                    {(canCreateLibraries || canEditLibraries || canDeleteLibraries) && <div className="library-catalog-actions">
                         <button
                             type="button"
                             className="library-catalog-menu-button"
@@ -2058,7 +2064,7 @@ const carregarRobosDaLibrary = async (
                                     event.stopPropagation()
                                 }
                             >
-                                <button
+                                {canCreateLibraries && <button
                                     type="button"
                                     onClick={() =>
                                         abrirCriacaoPasta(node.id)
@@ -2066,9 +2072,9 @@ const carregarRobosDaLibrary = async (
                                 >
                                     <FolderPlus size={15} />
                                     <span>Criar subpasta</span>
-                                </button>
+                                </button>}
 
-                                <button
+                                {canCreateLibraries && <button
                                     type="button"
                                     onClick={() =>
                                         abrirCriacaoLibrary(node.id)
@@ -2076,9 +2082,9 @@ const carregarRobosDaLibrary = async (
                                 >
                                     <Plus size={15} />
                                     <span>Nova biblioteca aqui</span>
-                                </button>
+                                </button>}
 
-                                <button
+                                {canEditLibraries && <button
                                     type="button"
                                     onClick={() =>
                                         abrirRenomearPasta(node)
@@ -2086,9 +2092,9 @@ const carregarRobosDaLibrary = async (
                                 >
                                     <Pencil size={15} />
                                     <span>Renomear</span>
-                                </button>
+                                </button>}
 
-                                <button
+                                {canEditLibraries && <button
                                     type="button"
                                     onClick={() =>
                                         abrirPickerMoverPasta(node)
@@ -2096,9 +2102,9 @@ const carregarRobosDaLibrary = async (
                                 >
                                     <Move size={15} />
                                     <span>Mover pasta</span>
-                                </button>
+                                </button>}
 
-                                <button
+                                {canDeleteLibraries && <button
                                     type="button"
                                     className="library-context-danger"
                                     onClick={() => {
@@ -2111,10 +2117,10 @@ const carregarRobosDaLibrary = async (
                                 >
                                     <Trash2 size={15} />
                                     <span>Excluir pasta</span>
-                                </button>
+                                </button>}
                             </div>
                         )}
-                    </div>
+                    </div>}
                 </div>
 
                 {expanded && hasChildren && (
@@ -2219,6 +2225,9 @@ const carregarRobosDaLibrary = async (
                     </div>
 
                     <div className="libraries-catalog-header-actions">
+                        {!canCreateLibraries && !canEditLibraries && !canDeleteLibraries && (
+                            <AccessModeBadge />
+                        )}
                         <button
                             type="button"
                             className="library-toolbar-button"
@@ -2236,7 +2245,7 @@ const carregarRobosDaLibrary = async (
                             />
                         </button>
 
-                        <Button variant="secondary"
+                        {canCreateLibraries && <Button variant="secondary"
                             onClick={(event) => {
                                 event.stopPropagation();
                                 abrirCriacaoPasta(null);
@@ -2247,9 +2256,9 @@ const carregarRobosDaLibrary = async (
                                 strokeWidth={1.9}
                             />
                             Nova pasta
-                        </Button>
+                        </Button>}
 
-                        <Button variant="primary"
+                        {canCreateLibraries && <Button variant="primary"
                             onClick={(event) => {
                                 event.stopPropagation();
                                 abrirCriacaoLibrary(null);
@@ -2260,7 +2269,7 @@ const carregarRobosDaLibrary = async (
                                 strokeWidth={2}
                             />
                             Nova biblioteca
-                        </Button>
+                        </Button>}
                     </div>
                 </div>
 
@@ -2412,7 +2421,8 @@ const carregarRobosDaLibrary = async (
                                     </div>
 
                                     <div className="libraries-details-actions">
-                                        <Button variant="secondary"
+                                        {!canEditLibraries && <AccessModeBadge />}
+                                        {canEditLibraries && <Button variant="secondary"
                                             onClick={() =>
                                                 abrirPickerMoverLibrary(
                                                     selectedLibrary
@@ -2421,9 +2431,9 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <Move size={15} />
                                             Mover
-                                        </Button>
+                                        </Button>}
 
-                                        <Button variant="primary"
+                                        {canEditLibraries && <Button variant="primary"
                                             onClick={() =>
                                                 abrirEdicaoLibrary(
                                                     selectedLibrary
@@ -2432,7 +2442,7 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <Pencil size={15} />
                                             Editar
-                                        </Button>
+                                        </Button>}
                                     </div>
                                 </div>
 
@@ -2852,7 +2862,8 @@ const carregarRobosDaLibrary = async (
                                     </div>
 
                                     <div className="libraries-details-actions">
-                                        <Button variant="secondary"
+                                        {!canCreateLibraries && <AccessModeBadge />}
+                                        {canCreateLibraries && <Button variant="secondary"
                                             onClick={() =>
                                                 abrirCriacaoPasta(
                                                     selectedFolder.id
@@ -2861,9 +2872,9 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <FolderPlus size={15} />
                                             Subpasta
-                                        </Button>
+                                        </Button>}
 
-                                        <Button variant="primary"
+                                        {canCreateLibraries && <Button variant="primary"
                                             onClick={() =>
                                                 abrirCriacaoLibrary(
                                                     selectedFolder.id
@@ -2872,7 +2883,7 @@ const carregarRobosDaLibrary = async (
                                         >
                                             <Plus size={15} />
                                             Nova biblioteca
-                                        </Button>
+                                        </Button>}
                                     </div>
                                 </div>
 
@@ -2912,19 +2923,20 @@ const carregarRobosDaLibrary = async (
                                 </p>
 
                                 <div className="libraries-details-empty-actions">
-                                    <Button variant="secondary"
+                                    {!canCreateLibraries && <AccessModeBadge />}
+                                    {canCreateLibraries && <Button variant="secondary"
                                         onClick={() => abrirCriacaoPasta(null)}
                                     >
                                         <FolderPlus size={15} />
                                         Criar pasta
-                                    </Button>
+                                    </Button>}
 
-                                    <Button variant="primary"
+                                    {canCreateLibraries && <Button variant="primary"
                                         onClick={() => abrirCriacaoLibrary(null)}
                                     >
                                         <Plus size={15} />
                                         Nova biblioteca
-                                    </Button>
+                                    </Button>}
                                 </div>
                             </div>
                         )}
@@ -2935,7 +2947,7 @@ const carregarRobosDaLibrary = async (
             {/* ==================================================
                 MODAL - CRIAR / RENOMEAR PASTA
                ================================================== */}
-            {folderEditorMode && (
+            {folderEditorMode && (folderEditorMode === "create" ? canCreateLibraries : canEditLibraries) && (
                 <div
                     className="library-modal-backdrop"
                     role="presentation"
@@ -3068,7 +3080,7 @@ const carregarRobosDaLibrary = async (
             {/* ==================================================
                 MODAL - CRIAR / EDITAR LIBRARY
                ================================================== */}
-            {libraryEditorMode && (
+            {libraryEditorMode && (libraryEditorMode === "create" ? canCreateLibraries : canEditLibraries) && (
                 <div
                     className="library-modal-backdrop"
                     role="presentation"
@@ -3243,7 +3255,11 @@ const carregarRobosDaLibrary = async (
                 SELETOR REUTILIZÁVEL DE PASTAS
                ================================================== */}
             <LibraryFolderPicker
-                open={folderPickerMode !== null}
+                open={folderPickerMode !== null && (
+                    folderPickerMode === "folder-create-location" || folderPickerMode === "library-create-location"
+                        ? canCreateLibraries
+                        : canEditLibraries
+                )}
                 title={pickerTitle}
                 description={pickerDescription}
                 folders={folderOptions}
@@ -3265,7 +3281,7 @@ const carregarRobosDaLibrary = async (
             {/* ==================================================
                 CONFIRMAÇÃO PROFISSIONAL DE AÇÃO DESTRUTIVA
                ================================================== */}
-            {confirmation && (
+            {confirmation && canDeleteLibraries && (
                 <div
                     className="library-modal-backdrop library-confirm-backdrop"
                     role="presentation"
