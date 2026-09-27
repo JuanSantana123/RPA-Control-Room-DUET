@@ -100,29 +100,3 @@ export function calculateHistoryDuration(
 }
 
 
-// ============================================================
-// FORMATAR STATUS
-// ============================================================
-
-export function formatHistoryStatus(
-    status: string
-): string {
-
-    if (status === "success") {
-        return "Sucesso";
-    }
-
-
-    if (status === "error") {
-        return "Erro";
-    }
-
-
-    if (status === "stopped") {
-        return "Parado";
-    }
-
-
-    // Qualquer status não conhecido permanece inalterado.
-    return status;
-}

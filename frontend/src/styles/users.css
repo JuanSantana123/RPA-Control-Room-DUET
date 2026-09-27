@@ -151,6 +151,20 @@
     gap: 10px;
 }
 
+.users-list-toolbar {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(190px, 240px) auto;
+    align-items: end;
+    gap: 10px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-surface-muted);
+}
+
+.users-list-search {
+    min-width: 0;
+}
+
 /* =========================================================
    FORMULÁRIOS
    ========================================================= */
@@ -565,6 +579,15 @@
         align-items: flex-start;
         flex-direction: column;
         padding: 18px;
+    }
+
+    .users-list-toolbar {
+        grid-template-columns: 1fr;
+        padding: 14px 18px 18px;
+    }
+
+    .users-list-toolbar > .ui-button {
+        width: 100%;
     }
 
     .users-actions {

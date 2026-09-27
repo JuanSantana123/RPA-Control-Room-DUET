@@ -37,7 +37,7 @@ const allCases = [
   { name: "executions-queue-details-390-light", route: "/executions", width: 390, height: 844, colorScheme: "light", authenticated: true, queueData: true, interaction: "execution-queue-details" },
   { name: "executions-empty-1440-light", route: "/executions", width: 1440, height: 900, colorScheme: "light", authenticated: true, forceEmpty: true },
   { name: "executions-readonly-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true, queueData: true, readOnlyDomain: "Executions", interaction: "capability-readonly" },
-  { name: "history-1440-dark", route: "/history", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
+  { name: "history-1440-dark", route: "/history", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, historyData: true, interaction: "history-filter" },
   { name: "history-1440-light", route: "/history", width: 1440, height: 900, colorScheme: "light", authenticated: true },
   { name: "schedules-390-light", route: "/schedules", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "schedules-1440-light", route: "/schedules", width: 1440, height: 900, colorScheme: "light", authenticated: true },
@@ -189,6 +189,11 @@ try {
               ? testCase.userData ? [{ id: 12, username: "ana.operacao", name: "Ana Operação", is_active: 1, roles: [{ id: 7, name: "Operação assistida" }] }] : []
             : pathname === "/executions"
               ? { status: "success", total: testCase.forceEmpty ? 0 : 1, queue_warning_seconds: 900, executions: testCase.forceEmpty ? [] : [{ id: 142, source_type: "robot", robot_id: 9, robot_version: 3, project_id: null, robot_name: "Conciliação financeira", filename: "conciliacao.zip", folder_name: "Financeiro / Fechamento", user_id: 1, username: "operador", user_name: "Operador DUET", agent_id: "runner-03", agent_name: "Financeiro 03", schedule_id: null, schedule_run_id: null, pid: testCase.queueData ? null : 4872, status: testCase.queueData ? "queued" : "running", priority: testCase.queueData ? "urgent" : "normal", queued_at: testCase.queueData ? "2026-09-26T10:00:00Z" : null, queue_position: testCase.queueData ? 1 : null, started_at: testCase.queueData ? null : "2026-09-26T14:45:00Z", finished_at: null, error_message: null }] }
+              : pathname === "/executions/history"
+                ? { status: "success", executions: testCase.historyData ? [
+                    { id: 381, robot_name: "Conciliação financeira", folder_name: "Financeiro / Fechamento", user_id: 1, username: "operador", user_name: "Operador DUET", agent_name: "Financeiro 03", started_at: "2026-09-26T17:40:00Z", finished_at: "2026-09-26T17:41:18Z", status: "success", error_message: null },
+                    { id: 380, robot_name: "Importação fiscal", folder_name: "Fiscal", user_id: 2, username: "ana.operacao", user_name: "Ana Operação", agent_name: "Fiscal 02", started_at: "2026-09-26T16:10:00Z", finished_at: "2026-09-26T16:10:23Z", status: "error", error_message: "Falha controlada ao validar o arquivo de entrada." },
+                  ] : [] }
               : pathname === "/logs"
                 ? { status: "success", total: 3, truncated: false, logs: [
                     { timestamp: "2026-09-26T18:42:03Z", level: "ERROR", message: "Falha controlada ao consultar o Device.", event: "agent_health_failed", request_id: "req-9001", service: "control-room" },
@@ -373,6 +378,22 @@ try {
         && await card.getByText("Há 3 min").isVisible();
       await page.waitForTimeout(180);
     }
+    let historyFilterWorks = null;
+    if (testCase.interaction === "history-filter") {
+      await page.getByText("Conciliação financeira", { exact: true }).waitFor();
+      const search = page.getByRole("searchbox", { name: "Pesquisar no histórico" });
+      await search.fill("registro inexistente");
+      await page.getByRole("heading", { name: "Nenhuma execução corresponde aos filtros" }).waitFor();
+      await page.locator(".ui-empty-state").getByRole("button", { name: "Limpar filtros" }).click();
+      await page.getByRole("combobox", { name: "Filtrar histórico por situação" }).click();
+      await page.getByRole("option", { name: "Erro", exact: true }).click();
+      const statusWorks = await page.getByText("Importação fiscal", { exact: true }).isVisible()
+        && await page.getByText("Conciliação financeira", { exact: true }).count() === 0;
+      await page.getByRole("button", { name: "Limpar filtros" }).click();
+      historyFilterWorks = statusWorks
+        && await page.getByText("Conciliação financeira", { exact: true }).isVisible();
+      await page.waitForTimeout(180);
+    }
     let capabilityReadOnlyWorks = null;
     if (testCase.interaction === "capability-readonly") {
       if (testCase.readOnlyDomain === "Agents") {
@@ -421,14 +442,26 @@ try {
         await page.getByText("Operação assistida", { exact: true }).waitFor();
         await page.getByRole("button", { name: "Consultar" }).click();
         await page.getByRole("heading", { name: "Operação assistida" }).last().waitFor();
-        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() >= 1
+        const search = page.getByRole("searchbox", { name: "Pesquisar perfis de acesso" });
+        await search.fill("perfil inexistente");
+        await page.getByRole("heading", { name: "Nenhum perfil corresponde à pesquisa" }).waitFor();
+        await page.locator(".ui-empty-state").getByRole("button", { name: "Limpar pesquisa" }).click();
+        const roleFilterWorks = await page.getByRole("button", { name: "Consultar" }).isVisible();
+        capabilityReadOnlyWorks = roleFilterWorks
+          && await page.getByText("Somente leitura", { exact: true }).count() >= 1
           && await page.getByRole("button", { name: /Novo perfil|Excluir|Salvar permissões/ }).count() === 0
           && await page.getByRole("switch").count() === 2
           && await page.getByRole("switch").first().isDisabled();
       }
       if (testCase.readOnlyDomain === "Users") {
         await page.getByText("Ana Operação", { exact: true }).waitFor();
-        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() >= 1
+        const search = page.getByRole("searchbox", { name: "Pesquisar usuários" });
+        await search.fill("usuário inexistente");
+        await page.getByRole("heading", { name: "Nenhum usuário corresponde aos filtros" }).waitFor();
+        await page.locator(".ui-empty-state").getByRole("button", { name: "Limpar filtros" }).click();
+        const userFilterWorks = await page.getByText("Ana Operação", { exact: true }).isVisible();
+        capabilityReadOnlyWorks = userFilterWorks
+          && await page.getByText("Somente leitura", { exact: true }).count() >= 1
           && await page.getByRole("button", { name: /Editar perfis|Alterar senha|Excluir|Desativar|Ativar/ }).count() === 0
           && await page.getByText("Consulta", { exact: true }).isVisible();
       }
@@ -504,13 +537,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, vaultAutomationWorks, vaultReadOnlyWorks, capabilityReadOnlyWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, vaultAutomationWorks, vaultReadOnlyWorks, capabilityReadOnlyWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, historyFilterWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.vaultAutomationWorks === false || result.vaultReadOnlyWorks === false || result.capabilityReadOnlyWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.vaultAutomationWorks === false || result.vaultReadOnlyWorks === false || result.capabilityReadOnlyWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false || result.historyFilterWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

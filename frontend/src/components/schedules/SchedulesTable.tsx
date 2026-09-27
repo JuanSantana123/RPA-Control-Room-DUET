@@ -29,6 +29,10 @@ import { TableSkeleton }
 import EmptyState from "../ui/EmptyState";
 import { CalendarClock } from "lucide-react";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import { useMemo, useState } from "react";
+import { TextField } from "../ui/TextField";
+import PremiumSelect from "../ui/PremiumSelect";
+import { Button } from "../ui/Button";
 
 import type {
     Schedule,
@@ -74,6 +78,31 @@ function SchedulesTable({
     onDelete,
 }: SchedulesTableProps) {
 
+    const [search, setSearch] = useState("");
+    const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
+    const filteredSchedules = useMemo(() => {
+        const term = search.trim().toLocaleLowerCase("pt-BR");
+
+        return schedules.filter((schedule) => {
+            const matchesStatus = status === "all"
+                || (status === "active" ? schedule.ativo : !schedule.ativo);
+            const matchesSearch = !term || [
+                String(schedule.id),
+                schedule.robot_name,
+                schedule.agent_name,
+                schedule.agent_id ?? "",
+                schedule.tipo,
+            ].some((value) => value.toLocaleLowerCase("pt-BR").includes(term));
+
+            return matchesStatus && matchesSearch;
+        });
+    }, [schedules, search, status]);
+    const hasFilters = Boolean(search.trim()) || status !== "all";
+    const clearFilters = () => {
+        setSearch("");
+        setStatus("all");
+    };
+
     return (
         <section className="content-panel schedules-panel">
 
@@ -89,9 +118,39 @@ function SchedulesTable({
                     </p>
                 </div>
 
-                {!canEdit && !canDelete && <AccessModeBadge />}
+                <div className="schedules-panel-meta">
+                    {!canEdit && !canDelete && <AccessModeBadge />}
+                    <span className="schedules-result-count">
+                        {hasFilters ? `${filteredSchedules.length}/${schedules.length}` : schedules.length}
+                    </span>
+                </div>
 
             </div>
+
+            {schedules.length > 0 && (
+                <div className="schedules-filterbar" aria-label="Filtros dos agendamentos">
+                    <TextField
+                        label="Pesquisar agendamentos"
+                        labelHidden
+                        type="search"
+                        value={search}
+                        placeholder="Pesquisar por robô, Device, tipo ou ID..."
+                        onChange={(event) => setSearch(event.target.value)}
+                    />
+                    <PremiumSelect
+                        value={status}
+                        aria-label="Filtrar agendamentos por situação"
+                        onChange={(event) => setStatus(event.target.value as "all" | "active" | "inactive")}
+                    >
+                        <option value="all">Todas as situações</option>
+                        <option value="active">Ativos</option>
+                        <option value="inactive">Inativos</option>
+                    </PremiumSelect>
+                    <Button size="sm" variant="ghost" disabled={!hasFilters} onClick={clearFilters}>
+                        Limpar filtros
+                    </Button>
+                </div>
+            )}
 
 
             <div className="schedules-table-wrapper">
@@ -152,13 +211,26 @@ function SchedulesTable({
 
                             )}
 
+                        {!loading && schedules.length > 0 && filteredSchedules.length === 0 && (
+                            <tr>
+                                <td colSpan={7}>
+                                    <EmptyState
+                                        icon={<CalendarClock />}
+                                        title="Nenhum agendamento corresponde aos filtros"
+                                        description="Ajuste a pesquisa ou a situação para localizar outros agendamentos."
+                                        action={<Button size="sm" onClick={clearFilters}>Limpar filtros</Button>}
+                                    />
+                                </td>
+                            </tr>
+                        )}
+
 
                         {/* ==========================================
                             AGENDAMENTOS
                             ========================================== */}
 
                         {!loading &&
-                            schedules.map(
+                            filteredSchedules.map(
                                 (schedule) => (
 
                                     <ScheduleRow

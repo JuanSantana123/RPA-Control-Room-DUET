@@ -22,8 +22,8 @@ import type {
 import {
     calculateHistoryDuration,
     formatHistoryDate,
-    formatHistoryStatus,
 } from "../../utils/historyFormatters";
+import ExecutionStatusBadge from "../executions/ExecutionStatusBadge";
 
 
 // ============================================================
@@ -115,9 +115,7 @@ function HistoryRow({
 
             {/* STATUS */}
             <td>
-                {formatHistoryStatus(
-                    execution.status
-                )}
+                <ExecutionStatusBadge status={execution.status} />
             </td>
 
 

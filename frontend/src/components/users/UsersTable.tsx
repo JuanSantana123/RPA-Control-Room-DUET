@@ -31,6 +31,10 @@ import type {
 import { UsersRound } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import { useMemo, useState } from "react";
+import { TextField } from "../ui/TextField";
+import PremiumSelect from "../ui/PremiumSelect";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -77,6 +81,30 @@ function UsersTable({
     onChangeStatus,
 }: UsersTableProps) {
 
+    const [search, setSearch] = useState("");
+    const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
+    const filteredUsers = useMemo(() => {
+        const term = search.trim().toLocaleLowerCase("pt-BR");
+
+        return users.filter((user) => {
+            const matchesStatus = status === "all"
+                || (status === "active" ? user.is_active === 1 : user.is_active !== 1);
+            const matchesSearch = !term || [
+                user.name,
+                user.username,
+                String(user.id),
+                ...user.roles.map((role) => role.name),
+            ].some((value) => value.toLocaleLowerCase("pt-BR").includes(term));
+
+            return matchesStatus && matchesSearch;
+        });
+    }, [search, status, users]);
+    const hasFilters = Boolean(search.trim()) || status !== "all";
+    const clearFilters = () => {
+        setSearch("");
+        setStatus("all");
+    };
+
     return (
         <section className="users-panel users-list-panel">
 
@@ -110,11 +138,37 @@ function UsersTable({
                 <div className="users-panel-meta">
                     {!canEdit && !canDelete && <AccessModeBadge />}
                     <span className="users-panel-count">
-                        {users.length}
+                        {hasFilters ? `${filteredUsers.length}/${users.length}` : users.length}
                     </span>
                 </div>
 
             </div>
+
+            {users.length > 0 && (
+                <div className="users-list-toolbar" aria-label="Filtros de usuários">
+                    <TextField
+                        label="Pesquisar usuários"
+                        labelHidden
+                        type="search"
+                        value={search}
+                        placeholder="Pesquisar por nome, usuário, ID ou perfil..."
+                        onChange={(event) => setSearch(event.target.value)}
+                        containerClassName="users-list-search"
+                    />
+                    <PremiumSelect
+                        value={status}
+                        aria-label="Filtrar usuários por situação"
+                        onChange={(event) => setStatus(event.target.value as "all" | "active" | "inactive")}
+                    >
+                        <option value="all">Todas as situações</option>
+                        <option value="active">Ativos</option>
+                        <option value="inactive">Inativos</option>
+                    </PremiumSelect>
+                    <Button size="sm" variant="ghost" disabled={!hasFilters} onClick={clearFilters}>
+                        Limpar filtros
+                    </Button>
+                </div>
+            )}
 
 
             {/* ==================================================
@@ -130,6 +184,15 @@ function UsersTable({
                     icon={<UsersRound />}
                     title="Nenhum usuário cadastrado"
                     description="As contas autorizadas a acessar o Control Room aparecerão aqui."
+                />
+
+            ) : filteredUsers.length === 0 ? (
+
+                <EmptyState
+                    icon={<UsersRound />}
+                    title="Nenhum usuário corresponde aos filtros"
+                    description="Tente pesquisar outro nome, usuário ou perfil, ou limpe os filtros atuais."
+                    action={<Button size="sm" onClick={clearFilters}>Limpar filtros</Button>}
                 />
 
             ) : (
@@ -169,7 +232,7 @@ function UsersTable({
 
                         <tbody>
 
-                            {users.map(
+                            {filteredUsers.map(
                                 (user) => (
 
                                     <UserRow

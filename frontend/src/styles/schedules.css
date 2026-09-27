@@ -11,6 +11,36 @@
     overflow: hidden;
 }
 
+.schedules-panel-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.schedules-result-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: var(--weight-bold);
+}
+
+.schedules-filterbar {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(190px, 240px) auto;
+    align-items: end;
+    gap: 10px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-surface-muted);
+}
+
 .schedules-table-wrapper {
     width: 100%;
     overflow-x: auto;
@@ -101,10 +131,10 @@
     min-width: 220px;
 }
 
-.table-loading-state {
-    padding: 52px 24px !important;
-    color: var(--color-text-muted) !important;
-    font-size: 13px !important;
+.schedules-table .table-loading-state {
+    padding: 52px 24px;
+    color: var(--color-text-muted);
+    font-size: 13px;
     text-align: center;
 }
 
@@ -389,6 +419,11 @@
 .schedule-modal-actions > div { display: flex; flex: 0 0 auto; gap: 8px; }
 
 @media (max-width: 680px) {
+    .schedules-filterbar {
+        grid-template-columns: 1fr;
+        padding: 14px 16px 18px;
+    }
+    .schedules-filterbar > .ui-button { width: 100%; }
     .schedule-modal-overlay { align-items: flex-end; padding: 8px; }
     .schedule-modal { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: var(--radius-xl); }
     .schedule-modal-header { padding: 16px; }

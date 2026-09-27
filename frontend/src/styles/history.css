@@ -15,6 +15,30 @@
     overflow: hidden;
 }
 
+.history-filterbar {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(190px, 240px) auto;
+    align-items: end;
+    gap: 10px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-surface-muted);
+}
+
+.history-result-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: var(--weight-bold);
+}
+
 /* =========================================================
    WRAPPER DA TABELA
    ========================================================= */
@@ -129,31 +153,31 @@
     min-width: 160px;
 }
 /* Datas */
-.history-table th:nth-child(4),
-.history-table th:nth-child(5),
-.history-table td:nth-child(4),
-.history-table td:nth-child(5) {
+.history-table th:nth-child(6),
+.history-table th:nth-child(7),
+.history-table td:nth-child(6),
+.history-table td:nth-child(7) {
     min-width: 155px;
     white-space: nowrap;
 }
 
 /* Duração */
-.history-table th:nth-child(6),
-.history-table td:nth-child(6) {
+.history-table th:nth-child(8),
+.history-table td:nth-child(8) {
     min-width: 100px;
     white-space: nowrap;
 }
 
 /* Status */
-.history-table th:nth-child(7),
-.history-table td:nth-child(7) {
+.history-table th:nth-child(9),
+.history-table td:nth-child(9) {
     min-width: 100px;
     white-space: nowrap;
 }
 
 /* Erro */
-.history-table th:nth-child(8),
-.history-table td:nth-child(8) {
+.history-table th:nth-child(10),
+.history-table td:nth-child(10) {
     min-width: 220px;
     max-width: 360px;
 }
@@ -172,7 +196,7 @@
    ESTADOS VAZIOS / CARREGAMENTO / ERRO
    ========================================================= */
 
-.history-table tbody tr td[colspan="8"] {
+.history-table tbody tr td[colspan="10"] {
     padding: 52px 24px;
 
     color: var(--color-text-muted);
@@ -199,6 +223,15 @@
     .history-table th,
     .history-table td {
         padding: 12px 14px;
+    }
+
+    .history-filterbar {
+        grid-template-columns: 1fr;
+        padding: 14px 16px 18px;
+    }
+
+    .history-filterbar > .ui-button {
+        width: 100%;
     }
 }
 /* =========================================================

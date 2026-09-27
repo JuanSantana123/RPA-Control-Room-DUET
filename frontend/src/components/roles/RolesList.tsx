@@ -29,6 +29,9 @@ import type {
 } from "../../types/roles";
 import { UsersRound } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
+import { useMemo, useState } from "react";
+import { TextField } from "../ui/TextField";
+import { Button } from "../ui/Button";
 
 
 // ============================================================
@@ -69,6 +72,16 @@ function RolesList({
     onDelete,
 }: RolesListProps) {
 
+    const [search, setSearch] = useState("");
+    const filteredRoles = useMemo(() => {
+        const term = search.trim().toLocaleLowerCase("pt-BR");
+        if (!term) return roles;
+
+        return roles.filter((role) => [role.name, role.description ?? "", String(role.id)]
+            .some((value) => value.toLocaleLowerCase("pt-BR").includes(term)));
+    }, [roles, search]);
+    const hasFilter = Boolean(search.trim());
+
     return (
         <section className="roles-panel">
 
@@ -85,12 +98,28 @@ function RolesList({
                     </h2>
 
                     <span className="roles-panel-count">
-                        {roles.length}
+                        {hasFilter ? `${filteredRoles.length}/${roles.length}` : roles.length}
                     </span>
 
                 </div>
 
             </div>
+
+            {roles.length > 0 && (
+                <div className="roles-list-toolbar">
+                    <TextField
+                        label="Pesquisar perfis de acesso"
+                        labelHidden
+                        type="search"
+                        value={search}
+                        placeholder="Pesquisar por nome, descrição ou ID..."
+                        onChange={(event) => setSearch(event.target.value)}
+                    />
+                    <Button size="sm" variant="ghost" disabled={!hasFilter} onClick={() => setSearch("")}>
+                        Limpar
+                    </Button>
+                </div>
+            )}
 
 
             {/* ==================================================
@@ -108,11 +137,20 @@ function RolesList({
                     description="Crie um perfil para organizar permissões e responsabilidades da equipe."
                 />
 
+            ) : filteredRoles.length === 0 ? (
+
+                <EmptyState
+                    icon={<UsersRound />}
+                    title="Nenhum perfil corresponde à pesquisa"
+                    description="Tente outro nome ou descrição, ou remova o filtro atual."
+                    action={<Button size="sm" onClick={() => setSearch("")}>Limpar pesquisa</Button>}
+                />
+
             ) : (
 
                 <div className="roles-list">
 
-                    {roles.map(
+                    {filteredRoles.map(
                         (role) => (
 
                             <RoleCard
