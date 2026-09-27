@@ -28,6 +28,7 @@ import { TableSkeleton }
     from "../ui/Skeletons";
 import EmptyState from "../ui/EmptyState";
 import { CalendarClock } from "lucide-react";
+import AccessModeBadge from "../ui/AccessModeBadge";
 
 import type {
     Schedule,
@@ -41,6 +42,8 @@ import type {
 interface SchedulesTableProps {
     schedules: Schedule[];
     loading: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
 
     onEdit: (
         id: number
@@ -64,6 +67,8 @@ interface SchedulesTableProps {
 function SchedulesTable({
     schedules,
     loading,
+    canEdit,
+    canDelete,
     onEdit,
     onToggleStatus,
     onDelete,
@@ -83,6 +88,8 @@ function SchedulesTable({
                         Gerencie as execuções automáticas dos robôs.
                     </p>
                 </div>
+
+                {!canEdit && !canDelete && <AccessModeBadge />}
 
             </div>
 
@@ -157,6 +164,8 @@ function SchedulesTable({
                                     <ScheduleRow
                                         key={schedule.id}
                                         schedule={schedule}
+                                        canEdit={canEdit}
+                                        canDelete={canDelete}
                                         onEdit={onEdit}
                                         onToggleStatus={
                                             onToggleStatus

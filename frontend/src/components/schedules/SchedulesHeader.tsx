@@ -2,6 +2,7 @@
 
 import { CalendarPlus } from "lucide-react";
 import { Button } from "../ui/Button";
+import AccessModeBadge from "../ui/AccessModeBadge";
 // DUET CORE - SCHEDULES - HEADER
 // ============================================================
 //
@@ -26,6 +27,7 @@ import { Button } from "../ui/Button";
 // ============================================================
 
 interface SchedulesHeaderProps {
+    canCreate: boolean;
     onNewSchedule: () => void | Promise<void>;
 }
 
@@ -35,6 +37,7 @@ interface SchedulesHeaderProps {
 // ============================================================
 
 function SchedulesHeader({
+    canCreate,
     onNewSchedule,
 }: SchedulesHeaderProps) {
 
@@ -58,13 +61,13 @@ function SchedulesHeader({
             </div>
 
 
-            <Button
+            {canCreate ? <Button
                 variant="primary"
                 onClick={onNewSchedule}
             >
                 <CalendarPlus size={17} strokeWidth={1.9} aria-hidden="true" />
                 Novo agendamento
-            </Button>
+            </Button> : <AccessModeBadge />}
 
         </section>
     );

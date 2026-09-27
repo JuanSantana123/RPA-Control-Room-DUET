@@ -38,6 +38,10 @@ import EmptyState from "../ui/EmptyState";
 
 interface RobotsGridProps {
     robots: Robot[];
+    canCreate: boolean;
+    canDelete: boolean;
+    canCreateProject: boolean;
+    canExecute: boolean;
     totalRobotCount: number;
     viewMode: "grid" | "list";
     hasActiveFilter: boolean;
@@ -91,6 +95,10 @@ interface RobotsGridProps {
 
 function RobotsGrid({
     robots,
+    canCreate,
+    canDelete,
+    canCreateProject,
+    canExecute,
     totalRobotCount,
     viewMode,
     hasActiveFilter,
@@ -123,7 +131,9 @@ function RobotsGrid({
                     title={hasActiveFilter && totalRobotCount > 0 ? "Nenhum resultado encontrado" : "Nenhum robô nesta pasta"}
                     description={hasActiveFilter && totalRobotCount > 0
                         ? "Ajuste o termo de pesquisa ou a ordenação para localizar outra automação."
-                        : "Envie um pacote para disponibilizar uma automação nesta localização."}
+                        : canCreate
+                            ? "Envie um pacote para disponibilizar uma automação nesta localização."
+                            : "Nenhuma automação está disponível para consulta nesta localização."}
                     action={hasActiveFilter && totalRobotCount > 0 ? (
                         <Button size="sm" onClick={onClearFilter}>Limpar pesquisa</Button>
                     ) : undefined}
@@ -133,6 +143,9 @@ function RobotsGrid({
 
                     {robots.map((robot) => (
                         <RobotCard
+                            canDelete={canDelete}
+                            canCreateProject={canCreateProject}
+                            canExecute={canExecute}
                             key={robot.id}
                             robot={robot}
                             openRobotMenu={openRobotMenu}

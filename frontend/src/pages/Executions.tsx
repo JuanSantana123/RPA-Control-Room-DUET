@@ -49,10 +49,16 @@ import ExecutionsTable from "../components/executions/ExecutionsTable";
 import ExecutionDetailsModal from "../components/executions/ExecutionDetailsModal";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { calcularTempoDeFila } from "../utils/executionFormatters";
+import { useAuth } from "../context/useAuth";
 
 
 
 function Executions() {
+
+    const { can } = useAuth();
+    const canStopExecutions = can("Executions:stop");
+    const canCancelExecutions = can("Executions:cancel");
+    const canPrioritizeExecutions = can("Executions:execute");
 
     // ========================================================
     // DADOS E AÇÕES OPERACIONAIS
@@ -260,6 +266,8 @@ function Executions() {
                     cancelandoExecucao
                 }
                 queueWarningSeconds={queueWarningSeconds}
+                canStop={canStopExecutions}
+                canCancel={canCancelExecutions}
                 onViewDetails={
                     (execution: Execution) => setExecucaoSelecionadaId(execution.id)
                 }
@@ -291,6 +299,9 @@ function Executions() {
                     cancelling={cancelandoExecucao === execucaoSelecionada.id}
                     updatingPriority={updatingPriority === execucaoSelecionada.id}
                     queueWarningSeconds={queueWarningSeconds}
+                    canStop={canStopExecutions}
+                    canCancel={canCancelExecutions}
+                    canUpdatePriority={canPrioritizeExecutions}
                     onStopExecution={pararExecucao}
                     onCancelExecution={cancelarExecucao}
                     onUpdatePriority={alterarPrioridade}

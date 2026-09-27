@@ -27,6 +27,7 @@ import type {
 } from "../../types/vault";
 import { FolderOpen } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
+import AccessModeBadge from "../ui/AccessModeBadge";
 
 
 // ============================================================
@@ -83,7 +84,7 @@ function VaultFoldersPanel({
                 </h2>
 
                 {!canCreate && !canDelete && (
-                    <span className="vault-readonly-badge">Somente leitura</span>
+                    <AccessModeBadge />
                 )}
 
             </div>

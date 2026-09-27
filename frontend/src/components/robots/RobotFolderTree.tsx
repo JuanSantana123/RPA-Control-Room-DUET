@@ -36,6 +36,8 @@ import { PanelSkeleton } from "../ui/Skeletons";
 
 interface RobotFolderTreeProps {
     folders: RobotFolder[];
+    canCreate: boolean;
+    canDelete: boolean;
 
     loadingFolders: boolean;
 
@@ -57,6 +59,8 @@ interface RobotFolderTreeProps {
 
 function RobotFolderTree({
     folders,
+    canCreate,
+    canDelete,
     loadingFolders,
     rootSelected,
     selectedFolder,
@@ -140,6 +144,8 @@ function RobotFolderTree({
                         )
                         .map((folder) => (
                             <RobotFolderNode
+                                canCreate={canCreate}
+                                canDelete={canDelete}
                                 key={folder.id}
                                 folder={folder}
                                 folders={folders}

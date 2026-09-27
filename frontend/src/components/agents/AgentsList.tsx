@@ -36,6 +36,7 @@ import type {
     Agent,
 } from "../../types/agents";
 import EmptyState from "../ui/EmptyState";
+import AccessModeBadge from "../ui/AccessModeBadge";
 
 
 // ============================================================
@@ -47,6 +48,10 @@ interface AgentsListProps {
     loading: boolean;
     error: string;
     hasFilters: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+    canBootstrap: boolean;
     onEnvironmentChange:
         (
             agentId: string,
@@ -92,6 +97,10 @@ function AgentsList({
     loading,
     error,
     hasFilters,
+    canCreate,
+    canEdit,
+    canDelete,
+    canBootstrap,
     onEnvironmentChange,
     onDisplayChange,
     updatingAvailability,
@@ -123,6 +132,10 @@ function AgentsList({
 
 
                 <div className="panel-header-meta">
+
+                    {!canCreate && !canEdit && !canDelete && !canBootstrap && (
+                        <AccessModeBadge />
+                    )}
 
                     <span className="panel-count">
                         {agents.length}
@@ -160,7 +173,9 @@ function AgentsList({
                         title={hasFilters ? "Nenhum Device corresponde aos filtros" : "Nenhum dispositivo cadastrado"}
                         description={hasFilters
                             ? "Ajuste a pesquisa ou a disponibilidade para ampliar os resultados."
-                            : "Cadastre o primeiro dispositivo para começar a executar automações com segurança."}
+                            : canCreate
+                                ? "Cadastre o primeiro dispositivo para começar a executar automações com segurança."
+                                : "Nenhum dispositivo está disponível para consulta neste ambiente."}
                     />
 
                 )}
@@ -185,6 +200,9 @@ function AgentsList({
                                     agent={
                                         agent
                                     }
+                                    canEdit={canEdit}
+                                    canDelete={canDelete}
+                                    canBootstrap={canBootstrap}
 
                                     onEnvironmentChange={
                                         onEnvironmentChange

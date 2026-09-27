@@ -64,6 +64,8 @@ interface ExecutionRowProps {
     parandoExecucao: number | null;
     cancelandoExecucao: number | null;
     queueWarningSeconds: number;
+    canStop: boolean;
+    canCancel: boolean;
 
     // Abre os detalhes da execução.
     onViewDetails: (
@@ -92,6 +94,8 @@ function ExecutionRow({
     parandoExecucao,
     cancelandoExecucao,
     queueWarningSeconds,
+    canStop,
+    canCancel,
     onViewDetails,
     onStopExecution,
     onCancelExecution,
@@ -287,7 +291,7 @@ function ExecutionRow({
 
 
                     {/* Stop disponível somente durante running. */}
-                    {execution.status ===
+                    {canStop && execution.status ===
                         "running" && (
 
                         <Button
@@ -310,7 +314,7 @@ function ExecutionRow({
 
                     {/* Cancel disponível somente enquanto
                         a execução estiver na fila. */}
-                    {execution.status ===
+                    {canCancel && execution.status ===
                         "queued" && (
 
                         <Button

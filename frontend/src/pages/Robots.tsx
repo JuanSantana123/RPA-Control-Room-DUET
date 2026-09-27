@@ -39,6 +39,8 @@ import RobotVersionsDialog from "../components/robots/RobotVersionsDialog";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { Button } from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
+import AccessModeBadge from "../components/ui/AccessModeBadge";
+import { useAuth } from "../context/useAuth";
 
 import {
     useRobotFolders,
@@ -64,6 +66,13 @@ import { useRobotVersions } from "../hooks/robots/useRobotVersions";
 // ============================================================
 
 function Robots() {
+
+    const { can } = useAuth();
+    const canCreateRobots = can("Robots:create");
+    const canDeleteRobots = can("Robots:delete");
+    const canExecuteRobots = can("Executions:execute");
+    const canCreateDevelopmentProject = can("Development:create");
+    const canViewLibraries = can("Libraries:view") && can("Development:view");
 
     const [robotQuery, setRobotQuery] = useState("");
     const [robotSort, setRobotSort] = useState<RobotSort>("name-asc");
@@ -319,7 +328,7 @@ function Robots() {
             ======================================================== */}
             <div className="robots-management-grid">
 
-                {showFolderForm && (
+                {canCreateRobots && showFolderForm && (
                     <CreateRobotFolderForm
                         folders={folders}
                         newFolderName={newFolderName}
@@ -356,6 +365,7 @@ function Robots() {
 
 
                     <div className="robots-folder-header-actions">
+                        {!canCreateRobots && !canDeleteRobots && <AccessModeBadge />}
                         <span className="panel-count-group" aria-label={`${folders.length} pastas cadastradas`}>
                             <span className="panel-count">
                                 {folders.length}
@@ -366,7 +376,7 @@ function Robots() {
                             </span>
                         </span>
 
-                        <Button
+                        {canCreateRobots && <Button
                             size="sm"
                             variant="secondary"
                             onClick={
@@ -375,12 +385,14 @@ function Robots() {
                         >
                             <Plus size={15} strokeWidth={1.9} />
                             Nova pasta
-                        </Button>
+                        </Button>}
                     </div>
                     
                 </div>
 
                 <RobotFolderTree
+                    canCreate={canCreateRobots}
+                    canDelete={canDeleteRobots}
                     folders={folders}
                     loadingFolders={loadingFolders}
                     rootSelected={rootSelected}
@@ -467,7 +479,7 @@ function Robots() {
                         view={robotView}
                         visibleCount={visibleRobots.length}
                         totalCount={robots.length}
-                        canUpload
+                        canUpload={canCreateRobots}
                         uploadLocation={rootSelected ? "Raiz de Robôs" : selectedFolder?.name || "pasta atual"}
                         onQueryChange={setRobotQuery}
                         onSortChange={setRobotSort}
@@ -481,7 +493,7 @@ function Robots() {
                     {/* ========================================================
                             AGENT DE EXECUÇÃO
                         ======================================================== */}
-                        <RobotExecutionAgent
+                        {canExecuteRobots && <RobotExecutionAgent
                             executionAgents={
                                 executionAgents
                             }
@@ -491,13 +503,17 @@ function Robots() {
                             onSelectedExecutionAgentChange={
                                 setSelectedExecutionAgent
                             }
-                        />
+                        />}
 
 
                         {/* ========================================================
                             ROBOTS DA LOCALIZAÇÃO SELECIONADA
                         ======================================================== */}
                         <RobotsGrid
+                            canCreate={canCreateRobots}
+                            canDelete={canDeleteRobots}
+                            canCreateProject={canCreateDevelopmentProject}
+                            canExecute={canExecuteRobots}
                             robots={visibleRobots}
                             totalRobotCount={robots.length}
                             viewMode={robotView}
@@ -579,7 +595,7 @@ function Robots() {
 
             {/* Catálogo global de Bibliotecas.
                 A lógica fica isolada em components/libraries. */}
-            <div className="robots-catalog-intro">
+            {canViewLibraries && <><div className="robots-catalog-intro">
                 <span className="section-icon"><Blocks size={18} strokeWidth={1.8} aria-hidden="true" /></span>
                 <div>
                     <small>Dependências reutilizáveis</small>
@@ -588,6 +604,7 @@ function Robots() {
                 </div>
             </div>
             <LibrariesPanel />
+            </>}
 
             {robotVersions.selectedRobot && (
                 <RobotVersionsDialog

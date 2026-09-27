@@ -67,10 +67,10 @@ export default function RobotsToolbar({
 
       <span className="robots-toolbar__count" aria-live="polite">{visibleCount} de {totalCount}</span>
 
-      <Button variant="primary" disabled={!canUpload} title={`Enviar pacote ZIP para ${uploadLocation}`} onClick={onUpload}>
+      {canUpload && <Button variant="primary" title={`Enviar pacote ZIP para ${uploadLocation}`} onClick={onUpload}>
         <Upload size={15} strokeWidth={1.9} aria-hidden="true" />
         Enviar pacote
-      </Button>
+      </Button>}
     </div>
   );
 }

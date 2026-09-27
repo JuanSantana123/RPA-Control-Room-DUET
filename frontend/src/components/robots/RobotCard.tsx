@@ -52,6 +52,9 @@ import { Button } from "../ui/Button";
 
 interface RobotCardProps {
     robot: Robot;
+    canDelete: boolean;
+    canCreateProject: boolean;
+    canExecute: boolean;
 
     openRobotMenu: number | null;
     expandedRobotLibraries: number | null;
@@ -99,6 +102,9 @@ interface RobotCardProps {
 
 function RobotCard({
     robot,
+    canDelete,
+    canCreateProject,
+    canExecute,
     openRobotMenu,
     expandedRobotLibraries,
     loadingRobotLibraries,
@@ -193,7 +199,7 @@ function RobotCard({
 
 
                         {/* Solicita a exclusão do Robot. */}
-                        <button
+                        {canDelete && <button
                             type="button"
                             className="robot-card-context-danger"
                             onClick={(event) => {
@@ -212,7 +218,7 @@ function RobotCard({
                             />
 
                             <span>Excluir</span>
-                        </button>
+                        </button>}
                     </div>
                 )}
             </div>
@@ -296,7 +302,7 @@ function RobotCard({
                 </Button>
 
                 {/* Cria uma nova versão editável a partir do Robot. */}
-                <Button
+                {canCreateProject && <Button
                     size="sm"
                     onClick={() =>
                         onCreateNewVersion(robot)
@@ -308,11 +314,11 @@ function RobotCard({
                     />
 
                     Nova versão
-                </Button>
+                </Button>}
 
 
                 {/* Executa o Robot no Agent selecionado. */}
-                <Button
+                {canExecute && <Button
                     size="sm"
                     onClick={() =>
                         onExecuteRobot(robot)
@@ -327,7 +333,7 @@ function RobotCard({
                     />
 
                     Executar
-                </Button>
+                </Button>}
             </div>
         </article>
     );

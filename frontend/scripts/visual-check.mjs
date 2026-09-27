@@ -19,11 +19,13 @@ const allCases = [
   { name: "agents-maintenance-1440-dark", route: "/agents", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, agentData: true, interaction: "agent-maintenance" },
   { name: "agents-maintenance-editor-768-dark", route: "/agents", width: 768, height: 900, colorScheme: "dark", authenticated: true, agentData: true, interaction: "agent-maintenance-editor" },
   { name: "agents-health-attention-1440-light", route: "/agents", width: 1440, height: 1000, colorScheme: "light", authenticated: true, agentData: true, interaction: "agent-health-attention" },
+  { name: "agents-readonly-1440-light", route: "/agents", width: 1440, height: 1000, colorScheme: "light", authenticated: true, agentData: true, readOnlyDomain: "Agents", interaction: "capability-readonly" },
   { name: "robots-390-light", route: "/robots", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "robots-1440-dark", route: "/robots", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "robots-folder-create-768-light", route: "/robots", width: 768, height: 900, colorScheme: "light", authenticated: true, interaction: "robot-folder-create" },
   { name: "robots-versions-390-dark", route: "/robots", width: 390, height: 844, colorScheme: "dark", authenticated: true, robotData: true, interaction: "robot-versions" },
   { name: "robots-versions-1440-light", route: "/robots", width: 1440, height: 1000, colorScheme: "light", authenticated: true, robotData: true, interaction: "robot-versions" },
+  { name: "robots-readonly-1440-dark", route: "/robots", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, robotData: true, readOnlyDomain: "Robots", interaction: "capability-readonly" },
   { name: "development-390-dark", route: "/development", width: 390, height: 844, colorScheme: "dark", authenticated: true },
   { name: "development-1440-light", route: "/development", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "executions-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
@@ -33,6 +35,7 @@ const allCases = [
   { name: "executions-queue-details-1440-dark", route: "/executions", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, queueData: true, interaction: "execution-queue-details" },
   { name: "executions-queue-details-390-light", route: "/executions", width: 390, height: 844, colorScheme: "light", authenticated: true, queueData: true, interaction: "execution-queue-details" },
   { name: "executions-empty-1440-light", route: "/executions", width: 1440, height: 900, colorScheme: "light", authenticated: true, forceEmpty: true },
+  { name: "executions-readonly-1440-light", route: "/executions", width: 1440, height: 1000, colorScheme: "light", authenticated: true, queueData: true, readOnlyDomain: "Executions", interaction: "capability-readonly" },
   { name: "history-1440-dark", route: "/history", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "history-1440-light", route: "/history", width: 1440, height: 900, colorScheme: "light", authenticated: true },
   { name: "schedules-390-light", route: "/schedules", width: 390, height: 844, colorScheme: "light", authenticated: true },
@@ -40,6 +43,7 @@ const allCases = [
   { name: "schedules-policy-1440-dark", route: "/schedules", width: 1440, height: 900, colorScheme: "dark", authenticated: true, scheduleData: true },
   { name: "schedules-modal-390-dark", route: "/schedules", width: 390, height: 844, colorScheme: "dark", authenticated: true, interaction: "schedule-modal" },
   { name: "schedules-modal-768-light", route: "/schedules", width: 768, height: 720, colorScheme: "light", authenticated: true, interaction: "schedule-modal" },
+  { name: "schedules-readonly-1440-dark", route: "/schedules", width: 1440, height: 900, colorScheme: "dark", authenticated: true, scheduleData: true, readOnlyDomain: "Schedules", interaction: "capability-readonly" },
   { name: "vault-390-dark", route: "/vault", width: 390, height: 844, colorScheme: "dark", authenticated: true },
   { name: "vault-1440-light", route: "/vault", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
   { name: "vault-automation-data-390-light", route: "/vault", width: 390, height: 844, colorScheme: "light", authenticated: true, vaultData: true, interaction: "vault-automation-data" },
@@ -92,15 +96,22 @@ try {
         const pathname = new URL(route.request().url()).pathname;
         const method = route.request().method();
         const permissions = [
-          "Dashboard:view", "Agents:view", "Agents:edit", "Development:view", "Development:create", "Development:edit",
+          "Dashboard:view", "Agents:view", "Agents:create", "Agents:edit", "Agents:delete", "Agents:bootstrap", "Development:view", "Development:create", "Development:edit",
           "Development:move_stage", "Development:delete", "Development:publish", "Development:trash_view",
           "Development:restore", "Development:permanent_delete", "Development:checkout",
-          "Development:force_checkout_release", "Robots:view", "Executions:view", "Executions:execute",
-          "History:view", "Schedules:view", "Vault:view", "Vault:create", "Vault:edit", "Vault:delete",
+          "Development:force_checkout_release", "Robots:view", "Robots:create", "Robots:delete", "Executions:view", "Executions:execute", "Executions:stop", "Executions:cancel",
+          "History:view", "Schedules:view", "Schedules:create", "Schedules:edit", "Schedules:delete", "Vault:view", "Vault:create", "Vault:edit", "Vault:delete",
           "DeviceCredentials:view", "DeviceCredentials:create", "DeviceCredentials:edit", "DeviceCredentials:delete", "Roles:view",
           "Users:view", "Users:create", "Users:edit", "Users:delete", "Logs:view", "Libraries:view",
-          "Libraries:create", "Libraries:use",
-        ].filter((permission) => !testCase.readOnly || !/^(?:Vault|DeviceCredentials):(?:create|edit|delete)$/.test(permission));
+          "Libraries:create", "Libraries:edit", "Libraries:delete", "Libraries:publish", "Libraries:use",
+        ].filter((permission) => {
+          if (testCase.readOnly && /^(?:Vault|DeviceCredentials):(?:create|edit|delete)$/.test(permission)) return false;
+          if (testCase.readOnlyDomain === "Agents" && /^Agents:(?:create|edit|delete|bootstrap)$/.test(permission)) return false;
+          if (testCase.readOnlyDomain === "Robots" && /^(?:Robots:(?:create|delete)|Executions:execute|Development:create|Libraries:)/.test(permission)) return false;
+          if (testCase.readOnlyDomain === "Executions" && /^Executions:(?:execute|stop|cancel)$/.test(permission)) return false;
+          if (testCase.readOnlyDomain === "Schedules" && /^Schedules:(?:create|edit|delete)$/.test(permission)) return false;
+          return true;
+        });
         const emptyCollections = {
           agents: [], robots: [], folders: [], executions: [], schedules: [], roles: [], users: [],
           permissions: [], credentials: [], logs: [], projects: [], cards: [], columns: [], libraries: [],
@@ -344,6 +355,39 @@ try {
         && await card.getByText("Há 3 min").isVisible();
       await page.waitForTimeout(180);
     }
+    let capabilityReadOnlyWorks = null;
+    if (testCase.interaction === "capability-readonly") {
+      if (testCase.readOnlyDomain === "Agents") {
+        await page.getByText("Financeiro 01", { exact: true }).waitFor();
+        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() === 1
+          && await page.getByRole("switch").count() === 0
+          && await page.locator(".agent-availability-readonly").count() === 3
+          && await page.getByRole("button", { name: /Cadastrar dispositivo|Alterar ambiente|Alterar display|Baixar|Excluir/ }).count() === 0;
+      }
+      if (testCase.readOnlyDomain === "Robots") {
+        await page.getByText("Conciliação financeira", { exact: true }).waitFor();
+        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() === 1
+          && await page.getByRole("button", { name: /Nova pasta|Enviar pacote|Nova versão|Executar|Adicionar robô|Criar subpasta|Excluir/ }).count() === 0
+          && await page.getByRole("button", { name: "Versões", exact: true }).isVisible()
+          && await page.getByRole("heading", { name: "Catálogo de bibliotecas" }).count() === 0;
+      }
+      if (testCase.readOnlyDomain === "Executions") {
+        await page.getByRole("button", { name: "Ver detalhes da execução 142" }).click();
+        const dialog = page.getByRole("dialog", { name: "Execução #142" });
+        await dialog.waitFor();
+        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() === 1
+          && await page.getByRole("button", { name: /Parar|Cancelar da fila/ }).count() === 0
+          && await dialog.getByRole("combobox", { name: "Prioridade operacional" }).count() === 0
+          && await dialog.locator(".execution-queue-priority-readonly").getByText("Urgente").isVisible();
+      }
+      if (testCase.readOnlyDomain === "Schedules") {
+        await page.getByText("Conciliação financeira", { exact: true }).waitFor();
+        capabilityReadOnlyWorks = await page.getByText("Somente leitura", { exact: true }).count() === 2
+          && await page.getByRole("button", { name: /Novo agendamento|Editar|Ativar|Desativar|Excluir/ }).count() === 0
+          && await page.getByText("Consulta", { exact: true }).isVisible();
+      }
+      await page.waitForTimeout(180);
+    }
     const metrics = await page.evaluate(() => {
       const visible = (element) => {
         const style = getComputedStyle(element);
@@ -396,7 +440,7 @@ try {
       };
     });
 
-    const rootUploadAvailable = testCase.route === "/robots"
+    const rootUploadAvailable = testCase.route === "/robots" && testCase.readOnlyDomain !== "Robots"
       ? await page.locator("button").filter({ hasText: "Enviar pacote" }).first().isEnabled()
       : null;
     const schedulePolicyWorks = testCase.scheduleData
@@ -414,13 +458,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, vaultAutomationWorks, vaultReadOnlyWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, vaultAutomationWorks, vaultReadOnlyWorks, capabilityReadOnlyWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.vaultAutomationWorks === false || result.vaultReadOnlyWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.vaultAutomationWorks === false || result.vaultReadOnlyWorks === false || result.capabilityReadOnlyWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

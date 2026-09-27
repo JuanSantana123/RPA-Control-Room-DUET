@@ -42,6 +42,8 @@ import type { RobotFolder } from "../../types/robots";
 interface RobotFolderNodeProps {
     folder: RobotFolder;
     folders: RobotFolder[];
+    canCreate: boolean;
+    canDelete: boolean;
     nivel?: number;
 
     selectedFolder: RobotFolder | null;
@@ -60,6 +62,8 @@ interface RobotFolderNodeProps {
 function RobotFolderNode({
     folder,
     folders,
+    canCreate,
+    canDelete,
     nivel = 0,
     selectedFolder,
     expandedFolders,
@@ -155,7 +159,7 @@ function RobotFolderNode({
 
 
                 {/* Menu de ações da pasta */}
-                <div className="robot-folder-actions">
+                {(canCreate || canDelete) && <div className="robot-folder-actions">
                     <button
                         type="button"
                         className="robot-folder-menu-button"
@@ -190,7 +194,7 @@ function RobotFolderNode({
                         >
 
                             {/* Adiciona Robot à pasta atual. */}
-                            <button
+                            {canCreate && <button
                                 type="button"
                                 onClick={(event) => {
                                     event.stopPropagation();
@@ -204,11 +208,11 @@ function RobotFolderNode({
                                 />
 
                                 <span>Adicionar robô</span>
-                            </button>
+                            </button>}
 
 
                             {/* Cria uma subpasta dentro da pasta atual. */}
-                            <button
+                            {canCreate && <button
                                 type="button"
                                 onClick={(event) => {
                                     event.stopPropagation();
@@ -222,11 +226,11 @@ function RobotFolderNode({
                                 />
 
                                 <span>Criar subpasta</span>
-                            </button>
+                            </button>}
 
 
                             {/* Solicita exclusão da pasta atual. */}
-                            <button
+                            {canDelete && <button
                                 type="button"
                                 className="robot-folder-context-danger"
                                 onClick={(event) => {
@@ -242,10 +246,10 @@ function RobotFolderNode({
                                 />
 
                                 <span>Excluir pasta</span>
-                            </button>
+                            </button>}
                         </div>
                     )}
-                </div>
+                </div>}
             </div>
 
 
@@ -254,6 +258,8 @@ function RobotFolderNode({
                 <div className="robot-folder-children">
                     {subpastas.map((subpasta) => (
                         <RobotFolderNode
+                            canCreate={canCreate}
+                            canDelete={canDelete}
                             key={subpasta.id}
                             folder={subpasta}
                             folders={folders}

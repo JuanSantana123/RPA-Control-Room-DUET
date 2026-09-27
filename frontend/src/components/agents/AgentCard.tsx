@@ -57,6 +57,9 @@ import { TextField } from "../ui/TextField";
 
 interface AgentCardProps {
     agent: Agent;
+    canEdit: boolean;
+    canDelete: boolean;
+    canBootstrap: boolean;
     onEnvironmentChange:
         (
             agentId: string,
@@ -110,6 +113,9 @@ function formatHeartbeatAge(ageSeconds: number | null) {
 // ============================================================
 function AgentCard({
     agent,
+    canEdit,
+    canDelete,
+    canBootstrap,
     onEnvironmentChange,
     onDisplayChange,
     availabilityBusy,
@@ -242,6 +248,7 @@ function AgentCard({
             </div>
 
             <div className={`agent-availability${agent.accepting_work ? "" : " agent-availability--maintenance"}`}>
+                {canEdit ? (
                 <Switch
                     compact
                     checked={agent.accepting_work}
@@ -267,12 +274,22 @@ function AgentCard({
                         if (confirmed) await onAvailabilityChange(agent.agent_id, true, null);
                     }}
                 />
+                ) : (
+                    <div className="agent-availability-readonly">
+                        <strong>{agent.accepting_work ? "Novas reservas habilitadas" : "Device em manutenção"}</strong>
+                        <span>{agent.accepting_work
+                            ? agent.health_state === "healthy"
+                                ? "Apto para receber trabalho."
+                                : "Aguardando a conexão normalizar."
+                            : agent.maintenance_reason || "Novas reservas pausadas."}</span>
+                    </div>
+                )}
                 {!agent.accepting_work && (
                     <span className="agent-maintenance-badge"><Wrench size={14} aria-hidden="true" /> Manutenção</span>
                 )}
             </div>
 
-            {editingAvailability && agent.accepting_work && (
+            {canEdit && editingAvailability && agent.accepting_work && (
                 <div className="agent-maintenance-editor">
                     <TextField
                         label="Motivo da manutenção"
@@ -466,7 +483,7 @@ function AgentCard({
                 EDITOR DE DISPLAY
                 ================================================== */}
 
-            {editingDisplay && (
+            {canEdit && editingDisplay && (
 
                 <div className="agent-display-editor">
 
@@ -635,6 +652,7 @@ function AgentCard({
                         e dispara as duas ações.
                         ================================================== */}
 
+                    {canEdit && (
                     <Button
                         size="sm"
                         onClick={async () => {
@@ -673,6 +691,7 @@ function AgentCard({
                     >
                         Alterar ambiente
                     </Button>
+                    )}
                     
 
 
@@ -680,6 +699,7 @@ function AgentCard({
                         ALTERAR DISPLAY
                         ================================================== */}
 
+                    {canEdit && (
                     <Button
                         size="sm"
                         onClick={() => {
@@ -708,11 +728,13 @@ function AgentCard({
                         Alterar display
 
                     </Button>
+                    )}
 
                     {/* ==================================================
                         DOWNLOAD
                         ================================================== */}
 
+                    {canBootstrap && (
                     <Button
                         size="sm"
                         onClick={() => {
@@ -730,12 +752,14 @@ function AgentCard({
                         Baixar
 
                     </Button>
+                    )}
 
 
                     {/* ==================================================
                         EXCLUSÃO
                         ================================================== */}
 
+                    {canDelete && (
                     <Button
                         size="sm"
                         variant="danger"
@@ -755,6 +779,7 @@ function AgentCard({
                         Excluir
 
                     </Button>
+                    )}
 
                 </div>
 

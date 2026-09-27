@@ -9,6 +9,7 @@ import { Switch } from "../components/ui/Switch";
 import { TextAreaField } from "../components/ui/TextAreaField";
 import CardCommentsSection from "../components/development/kanban/CardCommentsSection";
 import EmptyState from "../components/ui/EmptyState";
+import AccessModeBadge from "../components/ui/AccessModeBadge";
 import { useInteraction } from "../context/useInteraction";
 
 export default function ComponentLab() {
@@ -42,6 +43,7 @@ export default function ComponentLab() {
           <Button variant="primary" busy loadingLabel="Publicando pacote">Publicar pacote</Button>
           <Button disabled>Indisponível</Button>
           <IconButton label="Atualizar dados" tooltip="Atualizar dados" icon={<RefreshCw aria-hidden="true" />} />
+          <AccessModeBadge />
         </div>
       </section>
 

@@ -75,6 +75,7 @@ import { CardGridSkeleton }
 import { Button, IconButton } from "../../ui/Button";
 import { TextField } from "../../ui/TextField";
 import EmptyState from "../../ui/EmptyState";
+import AccessModeBadge from "../../ui/AccessModeBadge";
 import { useInteraction } from "../../../context/useInteraction";
 
 
@@ -386,7 +387,7 @@ function DeviceCredentialsPanel({
                     Nova credencial
 
                 </Button> : (
-                    <span className="vault-readonly-badge">Somente leitura</span>
+                    <AccessModeBadge />
                 )}
 
             </div>

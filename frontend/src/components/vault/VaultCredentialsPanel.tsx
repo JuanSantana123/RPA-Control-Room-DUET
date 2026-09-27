@@ -40,6 +40,7 @@ import { KeyRound, MousePointer2, RefreshCw, Search, X } from "lucide-react";
 import { Button, IconButton } from "../ui/Button";
 import EmptyState from "../ui/EmptyState";
 import { TextField } from "../ui/TextField";
+import AccessModeBadge from "../ui/AccessModeBadge";
 import { useMemo, useState } from "react";
 
 import type {
@@ -253,7 +254,7 @@ function VaultCredentialsPanel({
 
 
                 {!canCreate && !canEdit && !canDelete && (
-                    <span className="vault-readonly-badge">Somente leitura</span>
+                    <AccessModeBadge />
                 )}
 
                 {canCreate && selectedFolder &&

@@ -15,6 +15,9 @@ interface ExecutionDetailsModalProps {
   cancelling: boolean;
   updatingPriority: boolean;
   queueWarningSeconds: number;
+  canStop: boolean;
+  canCancel: boolean;
+  canUpdatePriority: boolean;
   onClose: () => void;
   onStopExecution: (executionId: number, agentId: string) => void | Promise<void>;
   onCancelExecution: (executionId: number) => void | Promise<void>;
@@ -36,6 +39,9 @@ export default function ExecutionDetailsModal({
   cancelling,
   updatingPriority,
   queueWarningSeconds,
+  canStop,
+  canCancel,
+  canUpdatePriority,
   onClose,
   onStopExecution,
   onCancelExecution,
@@ -119,7 +125,7 @@ export default function ExecutionDetailsModal({
                   </span>
                 )}
               </div>
-              <div className="execution-queue-priority-field">
+              {canUpdatePriority ? <div className="execution-queue-priority-field">
                 <label htmlFor={`execution-priority-${execution.id}`}>Prioridade operacional</label>
                 <PremiumSelect
                   id={`execution-priority-${execution.id}`}
@@ -133,7 +139,13 @@ export default function ExecutionDetailsModal({
                   <option value="urgent">Urgente — incidente crítico</option>
                 </PremiumSelect>
                 <small>{updatingPriority ? "Reposicionando na fila…" : `Prioridade atual: ${formatarPrioridade(execution.priority)}`}</small>
-              </div>
+              </div> : (
+                <div className="execution-queue-priority-readonly">
+                  <span>Prioridade operacional</span>
+                  <strong>{formatarPrioridade(execution.priority)}</strong>
+                  <small>Consulte a ordem atual sem alterar a fila.</small>
+                </div>
+              )}
             </section>
           )}
 
@@ -161,11 +173,11 @@ export default function ExecutionDetailsModal({
           </Button>
           <div>
             <Button variant="secondary" onClick={onClose} disabled={busy}>Fechar</Button>
-            {execution.status === "queued" && (
+            {canCancel && execution.status === "queued" && (
               <Button variant="danger" busy={cancelling} loadingLabel="Cancelando execução"
                 onClick={() => void onCancelExecution(execution.id)}>Cancelar da fila</Button>
             )}
-            {execution.status === "running" && (
+            {canStop && execution.status === "running" && (
               <Button variant="danger" busy={stopping} loadingLabel="Parando execução"
                 onClick={() => void onStopExecution(execution.id, execution.agent_id)}>
                 <CircleStop size={15} aria-hidden="true" /> Parar execução

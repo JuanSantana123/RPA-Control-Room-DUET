@@ -36,6 +36,7 @@ import type {
 
 import ExecutionRow from "./ExecutionRow";
 import EmptyState from "../ui/EmptyState";
+import AccessModeBadge from "../ui/AccessModeBadge";
 
 
 // ============================================================
@@ -54,6 +55,8 @@ interface ExecutionsTableProps {
     parandoExecucao: number | null;
     cancelandoExecucao: number | null;
     queueWarningSeconds: number;
+    canStop: boolean;
+    canCancel: boolean;
 
     // Ações encaminhadas às linhas.
     onViewDetails: (
@@ -81,6 +84,8 @@ function ExecutionsTable({
     parandoExecucao,
     cancelandoExecucao,
     queueWarningSeconds,
+    canStop,
+    canCancel,
     onViewDetails,
     onStopExecution,
     onCancelExecution,
@@ -108,6 +113,8 @@ function ExecutionsTable({
                 </div>
 
 
+                <div className="executions-table-header__status">
+                {!canStop && !canCancel && <AccessModeBadge />}
                 <span className="execution-live-indicator">
 
                     <span />
@@ -115,6 +122,7 @@ function ExecutionsTable({
                     Ao vivo
 
                 </span>
+                </div>
 
             </div>
 
@@ -200,6 +208,8 @@ function ExecutionsTable({
                                             cancelandoExecucao
                                         }
                                         queueWarningSeconds={queueWarningSeconds}
+                                        canStop={canStop}
+                                        canCancel={canCancel}
                                         onViewDetails={
                                             onViewDetails
                                         }

@@ -60,6 +60,7 @@ import {
     useScheduleForm,
 } from "../hooks/schedules/useScheduleForm";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
+import { useAuth } from "../context/useAuth";
 
 
 // ============================================================
@@ -67,6 +68,11 @@ import FeedbackBanner from "../components/ui/FeedbackBanner";
 // ============================================================
 
 function Schedules() {
+
+    const { can } = useAuth();
+    const canCreateSchedules = can("Schedules:create");
+    const canEditSchedules = can("Schedules:edit");
+    const canDeleteSchedules = can("Schedules:delete");
 
     // ========================================================
     // DADOS / OPERAÇÕES DA LISTAGEM
@@ -174,6 +180,7 @@ function Schedules() {
                 ================================================== */}
 
             <SchedulesHeader
+                canCreate={canCreateSchedules}
                 onNewSchedule={
                     novoAgendamento
                 }
@@ -218,6 +225,8 @@ function Schedules() {
                 loading={
                     loading
                 }
+                canEdit={canEditSchedules}
+                canDelete={canDeleteSchedules}
                 onEdit={
                     editarAgendamento
                 }
@@ -234,7 +243,7 @@ function Schedules() {
                 MODAL
                 ================================================== */}
 
-            {modalAberto && (
+            {modalAberto && (editandoId !== null ? canEditSchedules : canCreateSchedules) && (
 
                 <ScheduleModal
                     editandoId={

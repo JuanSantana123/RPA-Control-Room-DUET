@@ -57,6 +57,7 @@ import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { TextField } from "../components/ui/TextField";
 import PremiumSelect from "../components/ui/PremiumSelect";
 import { IconButton } from "../components/ui/Button";
+import { useAuth } from "../context/useAuth";
 
 
 // ============================================================
@@ -64,6 +65,12 @@ import { IconButton } from "../components/ui/Button";
 // ============================================================
 
 function Agents() {
+
+    const { can } = useAuth();
+    const canCreateAgents = can("Agents:create");
+    const canEditAgents = can("Agents:edit");
+    const canDeleteAgents = can("Agents:delete");
+    const canBootstrapAgents = can("Agents:bootstrap");
 
     // ========================================================
     // DADOS / OPERAÇÕES
@@ -165,7 +172,7 @@ function Agents() {
                 CADASTRO
                 ================================================== */}
 
-            <AgentCreatePanel
+            {canCreateAgents && <AgentCreatePanel
                 newAgent={
                     newAgent
                 }
@@ -178,7 +185,7 @@ function Agents() {
                 onCreate={
                     cadastrarAgent
                 }
-            />
+            />}
 
             <section className="agents-operations" aria-labelledby="agents-operations-title">
                 <div className="agents-operations__summary">
@@ -260,6 +267,10 @@ function Agents() {
                     error
                 }
                 hasFilters={Boolean(search.trim()) || availabilityFilter !== "all"}
+                canCreate={canCreateAgents}
+                canEdit={canEditAgents}
+                canDelete={canDeleteAgents}
+                canBootstrap={canBootstrapAgents}
                 onEnvironmentChange={
                     alterarAmbienteAgent
                 }

@@ -39,6 +39,8 @@ import { Button } from "../ui/Button";
 
 interface ScheduleRowProps {
     schedule: Schedule;
+    canEdit: boolean;
+    canDelete: boolean;
 
     onEdit: (
         id: number
@@ -61,6 +63,8 @@ interface ScheduleRowProps {
 
 function ScheduleRow({
     schedule,
+    canEdit,
+    canDelete,
     onEdit,
     onToggleStatus,
     onDelete,
@@ -198,7 +202,7 @@ function ScheduleRow({
 
             <td className="schedule-actions">
 
-                <Button
+                {canEdit && <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => {
@@ -209,9 +213,9 @@ function ScheduleRow({
                 >
                     <Pencil size={14} strokeWidth={1.9} aria-hidden="true" />
                     Editar
-                </Button>
+                </Button>}
 
-                <Button
+                {canEdit && <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => {
@@ -226,9 +230,9 @@ function ScheduleRow({
                         ? "Desativar"
                         : "Ativar"
                     }
-                </Button>
+                </Button>}
 
-                <Button
+                {canDelete && <Button
                     variant="danger"
                     size="sm"
                     onClick={() => {
@@ -239,7 +243,11 @@ function ScheduleRow({
                 >
                     <Trash2 size={14} strokeWidth={1.9} aria-hidden="true" />
                     Excluir
-                </Button>
+                </Button>}
+
+                {!canEdit && !canDelete && (
+                    <span className="table-readonly-label">Consulta</span>
+                )}
 
             </td>
 
