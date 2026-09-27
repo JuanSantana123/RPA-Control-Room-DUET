@@ -1,0 +1,43 @@
+/* Contrato visual único para diálogos. Dimensões e composição continuam sendo
+   responsabilidades do domínio; backdrop e superfície não podem divergir. */
+.ui-modal-backdrop {
+  background: var(--modal-backdrop-color) !important;
+  -webkit-backdrop-filter: var(--modal-backdrop-filter) !important;
+  backdrop-filter: var(--modal-backdrop-filter) !important;
+}
+
+.ui-modal-surface {
+  border: 1px solid var(--modal-border) !important;
+  border-radius: var(--modal-radius) !important;
+  color: var(--color-text-primary) !important;
+  background: var(--modal-surface) !important;
+  box-shadow: var(--modal-shadow) !important;
+}
+
+.ui-modal-surface--drawer {
+  border-radius: var(--modal-radius) 0 0 var(--modal-radius) !important;
+}
+
+.ui-modal-header {
+  border-bottom-color: var(--modal-border) !important;
+  background: var(--modal-surface) !important;
+}
+
+.ui-modal-footer {
+  border-top-color: var(--modal-border) !important;
+  background: var(--color-surface-muted) !important;
+}
+
+@media (max-width: 680px) {
+  .ui-modal-surface--drawer {
+    border-radius: var(--modal-radius) var(--modal-radius) 0 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-backdrop,
+  .ui-modal-surface {
+    animation: none !important;
+    transition: none !important;
+  }
+}

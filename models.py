@@ -1130,6 +1130,47 @@ class ProjectComment(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
+
+
+class ProjectCommentAttachment(Base):
+    """Imagem anexada a um comentário de projeto.
+
+    O caminho físico nunca é exposto pela API. Um anexo nasce pendente e só
+    passa a pertencer a um comentário depois que esse comentário é persistido
+    pelo mesmo usuário e no mesmo projeto.
+    """
+
+    __tablename__ = "project_comment_attachments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(
+        Integer,
+        ForeignKey("automation_projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    comment_id = Column(
+        Integer,
+        ForeignKey("project_comments.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    uploaded_by = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    original_name = Column(String(255), nullable=False)
+    media_type = Column(String(64), nullable=False)
+    size_bytes = Column(Integer, nullable=False)
+    storage_key = Column(String(160), nullable=False, unique=True)
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True,
+    )
 # ============================================================
 # BIBLIOTECAS REUTILIZÁVEIS
 # ============================================================

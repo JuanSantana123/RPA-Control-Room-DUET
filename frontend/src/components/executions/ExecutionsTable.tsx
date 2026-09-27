@@ -37,6 +37,7 @@ import type {
 import ExecutionRow from "./ExecutionRow";
 import EmptyState from "../ui/EmptyState";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -98,33 +99,21 @@ function ExecutionsTable({
                 CABEÇALHO
             ================================================= */}
 
-            <div className="executions-table-header">
-
-                <div>
-
-                    <h2>
-                        Execuções em andamento
-                    </h2>
-
-                    <p>
-                        Atualização automática a cada 5 segundos
-                    </p>
-
-                </div>
-
-
-                <div className="executions-table-header__status">
-                {!canStop && !canCancel && <AccessModeBadge />}
-                <span className="execution-live-indicator">
-
-                    <span />
-
-                    Ao vivo
-
-                </span>
-                </div>
-
-            </div>
+            <PanelHeader
+                className="executions-table-header"
+                icon={<Activity />}
+                title="Execuções em andamento"
+                description="Atualização automática a cada 5 segundos"
+                actions={(
+                    <div className="executions-table-header__status">
+                        {!canStop && !canCancel && <AccessModeBadge />}
+                        <span className="execution-live-indicator">
+                            <span />
+                            Ao vivo
+                        </span>
+                    </div>
+                )}
+            />
 
 
             {/* =================================================

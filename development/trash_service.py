@@ -50,6 +50,7 @@ from development.repository import (
     remover_workspace_controlado,
     validar_workspace_fisico,
 )
+from development.comment_attachments_service import remover_repositorio_anexos_projeto
 
 from development.serializers import (
     serializar_projeto,
@@ -873,6 +874,23 @@ def excluir_projeto_permanentemente_service(
                 },
             )
 
+    attachment_cleanup = "not_found"
+    try:
+        remover_repositorio_anexos_projeto(project_id)
+        attachment_cleanup = "deleted"
+    except Exception as cleanup_error:
+        attachment_cleanup = "cleanup_failed"
+        logger.exception(
+            "Projeto removido, mas houve falha ao limpar anexos de comentários",
+            extra={
+                "event": "automation_project_comment_attachments_cleanup_failed",
+                "user_id": usuario.id,
+                "project_id": project_id,
+                "status": "error",
+                "error_type": type(cleanup_error).__name__,
+            },
+        )
+
     # ========================================================
     # AUDITORIA
     # ========================================================
@@ -892,6 +910,9 @@ def excluir_projeto_permanentemente_service(
             "workspace_cleanup":
                 workspace_cleanup,
 
+            "attachment_cleanup":
+                attachment_cleanup,
+
             "status":
                 "success",
         },
@@ -907,4 +928,7 @@ def excluir_projeto_permanentemente_service(
 
         "workspace_cleanup":
             workspace_cleanup,
+
+        "attachment_cleanup":
+            attachment_cleanup,
     }

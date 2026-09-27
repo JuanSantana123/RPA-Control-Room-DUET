@@ -19,34 +19,11 @@
 // Toda a lógica permanece fora da camada visual.
 // ============================================================
 
-// ============================================================
-// COMPONENTE
-// ============================================================
+import PageHeader from "../ui/PageHeader";
 
 function AgentsHeader() {
 
-    return (
-        <div className="page-heading">
-
-            <div>
-
-                <div className="page-eyebrow">
-                    INFRAESTRUTURA
-                </div>
-
-                <h1>
-                    Dispositivos
-                </h1>
-
-                <p>
-                    Gerencie os devices responsáveis pela execução das automações.
-                </p>
-
-            </div>
-
-
-        </div>
-    );
+    return <PageHeader eyebrow="INFRAESTRUTURA" title="Dispositivos" description="Gerencie os Devices responsáveis pela execução das automações." />;
 }
 
 

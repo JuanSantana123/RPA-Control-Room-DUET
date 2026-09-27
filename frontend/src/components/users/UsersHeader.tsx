@@ -18,6 +18,7 @@
 
 
 import AccessModeBadge from "../ui/AccessModeBadge";
+import PageHeader from "../ui/PageHeader";
 
 // ============================================================
 // COMPONENTE
@@ -25,29 +26,7 @@ import AccessModeBadge from "../ui/AccessModeBadge";
 
 function UsersHeader({ readOnly }: { readOnly: boolean }) {
 
-    return (
-        <header className="page-heading users-page-header">
-
-            <div>
-
-                <p className="page-eyebrow users-page-eyebrow">
-                    GESTÃO DE USUÁRIOS
-                </p>
-
-                <h1>
-                    Usuários
-                </h1>
-
-                <p>
-                    Gerencie usuários, perfis de acesso e credenciais.
-                </p>
-
-            </div>
-
-            {readOnly && <AccessModeBadge />}
-
-        </header>
-    );
+    return <PageHeader eyebrow="GESTÃO DE USUÁRIOS" title="Usuários" description="Gerencie contas, perfis de acesso e credenciais de autenticação." actions={readOnly ? <AccessModeBadge /> : undefined} />;
 }
 
 

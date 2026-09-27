@@ -30,9 +30,10 @@ import EmptyState from "../ui/EmptyState";
 import { CalendarClock } from "lucide-react";
 import AccessModeBadge from "../ui/AccessModeBadge";
 import { useMemo, useState } from "react";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 import PremiumSelect from "../ui/PremiumSelect";
 import { Button } from "../ui/Button";
+import PanelHeader from "../ui/PanelHeader";
 
 import type {
     Schedule,
@@ -106,36 +107,27 @@ function SchedulesTable({
     return (
         <section className="content-panel schedules-panel">
 
-            <div className="content-panel-header">
-
-                <div>
-                    <h2>
-                        Agendamentos cadastrados
-                    </h2>
-
-                    <p>
-                        Gerencie as execuções automáticas dos robôs.
-                    </p>
-                </div>
-
-                <div className="schedules-panel-meta">
-                    {!canEdit && !canDelete && <AccessModeBadge />}
-                    <span className="schedules-result-count">
-                        {hasFilters ? `${filteredSchedules.length}/${schedules.length}` : schedules.length}
-                    </span>
-                </div>
-
-            </div>
+            <PanelHeader
+                icon={<CalendarClock />}
+                title="Agendamentos cadastrados"
+                description="Gerencie as execuções automáticas dos robôs."
+                actions={(
+                    <div className="schedules-panel-meta">
+                        {!canEdit && !canDelete && <AccessModeBadge />}
+                        <span className="schedules-result-count">
+                            {hasFilters ? `${filteredSchedules.length}/${schedules.length}` : schedules.length}
+                        </span>
+                    </div>
+                )}
+            />
 
             {schedules.length > 0 && (
                 <div className="schedules-filterbar" aria-label="Filtros dos agendamentos">
-                    <TextField
+                    <SearchField
                         label="Pesquisar agendamentos"
-                        labelHidden
-                        type="search"
                         value={search}
                         placeholder="Pesquisar por robô, Device, tipo ou ID..."
-                        onChange={(event) => setSearch(event.target.value)}
+                        onValueChange={setSearch}
                     />
                     <PremiumSelect
                         value={status}

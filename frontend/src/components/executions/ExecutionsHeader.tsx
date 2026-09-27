@@ -26,6 +26,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 import { Button } from "../ui/Button";
+import PageHeader from "../ui/PageHeader";
 
 
 // ============================================================
@@ -41,25 +42,6 @@ interface ExecutionsHeaderProps {
 
 
 // ============================================================
-// INDICADOR VISUAL
-// ============================================================
-//
-// Pequeno indicador utilizado no eyebrow do cabeçalho.
-// Foi movido junto com o cabeçalho porque sua única
-// responsabilidade é visual.
-// ============================================================
-
-function ActivityIndicator() {
-
-    return (
-        <span
-            className="activity-indicator"
-        />
-    );
-}
-
-
-// ============================================================
 // COMPONENTE
 // ============================================================
 
@@ -68,33 +50,11 @@ function ExecutionsHeader({
     refreshing = false,
 }: ExecutionsHeaderProps) {
 
-    return (
-        <header className="page-heading executions-page-header">
-
-            <div>
-
-                <div className="page-eyebrow">
-
-                    <ActivityIndicator />
-
-                    MONITORAMENTO OPERACIONAL
-
-                </div>
-
-
-                <h1>
-                    Execuções
-                </h1>
-
-
-                <p>
-                    Acompanhe em tempo real os robôs em execução no ambiente.
-                </p>
-
-            </div>
-
-
-            <Button
+    return <PageHeader
+        eyebrow="MONITORAMENTO OPERACIONAL"
+        title="Execuções"
+        description="Acompanhe as automações em andamento e intervenha quando necessário."
+        actions={<Button
                 onClick={onRefresh}
                 title="Atualizar execuções"
                 busy={refreshing}
@@ -103,10 +63,8 @@ function ExecutionsHeader({
                 <RefreshCw size={16} />
 
                 Atualizar
-            </Button>
-
-        </header>
-    );
+            </Button>}
+    />;
 }
 
 

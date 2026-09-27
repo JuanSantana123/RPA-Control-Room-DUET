@@ -51,6 +51,7 @@ import DashboardCommandCenter
 import { DashboardSkeleton }
     from "../components/ui/Skeletons";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
+import PageHeader from "../components/ui/PageHeader";
 
 import {
     useDashboardData,
@@ -129,10 +130,12 @@ function Dashboard() {
     // ========================================================
 
     return (
-        <div>
+        <div className="page-container dashboard-page">
+
+            <PageHeader eyebrow="OPERAÇÃO" title="Visão geral" description="Acompanhe capacidade, automações e atividade do Control Room." />
 
             {executionsError && (
-                <div className="page-container dashboard-partial-warning">
+                <div className="dashboard-partial-warning">
                     <FeedbackBanner
                         tone="error"
                         title="Execuções temporariamente indisponíveis"

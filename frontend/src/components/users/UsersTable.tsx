@@ -32,9 +32,10 @@ import { UsersRound } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
 import AccessModeBadge from "../ui/AccessModeBadge";
 import { useMemo, useState } from "react";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 import PremiumSelect from "../ui/PremiumSelect";
 import { Button } from "../ui/Button";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -112,47 +113,27 @@ function UsersTable({
                 CABEÇALHO
                 ================================================== */}
 
-            <div className="users-panel-header">
-
-                <div className="users-panel-heading">
-
-                    <div className="users-panel-icon">
-                        <UsersRound size={18} strokeWidth={1.8} aria-hidden="true" />
+            <PanelHeader
+                icon={<UsersRound />}
+                title="Usuários cadastrados"
+                description="Usuários disponíveis no Control Room"
+                actions={(
+                    <div className="users-panel-meta">
+                        {!canEdit && !canDelete && <AccessModeBadge />}
+                        <span className="users-panel-count">
+                            {hasFilters ? `${filteredUsers.length}/${users.length}` : users.length}
+                        </span>
                     </div>
-
-                    <div>
-
-                        <h2>
-                            Usuários cadastrados
-                        </h2>
-
-                        <p>
-                            Usuários disponíveis no Control Room
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div className="users-panel-meta">
-                    {!canEdit && !canDelete && <AccessModeBadge />}
-                    <span className="users-panel-count">
-                        {hasFilters ? `${filteredUsers.length}/${users.length}` : users.length}
-                    </span>
-                </div>
-
-            </div>
+                )}
+            />
 
             {users.length > 0 && (
                 <div className="users-list-toolbar" aria-label="Filtros de usuários">
-                    <TextField
+                    <SearchField
                         label="Pesquisar usuários"
-                        labelHidden
-                        type="search"
                         value={search}
                         placeholder="Pesquisar por nome, usuário, ID ou perfil..."
-                        onChange={(event) => setSearch(event.target.value)}
+                        onValueChange={setSearch}
                         containerClassName="users-list-search"
                     />
                     <PremiumSelect

@@ -279,13 +279,56 @@
 }
 
 .robots-folders-content {
-    padding: 18px 24px 22px;
+    padding: 12px;
 }
 
 .robot-folders-tree {
     display: flex;
     flex-direction: column;
+    gap: 3px;
+}
+
+.robot-folder-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 6px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 12px;
+    background: var(--color-surface-muted);
+}
+
+.robot-folder-toolbar .ui-field { min-width: 0; }
+
+.robot-folder-toolbar .ui-input-shell {
+    min-height: 36px;
+    border-color: transparent;
+    background: var(--color-surface);
+}
+
+.robot-folder-toolbar__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 4px;
+    padding-top: 5px;
+    border-top: 1px solid var(--color-border-light);
+}
+
+.robot-folder-toolbar__actions .ui-button {
+    min-height: 30px;
+    padding-inline: 8px;
+    color: var(--color-text-muted);
+    font-size: 11px;
+}
+
+.robot-folder-search-status {
+    margin: -2px 2px 8px;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    line-height: 1.4;
 }
 
 /* Linha individual da pasta */
@@ -294,7 +337,7 @@
 }
 
 .robot-folder-row {
-    min-height: 44px;
+    min-height: 42px;
 
     display: flex;
     align-items: center;
@@ -314,17 +357,20 @@
 }
 
 .robot-folder-row:hover {
-    background: var(--color-surface-muted);
-    border-color: var(--color-border);
+    background: var(--color-surface-raised);
+    border-color: var(--color-border-strong);
 }
 
 .robot-folder-row-selected {
     background: var(--color-primary-soft);
-    border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+    border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+    box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .robot-folder-main {
     display: flex;
+    flex: 1;
+    align-self: stretch;
     align-items: center;
     gap: 6px;
     min-width: 0;
@@ -354,20 +400,30 @@
     color: var(--color-text-secondary);
 }
 
+.robot-folder-expand:focus-visible,
+.robot-folder-quick-add:focus-visible,
+.robot-folder-menu-button:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 1px;
+}
+
 .robot-folder-select {
+    flex: 1;
+    align-self: stretch;
     min-width: 0;
     min-height: 32px;
 
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
+    padding: 0;
 
     border: 0;
     background: transparent;
 
     color: var(--color-text-secondary);
     font-size: 13px;
-    font-weight: 550;
+    font-weight: 600;
 
     text-align: left;
     cursor: pointer;
@@ -383,10 +439,28 @@
     border-top: 1px solid var(--color-border-light);
 }
 
-.robot-folder-select span {
+.robot-folder-name {
+    min-width: 0;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.robot-folder-child-count {
+    min-width: 22px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0 6px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 999px;
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .robot-folder-row-selected .robot-folder-select {
@@ -433,7 +507,7 @@
 .robot-folder-children {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 /* Painel dos robôs selecionados */
@@ -730,8 +804,37 @@
     position: relative;
     display: flex;
     align-items: center;
+    gap: 2px;
     margin-left: auto;
     flex-shrink: 0;
+}
+
+.robot-folder-quick-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--color-text-muted);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.robot-folder-row:hover .robot-folder-quick-add,
+.robot-folder-row:focus-within .robot-folder-quick-add,
+.robot-folder-row-selected .robot-folder-quick-add {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.robot-folder-quick-add:hover {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
 }
 
 .robot-folder-menu-button {
@@ -767,7 +870,7 @@
     color: var(--color-text-primary) !important;
 }
 
-.robot-folder-menu-button:focus,
+.robot-folder-menu-button:focus:not(:focus-visible),
 .robot-folder-menu-button:active {
     outline: none;
     box-shadow: none;
@@ -858,6 +961,191 @@
 .robot-folder-context-danger svg {
     color: var(--color-danger);
 }
+
+/* Criação de pasta em contexto */
+.robot-folder-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: var(--modal-backdrop-color);
+    backdrop-filter: var(--modal-backdrop-filter);
+}
+
+.robot-folder-dialog {
+    width: min(560px, 100%);
+    max-height: calc(100dvh - 40px);
+    overflow: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg);
+}
+
+.robot-folder-dialog__header {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: start;
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.robot-folder-dialog__icon {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+    border-radius: 11px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.robot-folder-dialog__eyebrow {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--color-primary);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .08em;
+}
+
+.robot-folder-dialog__header h2 {
+    color: var(--color-text-primary);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.robot-folder-dialog__header p {
+    margin-top: 5px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.robot-folder-dialog__form {
+    display: grid;
+    gap: 18px;
+    padding: 22px 24px 24px;
+}
+
+.robot-folder-destination-field {
+    display: grid;
+    gap: 7px;
+}
+
+.robot-folder-destination-field > label {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.robot-folder-destination-field .premium-select { width: 100%; }
+
+.robot-folder-destination-field .ui-field__hint {
+    color: var(--color-text-muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.robot-folder-path-preview {
+    display: grid;
+    gap: 8px;
+    padding: 13px 14px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 10px;
+    background: var(--color-surface-muted);
+}
+
+.robot-folder-path-preview__label {
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.robot-folder-path-preview__path,
+.robot-folder-path-preview__segment {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.robot-folder-path-preview__path {
+    flex-wrap: wrap;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.robot-folder-path-preview__segment strong {
+    max-width: 180px;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.robot-folder-path-preview__segment.is-new strong { color: var(--color-primary); }
+
+.robot-folder-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+/* Caminho navegável da localização ativa */
+.robot-location-path {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 24px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-surface-muted);
+    scrollbar-width: thin;
+}
+
+.robot-location-path > button,
+.robot-location-path__segment,
+.robot-location-path__segment button {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.robot-location-path > button,
+.robot-location-path__segment button {
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 7px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.robot-location-path button:hover {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+.robot-location-path button[aria-current="location"] {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.robot-location-path__segment { gap: 3px; color: var(--color-text-muted); }
 
 
 /* ============================================================
@@ -1887,8 +2175,8 @@
     display: grid;
     place-items: center;
     padding: clamp(12px, 3vw, 32px);
-    background: color-mix(in srgb, var(--color-background) 34%, rgba(4, 8, 20, 0.76));
-    backdrop-filter: blur(10px);
+    background: var(--modal-backdrop-color);
+    backdrop-filter: var(--modal-backdrop-filter);
     animation: robot-versions-fade 160ms ease-out;
 }
 
@@ -2003,7 +2291,7 @@
 
 .robot-version-timeline {
     display: grid;
-    gap: 12px;
+    gap: 6px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -2254,4 +2542,56 @@
     .robot-version-card {
         transition: none;
     }
+
+    .robot-folder-dialog-backdrop,
+    .robot-folder-dialog,
+    .robot-folder-row,
+    .robot-folder-quick-add {
+        animation: none;
+        transition: none;
+    }
+}
+
+@media (hover: none) {
+    .robot-folder-quick-add {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (max-width: 650px) {
+    .robots-folders-content { padding: 10px; }
+
+    .robot-folder-dialog-backdrop {
+        align-items: end;
+        padding: 10px;
+    }
+
+    .robot-folder-dialog {
+        width: 100%;
+        max-height: calc(100dvh - 20px);
+        border-radius: 16px;
+    }
+
+    .robot-folder-dialog__header {
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        gap: 11px;
+        padding: 18px;
+    }
+
+    .robot-folder-dialog__icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .robot-folder-dialog__form { padding: 18px; }
+
+    .robot-folder-dialog__actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .robot-folder-dialog__actions .ui-button { width: 100%; }
+
+    .robot-location-path { padding: 9px 16px; }
 }

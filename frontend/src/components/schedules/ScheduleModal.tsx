@@ -73,12 +73,12 @@ export default function ScheduleModal({
   };
 
   return createPortal(
-    <div className="schedule-modal-overlay" onMouseDown={(event) => {
+    <div className="schedule-modal-overlay ui-modal-backdrop" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !salvando) onClose();
     }}>
-      <div ref={dialogRef} className="schedule-modal" role="dialog" aria-modal="true"
+      <div ref={dialogRef} className="schedule-modal ui-modal-surface" role="dialog" aria-modal="true"
         aria-labelledby="schedule-modal-title" aria-describedby="schedule-modal-description" tabIndex={-1}>
-        <header className="schedule-modal-header">
+        <header className="schedule-modal-header ui-modal-header">
           <div className="schedule-modal-heading">
             <span className="schedule-modal-heading__icon" aria-hidden="true"><CalendarClock size={19} /></span>
             <div>
@@ -222,7 +222,7 @@ export default function ScheduleModal({
             </>}
           </div>
 
-          <footer className="schedule-modal-actions">
+          <footer className="schedule-modal-actions ui-modal-footer">
             <p aria-live="polite">{formInvalid ? "Preencha os campos obrigatórios para salvar." : "Configuração pronta para ser salva."}</p>
             <div>
               <Button variant="secondary" type="button" onClick={onClose} disabled={salvando}>Cancelar</Button>

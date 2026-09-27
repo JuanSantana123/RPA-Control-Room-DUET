@@ -181,12 +181,12 @@ function ConfirmationDialog({
   });
 
   return createPortal(
-    <div className="ui-confirmation-backdrop" onMouseDown={(event) => {
+    <div className="ui-confirmation-backdrop ui-modal-backdrop" onMouseDown={(event) => {
       if (event.currentTarget === event.target) onCancel();
     }}>
       <div
         ref={dialogRef}
-        className="ui-confirmation-dialog"
+        className="ui-confirmation-dialog ui-modal-surface"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}

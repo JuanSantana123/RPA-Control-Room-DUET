@@ -98,6 +98,7 @@ function RolePermissionsPanel({
             <section className="roles-panel permissions-panel">
 
                 <EmptyState
+                    fill
                     icon={<ShieldCheck />}
                     title="Selecione um perfil"
                     description="Escolha um perfil para consultar e configurar suas permissões."
@@ -119,16 +120,16 @@ function RolePermissionsPanel({
                 CABEÇALHO
                 ================================================== */}
 
-            <div className="permissions-panel-header">
+            <div className="permissions-panel-header ui-panel-header">
 
-                <div className="permissions-panel-heading">
+                <div className="permissions-panel-heading ui-panel-header__identity">
 
-                    <div className="permissions-panel-icon">
+                    <div className="permissions-panel-icon ui-panel-header__icon">
                         <ShieldCheck size={18} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
 
-                    <div>
+                    <div className="ui-panel-header__copy">
 
                         <h2>
                             {selectedRole.name}
@@ -173,6 +174,7 @@ function RolePermissionsPanel({
             ) : permissions.length === 0 ? (
 
                 <EmptyState
+                    fill
                     icon={<LockKeyhole />}
                     title="Nenhuma permissão disponível"
                     description="O Control Room não retornou permissões configuráveis para este perfil."

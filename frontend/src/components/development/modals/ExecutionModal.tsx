@@ -201,6 +201,7 @@ function ExecutionModal({
 
         <div
             role="presentation"
+            className="ui-modal-backdrop"
 
             onMouseDown={() => {
                 onClose();
@@ -229,7 +230,10 @@ function ExecutionModal({
                     20,
 
                 background:
-                    "var(--color-overlay)",
+                    "var(--modal-backdrop-color)",
+
+                backdropFilter:
+                    "var(--modal-backdrop-filter)",
 
                 boxSizing:
                     "border-box",
@@ -238,6 +242,7 @@ function ExecutionModal({
 
             <div
                 ref={dialogRef}
+                className="ui-modal-surface"
                 role="dialog"
 
                 aria-modal="true"
@@ -260,16 +265,16 @@ function ExecutionModal({
                         22,
 
                     border:
-                        "1px solid var(--color-border)",
+                        "1px solid var(--modal-border)",
 
                     borderRadius:
-                        12,
+                        "var(--modal-radius)",
 
                     background:
-                        "var(--color-surface-raised)",
+                        "var(--modal-surface)",
 
                     boxShadow:
-                        "var(--shadow-lg)",
+                        "var(--modal-shadow)",
 
                     boxSizing:
                         "border-box",

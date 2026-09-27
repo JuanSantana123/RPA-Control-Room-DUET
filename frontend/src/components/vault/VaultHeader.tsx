@@ -2,6 +2,7 @@
 
 import { FolderPlus } from "lucide-react";
 import { Button } from "../ui/Button";
+import PageHeader from "../ui/PageHeader";
 // DUET CORE - VAULT - HEADER
 // ============================================================
 //
@@ -39,35 +40,15 @@ function VaultHeader({
     onNewFolder,
 }: VaultHeaderProps) {
 
-    return (
-        <section className="page-heading">
-
-            <div>
-
-                <div className="page-eyebrow">
-                    GESTÃO DE CREDENCIAIS
-                </div>
-
-                <h1>
-                    Vault
-                </h1>
-
-                <p>
-                    Gerenciamento de credenciais.
-                </p>
-
-            </div>
-
-
-            {canCreateFolders && (
-                <Button onClick={onNewFolder}>
+    return <PageHeader
+        eyebrow="GESTÃO DE CREDENCIAIS"
+        title="Vault"
+        description="Organize credenciais protegidas para pessoas, robôs e Devices."
+        actions={canCreateFolders ? <Button onClick={onNewFolder}>
                     <FolderPlus size={17} strokeWidth={1.9} aria-hidden="true" />
                     Nova pasta
-                </Button>
-            )}
-
-        </section>
-    );
+                </Button> : undefined}
+    />;
 }
 
 

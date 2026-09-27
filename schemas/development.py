@@ -22,6 +22,7 @@
 
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -150,6 +151,60 @@ class ProjectCommentCreate(BaseModel):
         min_length=1,
         max_length=5000,
     )
+
+    attachment_ids: list[int] = Field(
+        default_factory=list,
+        max_length=5,
+    )
+
+
+class ProjectCommentAttachmentResponse(BaseModel):
+    id: int
+    project_id: int
+    comment_id: int | None
+    name: str
+    media_type: str
+    size_bytes: int
+    created_at: str | None
+
+
+class ProjectActivityStageResponse(BaseModel):
+    id: int
+    code: str
+    name: str
+
+
+class ProjectActivityItemResponse(BaseModel):
+    id: int
+    event_key: str
+    kind: Literal["comment", "stage_movement"]
+    project_id: int
+    user_id: int
+    user_name: str | None
+    content: str | None
+    attachments: list[ProjectCommentAttachmentResponse] = Field(default_factory=list)
+    from_stage: ProjectActivityStageResponse | None = None
+    to_stage: ProjectActivityStageResponse | None = None
+    created_at: str | None
+    updated_at: str | None
+
+
+class ProjectActivityListResponse(BaseModel):
+    status: Literal["success"]
+    project_id: int
+    total: int
+    comments: list[ProjectActivityItemResponse]
+
+
+class ProjectCommentCreateResponse(BaseModel):
+    status: Literal["success"]
+    message: str
+    comment: ProjectActivityItemResponse
+
+
+class ProjectCommentAttachmentCreateResponse(BaseModel):
+    status: Literal["success"]
+    attachment: ProjectCommentAttachmentResponse
 
 
 # ============================================================

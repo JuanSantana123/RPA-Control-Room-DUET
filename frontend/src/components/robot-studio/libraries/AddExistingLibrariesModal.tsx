@@ -29,6 +29,7 @@ import type {
     CSSProperties,
     MouseEvent,
 } from "react";
+import { createPortal } from "react-dom";
 
 import {
     X,
@@ -148,13 +149,15 @@ function AddExistingLibrariesModal({
     };
 
 
-    return (
+    return createPortal(
         <div
+            className="ui-modal-backdrop"
             style={styles.modalBackdrop}
             onMouseDown={handleBackdropMouseDown}
         >
             <div
                 ref={dialogRef}
+                className="ui-modal-surface"
                 style={styles.modalCardWide}
                 role="dialog"
                 aria-modal="true"
@@ -166,7 +169,7 @@ function AddExistingLibrariesModal({
                     CABEÇALHO
                 ============================================= */}
 
-                <div style={styles.modalHeader}>
+                <div className="ui-modal-header" style={styles.modalHeader}>
 
                     <div>
                         <div style={styles.modalEyebrow}>
@@ -460,7 +463,7 @@ function AddExistingLibrariesModal({
                     RODAPÉ
                 ============================================= */}
 
-                <div style={styles.modalFooter}>
+                <div className="ui-modal-footer" style={styles.modalFooter}>
 
                     <div style={styles.librarySelectionCount}>
                         {
@@ -508,7 +511,8 @@ function AddExistingLibrariesModal({
                 </div>
 
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
 

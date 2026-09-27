@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 
 from agents.monitoring_service import monitor_agents_esta_ativo
+from agents.token_security import configuracao_agent_token_disponivel
 from core.logging_config import logger
 from core.runtime_config import background_workers_habilitados
 from database import engine
@@ -25,6 +26,7 @@ class ReadinessChecks(BaseModel):
     database: Literal["ready", "unavailable"]
     schema_revision: str | None
     background_workers: Literal["running", "disabled", "degraded"]
+    agent_token_protection: Literal["ready", "unavailable"]
 
 
 class ReadinessResponse(BaseModel):
@@ -79,10 +81,15 @@ def health_ready():
     else:
         workers_status = "degraded"
 
+    agent_token_protection_status = (
+        "ready" if configuracao_agent_token_disponivel() else "unavailable"
+    )
+
     ready = (
         database_status == "ready"
         and schema_revision is not None
         and workers_status != "degraded"
+        and agent_token_protection_status == "ready"
     )
     payload = ReadinessResponse(
         status="ready" if ready else "not_ready",
@@ -91,6 +98,7 @@ def health_ready():
             database=database_status,
             schema_revision=schema_revision,
             background_workers=workers_status,
+            agent_token_protection=agent_token_protection_status,
         ),
     )
 

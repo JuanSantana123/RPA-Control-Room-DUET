@@ -523,6 +523,7 @@ function PublishModal({
 
         <div
             role="presentation"
+            className="ui-modal-backdrop"
 
             onMouseDown={
                 onClose
@@ -551,12 +552,16 @@ function PublishModal({
                     20,
 
                 background:
-                    "var(--color-overlay)",
+                    "var(--modal-backdrop-color)",
+
+                backdropFilter:
+                    "var(--modal-backdrop-filter)",
             }}
         >
 
             <div
                 ref={dialogRef}
+                className="ui-modal-surface"
                 role="dialog"
 
                 aria-modal="true"
@@ -585,13 +590,13 @@ function PublishModal({
                         24,
 
                     borderRadius:
-                        12,
+                        "var(--modal-radius)",
 
                     background:
-                        "var(--color-surface-raised)",
+                        "var(--modal-surface)",
 
                     boxShadow:
-                        "var(--shadow-lg)",
+                        "var(--modal-shadow)",
                 }}
             >
 

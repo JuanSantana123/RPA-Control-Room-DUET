@@ -50,6 +50,7 @@ import {
 
 import type {
     CardComment,
+    CardCommentAttachment,
     CardUser,
     DevelopmentProject,
 } from "../../../types/development";
@@ -100,6 +101,7 @@ interface CardDetailsPanelProps {
     // ========================================================
 
     newComment: string;
+    pendingCommentAttachments: CardCommentAttachment[];
 
 
     // ========================================================
@@ -111,6 +113,7 @@ interface CardDetailsPanelProps {
     saving: boolean;
 
     addingComment: boolean;
+    uploadingCommentAttachment: boolean;
 
 
     // Mensagem de erro específica do painel.
@@ -156,6 +159,12 @@ interface CardDetailsPanelProps {
 
     onAddComment:
         () => void | Promise<void>;
+
+    onUploadCommentAttachment:
+        (file: File) => void | Promise<void>;
+
+    onRemoveCommentAttachment:
+        (attachmentId: number) => void | Promise<void>;
 }
 
 
@@ -176,10 +185,12 @@ function CardDetailsPanel({
     effortHours,
 
     newComment,
+    pendingCommentAttachments,
 
     loading,
     saving,
     addingComment,
+    uploadingCommentAttachment,
 
     error,
     canEdit,
@@ -196,6 +207,8 @@ function CardDetailsPanel({
     onClose,
     onSave,
     onAddComment,
+    onUploadCommentAttachment,
+    onRemoveCommentAttachment,
 }: CardDetailsPanelProps) {
     const dialogRef = useDialogFocus<HTMLElement>({
         open: Boolean(project),
@@ -215,7 +228,7 @@ function CardDetailsPanel({
 
         <div
             role="presentation"
-            className="card-details-backdrop"
+            className="card-details-backdrop ui-modal-backdrop"
 
             onMouseDown={() => {
                 onClose();
@@ -230,14 +243,17 @@ function CardDetailsPanel({
                 justifyContent: "flex-end",
 
                 background:
-                    "var(--color-overlay)",
+                    "var(--modal-backdrop-color)",
+
+                backdropFilter:
+                    "var(--modal-backdrop-filter)",
             }}
         >
 
             <aside
                 ref={dialogRef}
                 role="dialog"
-                className="card-details-drawer"
+                className="card-details-drawer ui-modal-surface ui-modal-surface--drawer"
 
                 aria-modal="true"
 
@@ -262,13 +278,13 @@ function CardDetailsPanel({
                         "column",
 
                     background:
-                        "var(--color-surface-raised)",
+                        "var(--modal-surface)",
 
                     borderLeft:
-                        "1px solid var(--color-border)",
+                        "1px solid var(--modal-border)",
 
                     boxShadow:
-                        "var(--shadow-lg)",
+                        "var(--modal-shadow)",
 
                     overflow:
                         "hidden",
@@ -280,7 +296,7 @@ function CardDetailsPanel({
                 ============================================= */}
 
                 <div
-                    className="card-details-header"
+                    className="card-details-header ui-modal-header"
                     style={{
                         padding:
                             "20px 22px 17px",
@@ -741,9 +757,13 @@ function CardDetailsPanel({
                         loading={loading}
                         canEdit={canEdit}
                         addingComment={addingComment}
+                        uploadingAttachment={uploadingCommentAttachment}
                         newComment={newComment}
+                        pendingAttachments={pendingCommentAttachments}
                         onNewCommentChange={onNewCommentChange}
                         onAddComment={onAddComment}
+                        onUploadAttachment={onUploadCommentAttachment}
+                        onRemoveAttachment={onRemoveCommentAttachment}
                     />
 
                 </div>

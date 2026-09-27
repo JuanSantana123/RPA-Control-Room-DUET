@@ -47,13 +47,11 @@ import {
     Folder,
     LayoutGrid,
     Plus,
-    Search,
     Trash2,
-    X,
 } from "lucide-react";
 import FeedbackBanner from "../../ui/FeedbackBanner";
-import { Button, IconButton } from "../../ui/Button";
-import { TextField } from "../../ui/TextField";
+import { Button } from "../../ui/Button";
+import SearchField from "../../ui/SearchField";
 
 
 import type {
@@ -82,6 +80,9 @@ interface DevelopmentProjectToolbarProps {
     // false:
     //     usuário está na área de projetos ativos.
     showTrash:
+        boolean;
+
+    creationOpen:
         boolean;
 
 
@@ -176,6 +177,7 @@ interface DevelopmentProjectToolbarProps {
 function DevelopmentProjectToolbar({
     viewMode,
     showTrash,
+    creationOpen,
 
     canViewTrash,
     canCreateDevelopment,
@@ -273,15 +275,15 @@ function DevelopmentProjectToolbar({
                 CABEÇALHO DO PAINEL
             ================================================= */}
 
-            <div className="content-panel-header">
+            <div className="content-panel-header ui-panel-header">
 
                 {/* =============================================
                     IDENTIFICAÇÃO DA ÁREA
                 ============================================= */}
 
-                <div className="section-heading-group">
+                <div className="section-heading-group ui-panel-header__identity">
 
-                    <div className="section-icon">
+                    <div className="section-icon ui-panel-header__icon">
 
                         <Folder
                             size={18}
@@ -311,7 +313,7 @@ function DevelopmentProjectToolbar({
                     AÇÕES
                 ============================================= */}
 
-                <div className="panel-header-meta">
+                <div className="panel-header-meta development-toolbar-actions ui-panel-header__actions">
 
                     {showTrash ? (
 
@@ -449,24 +451,13 @@ function DevelopmentProjectToolbar({
                 PESQUISA
             ================================================= */}
 
-            <div className="development-toolbar-search">
-                <TextField
+            {!creationOpen && <div className="development-toolbar-search">
+                <SearchField
                     label={searchPlaceholder}
-                    labelHidden
                     containerClassName="development-toolbar-search__field"
-                    type="search"
                     value={search}
                     placeholder={searchPlaceholder}
-                    leadingIcon={<Search size={16} strokeWidth={1.8} />}
-                    trailingAction={search ? (
-                        <IconButton
-                            label="Limpar pesquisa"
-                            icon={<X size={14} aria-hidden="true" />}
-                            size="sm"
-                            onClick={() => onSearchChange("")}
-                        />
-                    ) : undefined}
-                    onChange={(event) => onSearchChange(event.target.value)}
+                    onValueChange={onSearchChange}
                 />
 
 
@@ -484,7 +475,7 @@ function DevelopmentProjectToolbar({
                     </span>
                 </div>
 
-            </div>
+            </div>}
         </>
     );
 }

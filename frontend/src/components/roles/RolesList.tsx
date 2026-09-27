@@ -30,8 +30,9 @@ import type {
 import { UsersRound } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
 import { useMemo, useState } from "react";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 import { Button } from "../ui/Button";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -89,31 +90,24 @@ function RolesList({
                 CABEÇALHO
                 ================================================== */}
 
-            <div className="roles-panel-header">
-
-                <div className="roles-panel-title">
-
-                    <h2>
-                        Perfis cadastrados
-                    </h2>
-
+            <PanelHeader
+                icon={<UsersRound />}
+                title="Perfis cadastrados"
+                description="Perfis e conjuntos de permissões disponíveis no Control Room."
+                actions={(
                     <span className="roles-panel-count">
                         {hasFilter ? `${filteredRoles.length}/${roles.length}` : roles.length}
                     </span>
-
-                </div>
-
-            </div>
+                )}
+            />
 
             {roles.length > 0 && (
                 <div className="roles-list-toolbar">
-                    <TextField
+                    <SearchField
                         label="Pesquisar perfis de acesso"
-                        labelHidden
-                        type="search"
                         value={search}
                         placeholder="Pesquisar por nome, descrição ou ID..."
-                        onChange={(event) => setSearch(event.target.value)}
+                        onValueChange={setSearch}
                     />
                     <Button size="sm" variant="ghost" disabled={!hasFilter} onClick={() => setSearch("")}>
                         Limpar

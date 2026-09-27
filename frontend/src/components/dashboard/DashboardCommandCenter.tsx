@@ -1,5 +1,6 @@
 import { Activity, ArrowUpRight, Bot, CalendarClock, Code2, MonitorCheck } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 import type { DashboardStats } from "../../types/dashboard";
 
 interface DashboardCommandCenterProps {
@@ -8,12 +9,13 @@ interface DashboardCommandCenterProps {
 }
 
 const shortcuts = [
-  { to: "/development", label: "Criar automação", description: "Abrir área de desenvolvimento", icon: Code2 },
-  { to: "/agents", label: "Gerenciar dispositivos", description: "Revisar capacidade de execução", icon: MonitorCheck },
-  { to: "/schedules", label: "Planejar execuções", description: "Acessar agendamentos", icon: CalendarClock },
+  { to: "/automations/build?action=new", label: "Criar automação", description: "Abrir construção e publicação", permission: "Development:create", icon: Code2 },
+  { to: "/agents", label: "Gerenciar dispositivos", description: "Revisar capacidade de execução", permission: "Agents:view", icon: MonitorCheck },
+  { to: "/schedules", label: "Planejar execuções", description: "Acessar agendamentos", permission: "Schedules:view", icon: CalendarClock },
 ];
 
 export default function DashboardCommandCenter({ stats, activeExecutions }: DashboardCommandCenterProps) {
+  const { can } = useAuth();
   const totalAgents = stats?.total_agents ?? 0;
   const onlineAgents = stats?.agents_online ?? 0;
   const availability = totalAgents > 0 ? Math.round((onlineAgents / totalAgents) * 100) : 0;
@@ -44,7 +46,7 @@ export default function DashboardCommandCenter({ stats, activeExecutions }: Dash
       </div>
 
       <nav className="command-center__shortcuts" aria-label="Atalhos operacionais">
-        {shortcuts.map(({ to, label, description, icon: Icon }) => (
+        {shortcuts.filter(({ permission }) => can(permission)).map(({ to, label, description, icon: Icon }) => (
           <Link to={to} className="command-shortcut" key={to}>
             <span className="command-shortcut__icon"><Icon size={17} /></span>
             <span><strong>{label}</strong><small>{description}</small></span>

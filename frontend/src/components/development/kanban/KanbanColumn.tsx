@@ -239,7 +239,7 @@ function KanbanColumn({
     return (
 
         <section
-            className="kanban-column"
+            className={`kanban-column${isDropTarget ? " is-drop-target" : ""}`}
 
             // ====================================================
             // DRAG OVER
@@ -288,57 +288,6 @@ function KanbanColumn({
             }}
 
 
-            // ====================================================
-            // VISUAL DA COLUNA
-            // ====================================================
-
-            style={{
-                width:
-                    286,
-
-                minWidth:
-                    286,
-
-                flex:
-                    "0 0 286px",
-
-                display:
-                    "flex",
-
-                flexDirection:
-                    "column",
-
-                maxHeight:
-                    "calc(100vh - 335px)",
-
-                minHeight:
-                    300,
-
-                padding:
-                    12,
-
-
-                // Destaca visualmente a coluna quando ela
-                // é um destino válido do projeto arrastado.
-                border:
-                    isDropTarget
-                        ? "1px solid var(--color-primary)"
-                        : "1px solid var(--color-border)",
-
-
-                borderRadius:
-                    10,
-
-
-                background:
-                    isDropTarget
-                        ? "var(--color-surface-subtle)"
-                        : "var(--color-surface-raised)",
-
-
-                boxSizing:
-                    "border-box",
-            }}
         >
 
             {/* =================================================

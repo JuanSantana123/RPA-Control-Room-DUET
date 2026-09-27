@@ -3,6 +3,7 @@
 import { CalendarPlus } from "lucide-react";
 import { Button } from "../ui/Button";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import PageHeader from "../ui/PageHeader";
 // DUET CORE - SCHEDULES - HEADER
 // ============================================================
 //
@@ -41,36 +42,18 @@ function SchedulesHeader({
     onNewSchedule,
 }: SchedulesHeaderProps) {
 
-    return (
-        <section className="page-heading">
-
-            <div>
-
-                <div className="page-eyebrow">
-                    AGENDAMENTOS DE AUTOMAÇÃO
-                </div>
-
-                <h1>
-                    Agendamentos
-                </h1>
-
-                <p>
-                    Robôs programados para execução automática
-                </p>
-
-            </div>
-
-
-            {canCreate ? <Button
+    return <PageHeader
+        eyebrow="AGENDAMENTOS DE AUTOMAÇÃO"
+        title="Agendamentos"
+        description="Programe execuções recorrentes ou pontuais com controle operacional."
+        actions={canCreate ? <Button
                 variant="primary"
                 onClick={onNewSchedule}
             >
                 <CalendarPlus size={17} strokeWidth={1.9} aria-hidden="true" />
                 Novo agendamento
             </Button> : <AccessModeBadge />}
-
-        </section>
-    );
+    />;
 }
 
 

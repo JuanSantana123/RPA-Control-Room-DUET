@@ -12,6 +12,7 @@ import {
     UserRound,
     X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
 import type {
@@ -82,9 +83,9 @@ export default function RobotVersionsDialog({
         closeOnEscape: !busy,
     });
 
-    return (
+    return createPortal(
         <div
-            className="robot-versions-overlay"
+            className="robot-versions-overlay ui-modal-backdrop"
             role="presentation"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget && !busy) onClose();
@@ -92,14 +93,14 @@ export default function RobotVersionsDialog({
         >
             <div
                 ref={dialogRef}
-                className="robot-versions-dialog"
+                className="robot-versions-dialog ui-modal-surface"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="robot-versions-title"
                 aria-describedby="robot-versions-description"
                 tabIndex={-1}
             >
-                <header className="robot-versions-header">
+                <header className="robot-versions-header ui-modal-header">
                     <div className="robot-versions-heading">
                         <span className="robot-versions-heading__icon" aria-hidden="true">
                             <History size={20} />
@@ -228,7 +229,7 @@ export default function RobotVersionsDialog({
                     )}
                 </div>
 
-                <footer className="robot-versions-footer">
+                <footer className="robot-versions-footer ui-modal-footer">
                     <p>
                         <ShieldCheck size={15} aria-hidden="true" />
                         O servidor valida o SHA-256 antes de disponibilizar qualquer pacote.
@@ -241,6 +242,7 @@ export default function RobotVersionsDialog({
                     )}
                 </footer>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

@@ -29,6 +29,7 @@ import {
 import type {
     DashboardStats,
 } from "../../types/dashboard";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -56,30 +57,17 @@ function DashboardOperationalStatus({
     return (
         <div className="dashboard-module">
 
-            <div className="dashboard-module-header">
-
-                <div>
-
-                    <h2>
-                        Status operacional
-                    </h2>
-
-                    <p>
-                        Situação atual da infraestrutura de automação
-                    </p>
-
-                </div>
-
-
-                <div className="module-status-indicator">
-
-                    <span className="status-dot"></span>
-
-                    Operacional
-
-                </div>
-
-            </div>
+            <PanelHeader
+                icon={<Activity />}
+                title="Status operacional"
+                description="Situação atual da infraestrutura de automação"
+                actions={(
+                    <div className="module-status-indicator">
+                        <span className="status-dot" />
+                        Operacional
+                    </div>
+                )}
+            />
 
 
             <div className="operational-list">

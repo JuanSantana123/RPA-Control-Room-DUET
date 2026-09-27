@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { ArrowRight, Download, Inbox, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { ArrowRight, Download, Inbox, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button, IconButton } from "../components/ui/Button";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
 import PremiumSelect from "../components/ui/PremiumSelect";
 import { TextField } from "../components/ui/TextField";
+import SearchField from "../components/ui/SearchField";
 import { CardGridSkeleton, TableSkeleton } from "../components/ui/Skeletons";
 import { Switch } from "../components/ui/Switch";
 import { TextAreaField } from "../components/ui/TextAreaField";
 import CardCommentsSection from "../components/development/kanban/CardCommentsSection";
 import EmptyState from "../components/ui/EmptyState";
 import AccessModeBadge from "../components/ui/AccessModeBadge";
+import PageHeader from "../components/ui/PageHeader";
+import PanelHeader from "../components/ui/PanelHeader";
 import { useInteraction } from "../context/useInteraction";
 
 export default function ComponentLab() {
@@ -20,13 +23,7 @@ export default function ComponentLab() {
 
   return (
     <div className="page-container component-lab">
-      <header className="page-heading">
-        <div>
-          <div className="page-eyebrow">Catálogo de desenvolvimento</div>
-          <h1>Componentes da interface</h1>
-          <p>Estados estáticos e interativos sem dados operacionais. Esta rota existe somente no modo de desenvolvimento.</p>
-        </div>
-      </header>
+      <PageHeader eyebrow="CATÁLOGO DE DESENVOLVIMENTO" title="Componentes da interface" description="Estados interativos sem dados operacionais para revisão e regressão." />
 
       <section className="component-lab__section" aria-labelledby="lab-actions">
         <div className="component-lab__heading">
@@ -54,15 +51,11 @@ export default function ComponentLab() {
         </div>
         <div className="component-lab__fields">
           <TextField label="Nome do projeto" description="Utilize um nome reconhecível pela equipe." placeholder="Conciliação financeira" required />
-          <TextField
+          <SearchField
             label="Pesquisar"
-            labelHidden
-            type="search"
             value={query}
-            leadingIcon={<Search aria-hidden="true" />}
-            trailingAction={query ? <IconButton label="Limpar pesquisa" size="sm" icon={<X aria-hidden="true" />} onClick={() => setQuery("")} /> : undefined}
             placeholder="Pesquisar componentes..."
-            onChange={(event) => setQuery(event.target.value)}
+            onValueChange={setQuery}
           />
           <TextField label="Porta de comunicação" value="70000" error="Informe uma porta entre 1 e 65535." readOnly />
           <TextField label="Identificador gerenciado" value="AGENT-8F13AB2C" disabled readOnly />
@@ -97,9 +90,13 @@ export default function ComponentLab() {
             loading={false}
             canEdit
             addingComment={false}
+            uploadingAttachment={false}
             newComment={comment}
+            pendingAttachments={[]}
             onNewCommentChange={setComment}
             onAddComment={() => setComment("")}
+            onUploadAttachment={() => undefined}
+            onRemoveAttachment={() => undefined}
           />
         </div>
       </section>
@@ -107,10 +104,26 @@ export default function ComponentLab() {
       <section className="component-lab__section" aria-labelledby="lab-feedback">
         <div className="component-lab__heading"><div><small>Compostos</small><h2 id="lab-feedback">Feedback e carregamento</h2></div></div>
         <div className="component-lab__feedback">
+          <div className="component-lab__panel-preview">
+            <PanelHeader
+              icon={<Inbox />}
+              title="Itens cadastrados"
+              description="Cabeçalho compartilhado para grids, tabelas e listas."
+              actions={<span className="panel-count">12</span>}
+            />
+          </div>
           <FeedbackBanner tone="info" title="Atualização disponível" message="Há dados mais recentes no servidor." hint="Atualize quando concluir a edição atual." />
           <FeedbackBanner tone="success" title="Configuração salva" message="As alterações já estão disponíveis para a equipe." />
           <FeedbackBanner tone="error" title="Não foi possível publicar" message="O pacote não possui um arquivo de entrada válido." hint="Defina o arquivo principal e tente novamente." action={{ label: "Tentar novamente", onClick: () => undefined }} />
           <EmptyState icon={<Inbox />} title="Nenhum item disponível" description="Novos itens aparecerão nesta área quando forem cadastrados." />
+          <div className="component-lab__panel-preview component-lab__panel-preview--selection">
+            <PanelHeader
+              icon={<Inbox />}
+              title="Detalhes do item"
+              description="Selecione um item para consultar suas configurações."
+            />
+            <EmptyState fill compact icon={<Inbox />} title="Selecione um item" description="O conteúdo permanece centralizado na área útil do painel." />
+          </div>
         </div>
         <div className="component-lab__skeletons">
           <CardGridSkeleton count={2} />

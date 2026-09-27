@@ -16,25 +16,11 @@
 // apenas pela composição da página e coordenação dos módulos.
 // ============================================================
 
+import PageHeader from "../ui/PageHeader";
+
 function RobotsHeader() {
 
-    return (
-        <div className="page-heading">
-            <div>
-                <div className="page-eyebrow">
-                    GESTÃO DE AUTOMAÇÕES
-                </div>
-
-                <h1>Robôs</h1>
-
-                <p>
-                    Gerencie os robôs disponíveis, organize suas pastas e
-                    execute automações nos dispositivos conectados.
-                </p>
-            </div>
-
-        </div>
-    );
+    return <PageHeader eyebrow="GESTÃO DE AUTOMAÇÕES" title="Robôs" description="Gerencie pacotes publicados, versões e execução nos Devices conectados." />;
 }
 
 

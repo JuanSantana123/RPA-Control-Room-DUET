@@ -28,6 +28,7 @@ import type {
 import { FolderOpen } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -77,17 +78,12 @@ function VaultFoldersPanel({
     return (
         <section className="content-panel vault-panel vault-folders-panel">
 
-            <div className="vault-panel-header">
-
-                <h2>
-                    Pastas
-                </h2>
-
-                {!canCreate && !canDelete && (
-                    <AccessModeBadge />
-                )}
-
-            </div>
+            <PanelHeader
+                icon={<FolderOpen />}
+                title="Pastas"
+                description="Organize credenciais por contexto de automação."
+                actions={!canCreate && !canDelete ? <AccessModeBadge /> : undefined}
+            />
 
 
             {loading ? (

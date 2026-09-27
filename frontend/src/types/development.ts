@@ -335,10 +335,28 @@ export interface CardUser {
 }
 
 
+export interface CardCommentAttachment {
+    id: number;
+    project_id: number;
+    comment_id: number | null;
+    name: string;
+    media_type: string;
+    size_bytes: number;
+    created_at: string | null;
+}
+
+export interface CardStageSummary {
+    id: number;
+    code: string;
+    name: string;
+}
+
 export interface CardComment {
 
     // Identidade do comentário.
     id: number;
+    event_key?: string;
+    kind?: "comment" | "stage_movement";
 
     // Projeto ao qual pertence.
     project_id: number;
@@ -351,7 +369,10 @@ export interface CardComment {
 
 
     // Conteúdo do comentário.
-    content: string;
+    content: string | null;
+    attachments?: CardCommentAttachment[];
+    from_stage?: CardStageSummary | null;
+    to_stage?: CardStageSummary | null;
 
 
     // Auditoria.

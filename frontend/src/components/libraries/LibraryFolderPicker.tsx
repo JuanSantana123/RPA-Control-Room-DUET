@@ -5,12 +5,12 @@ import {
     ChevronDown,
     ChevronRight,
     Folder,
-    Search,
     X,
 } from "lucide-react";
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
+import { createPortal } from "react-dom";
 import { Button, IconButton } from "../ui/Button";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 
 // ============================================================
 // TIPO - PASTA UTILIZADA PELO SELETOR
@@ -284,28 +284,29 @@ function LibraryFolderPicker({
         );
     };
 
-    return (
-        <div
-            className="library-picker-backdrop"
-            role="presentation"
-            onMouseDown={(event) => {
-                if (
-                    !busy &&
-                    event.target === event.currentTarget
-                ) {
-                    onCancel();
-                }
-            }}
-        >
+    return createPortal(
+        <div className="libraries-module library-modal-portal">
+            <div
+                className="library-picker-backdrop ui-modal-backdrop"
+                role="presentation"
+                onMouseDown={(event) => {
+                    if (
+                        !busy &&
+                        event.target === event.currentTarget
+                    ) {
+                        onCancel();
+                    }
+                }}
+            >
             <div
                 ref={dialogRef}
-                className="library-picker-modal"
+                className="library-picker-modal ui-modal-surface"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="library-folder-picker-title"
                 tabIndex={-1}
             >
-                <div className="library-picker-header">
+                <div className="library-picker-header ui-modal-header">
                     <div>
                         <div className="library-picker-eyebrow">
                             ORGANIZAÇÃO
@@ -337,25 +338,14 @@ function LibraryFolderPicker({
                         </strong>
                     </div>
 
-                    <TextField
+                    <SearchField
                         label="Buscar pasta"
-                        labelHidden
                         containerClassName="library-picker-search-field"
-                        type="search"
                         value={search}
                         placeholder="Buscar pasta por nome"
                         disabled={busy}
-                        leadingIcon={<Search size={15} strokeWidth={1.8} />}
-                        trailingAction={search ? (
-                            <IconButton
-                                label="Limpar busca de pasta"
-                                icon={<X size={14} aria-hidden="true" />}
-                                size="sm"
-                                disabled={busy}
-                                onClick={() => setSearch("")}
-                            />
-                        ) : undefined}
-                        onChange={(event) => setSearch(event.target.value)}
+                        clearLabel="Limpar busca de pasta"
+                        onValueChange={setSearch}
                     />
 
                     <div className="library-picker-tree">
@@ -404,7 +394,7 @@ function LibraryFolderPicker({
                     </div>
                 </div>
 
-                <div className="library-picker-footer">
+                <div className="library-picker-footer ui-modal-footer">
                     <Button
                         variant="secondary"
                         disabled={busy}
@@ -424,6 +414,8 @@ function LibraryFolderPicker({
                 </div>
             </div>
         </div>
+        </div>,
+        document.body,
     );
 }
 

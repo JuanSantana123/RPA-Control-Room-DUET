@@ -81,9 +81,9 @@ function AgentCreatePanel({
     return (
         <section className="content-panel agent-create-panel">
 
-            <div className="content-panel-header">
+            <div className="content-panel-header ui-panel-header">
 
-                <div>
+                <div className="ui-panel-header__copy">
 
                     <h2>
                         Novo dispositivo
@@ -96,7 +96,7 @@ function AgentCreatePanel({
                 </div>
 
 
-                <div className="agent-create-panel__status" aria-label="Cadastro em duas etapas">
+                <div className="agent-create-panel__status ui-panel-header__actions" aria-label="Cadastro em duas etapas">
                     <ServerCog
                         size={18}
                         strokeWidth={1.8}

@@ -37,6 +37,7 @@ import type {
 } from "../../types/agents";
 import EmptyState from "../ui/EmptyState";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -116,38 +117,18 @@ function AgentsList({
                 CABEÇALHO
                 ================================================== */}
 
-            <div className="content-panel-header">
-
-                <div>
-
-                    <h2>
-                        Dispositivos cadastrados
-                    </h2>
-
-                    <p>
-                        Dispositivos disponíveis para execução das automações.
-                    </p>
-
-                </div>
-
-
-                <div className="panel-header-meta">
-
-                    {!canCreate && !canEdit && !canDelete && !canBootstrap && (
-                        <AccessModeBadge />
-                    )}
-
-                    <span className="panel-count">
-                        {agents.length}
-                    </span>
-
-                    <span className="panel-count-label">
-                        exibidos
-                    </span>
-
-                </div>
-
-            </div>
+            <PanelHeader
+                icon={<Monitor />}
+                title="Dispositivos cadastrados"
+                description="Dispositivos disponíveis para execução das automações."
+                actions={(
+                    <div className="panel-header-meta">
+                        {!canCreate && !canEdit && !canDelete && !canBootstrap && <AccessModeBadge />}
+                        <span className="panel-count">{agents.length}</span>
+                        <span className="panel-count-label">exibidos</span>
+                    </div>
+                )}
+            />
 
 
             {/* ==================================================

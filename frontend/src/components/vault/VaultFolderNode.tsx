@@ -87,6 +87,7 @@ function VaultFolderNode({
                                 : ""
                         }`
                     }
+                    aria-pressed={selectedFolder?.id === folder.id}
                 >
                     <Folder size={16} strokeWidth={1.8} aria-hidden="true" />
                     <span>{folder.name}</span>

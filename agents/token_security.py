@@ -64,6 +64,21 @@ def gerar_chave_agent_token() -> str:
     return Fernet.generate_key().decode("ascii")
 
 
+def configuracao_agent_token_disponivel() -> bool:
+    """Indica se a chave operacional existe e possui formato Fernet válido.
+
+    A verificação não cria, registra nem devolve material criptográfico. Ela é
+    usada pela prontidão do Control Room para impedir que uma instalação pareça
+    plenamente operacional quando ainda não consegue cadastrar Devices.
+    """
+
+    try:
+        _obter_fernet()
+    except AgentTokenSecurityError:
+        return False
+    return True
+
+
 def _obter_fernet() -> Fernet:
     """
     Carrega a chave de criptografia do ambiente.

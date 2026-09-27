@@ -74,11 +74,35 @@ export function useAgentsData() {
 
 
     const [
-        error,
-        setError,
+        catalogError,
+        setCatalogError,
     ] = useState("");
 
-    const clearError = () => setError("");
+    const [
+        operationError,
+        setOperationError,
+    ] = useState("");
+
+    const [
+        operationErrorKind,
+        setOperationErrorKind,
+    ] = useState<"create" | "operation">("operation");
+
+    const reportOperationError = (
+        message: string,
+        kind: "create" | "operation" = "operation",
+    ) => {
+        setOperationError(message);
+        setOperationErrorKind(kind);
+    };
+
+    const clearOperationError = () => setOperationError("");
+    const error = operationError || catalogError;
+    const errorKind = operationError ? operationErrorKind : "catalog";
+    const clearError = () => {
+        setOperationError("");
+        setCatalogError("");
+    };
     const [updatingAvailability, setUpdatingAvailability] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -134,10 +158,10 @@ export function useAgentsData() {
 
             setAgents(response.data.agents ?? []);
             setLastUpdated(new Date());
-            setError("");
+            setCatalogError("");
         } catch (err) {
             if (signal?.aborted || requestId !== requestSequence.current) return;
-            setError(getApiErrorMessage(
+            setCatalogError(getApiErrorMessage(
                 err,
                 agents.length > 0
                     ? "Não foi possível atualizar a saúde dos Devices. Os últimos dados válidos foram preservados."
@@ -178,8 +202,9 @@ export function useAgentsData() {
 
             if (!newAgent.port.trim()) {
 
-                setError(
-                    "Preencha a porta de comunicação."
+                reportOperationError(
+                    "Preencha a porta de comunicação.",
+                    "create",
                 );
 
 
@@ -187,8 +212,9 @@ export function useAgentsData() {
             }
 
             if (!Number.isInteger(port) || port < 1 || port > 65535) {
-                setError(
-                    "Informe uma porta inteira entre 1 e 65535. Exemplo: 8000."
+                reportOperationError(
+                    "Informe uma porta inteira entre 1 e 65535. Exemplo: 8000.",
+                    "create",
                 );
 
                 return;
@@ -202,7 +228,7 @@ export function useAgentsData() {
                 );
 
 
-                setError("");
+                clearOperationError();
 
 
                 // =================================================
@@ -250,8 +276,9 @@ export function useAgentsData() {
                             ? "O Control Room recusou o cadastro sem detalhar a causa. Confirme se DUET_AGENT_TOKEN_KEY está configurada e reinicie o serviço; se ela já estiver configurada, consulte o evento agent_creation_failed nos logs."
                             : backendMessage || "Não foi possível cadastrar o dispositivo. O Control Room não retornou um motivo; consulte os logs do sistema e tente novamente.";
 
-                    setError(
-                        message
+                    reportOperationError(
+                        message,
+                        "create",
                     );
 
 
@@ -283,10 +310,13 @@ export function useAgentsData() {
                 );
 
 
-                setError(getApiErrorDetails(
-                    err,
-                    "O dispositivo não pôde ser cadastrado. Verifique a configuração do Control Room e tente novamente."
-                ).message);
+                reportOperationError(
+                    getApiErrorDetails(
+                        err,
+                        "O dispositivo não pôde ser cadastrado. Verifique a configuração do Control Room e tente novamente.",
+                    ).message,
+                    "create",
+                );
 
             } finally {
 
@@ -321,7 +351,7 @@ export function useAgentsData() {
 
             try {
 
-                setError("");
+                clearOperationError();
 
                 const response =
                     await api.patch(
@@ -337,7 +367,7 @@ export function useAgentsData() {
                     "success"
                 ) {
 
-                    setError(
+                    reportOperationError(
                         response.data.message ||
                         "Não foi possível alterar o ambiente do Device."
                     );
@@ -368,7 +398,7 @@ export function useAgentsData() {
                     err
                 );
 
-                setError(getApiErrorMessage(
+                reportOperationError(getApiErrorMessage(
                     err,
                     "Não foi possível alterar o ambiente do dispositivo."
                 ));
@@ -401,7 +431,7 @@ export function useAgentsData() {
 
             try {
 
-                setError("");
+                clearOperationError();
 
 
                 const response =
@@ -420,7 +450,7 @@ export function useAgentsData() {
                     "success"
                 ) {
 
-                    setError(
+                    reportOperationError(
                         response.data.message ||
                         "Não foi possível alterar o display do Device."
                     );
@@ -457,7 +487,7 @@ export function useAgentsData() {
                 );
 
 
-                setError(getApiErrorMessage(
+                reportOperationError(getApiErrorMessage(
                     err,
                     "Não foi possível alterar a configuração de display do dispositivo."
                 ));
@@ -470,7 +500,7 @@ export function useAgentsData() {
         reason: string | null,
     ) => {
         try {
-            setError("");
+            clearOperationError();
             setUpdatingAvailability(agentId);
             const response = await api.patch(`/agents/${agentId}/availability`, {
                 accepting_work: acceptingWork,
@@ -478,7 +508,7 @@ export function useAgentsData() {
             });
 
             if (response.data.status !== "success") {
-                setError(response.data.message || "Não foi possível alterar a disponibilidade do Device.");
+                reportOperationError(response.data.message || "Não foi possível alterar a disponibilidade do Device.");
                 return false;
             }
 
@@ -493,7 +523,7 @@ export function useAgentsData() {
             });
             return true;
         } catch (err) {
-            setError(getApiErrorMessage(
+            reportOperationError(getApiErrorMessage(
                 err,
                 "Não foi possível alterar a disponibilidade do Device.",
             ));
@@ -553,7 +583,7 @@ export function useAgentsData() {
 
                 } else {
 
-                    setError(
+                    reportOperationError(
                         response.data.message ||
                         "Não foi possível excluir o dispositivo."
                     );
@@ -567,7 +597,7 @@ export function useAgentsData() {
                 );
 
 
-                setError(getApiErrorMessage(
+                reportOperationError(getApiErrorMessage(
                     err,
                     "Não foi possível excluir o dispositivo."
                 ));
@@ -673,7 +703,7 @@ export function useAgentsData() {
                 );
 
 
-                setError(getApiErrorMessage(
+                reportOperationError(getApiErrorMessage(
                     err,
                     "Não foi possível gerar o instalador deste dispositivo."
                 ));
@@ -689,6 +719,7 @@ export function useAgentsData() {
         agents,
         loading,
         error,
+        errorKind,
         clearError,
 
         newAgent,

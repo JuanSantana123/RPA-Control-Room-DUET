@@ -14,19 +14,18 @@
 // ============================================================
 
 import {
+    useEffect,
     useMemo,
     useState,
 } from "react";
 
 import {
+    ChevronRight,
     Folder,
-    Blocks,
     Package,
     Plus,
     MousePointer2,
 } from "lucide-react";
-
-import LibrariesPanel from "../components/libraries/LibrariesPanel";
 
 import RobotsHeader from "../components/robots/RobotsHeader";
 import RobotFolderTree from "../components/robots/RobotFolderTree";
@@ -40,6 +39,7 @@ import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { Button } from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
 import AccessModeBadge from "../components/ui/AccessModeBadge";
+import PanelHeader from "../components/ui/PanelHeader";
 import { useAuth } from "../context/useAuth";
 
 import {
@@ -58,6 +58,7 @@ import {
     useRobotLibraries,
 } from "../hooks/robots/useRobotLibraries";
 import { useRobotVersions } from "../hooks/robots/useRobotVersions";
+import { getRobotFolderPath } from "../utils/robotFolders";
 
 // ============================================================
 
@@ -65,14 +66,17 @@ import { useRobotVersions } from "../hooks/robots/useRobotVersions";
 // PÁGINA DE ROBÔS
 // ============================================================
 
-function Robots() {
+interface RobotsProps {
+    embedded?: boolean;
+}
+
+function Robots({ embedded = false }: RobotsProps) {
 
     const { can } = useAuth();
     const canCreateRobots = can("Robots:create");
     const canDeleteRobots = can("Robots:delete");
     const canExecuteRobots = can("Executions:execute");
     const canCreateDevelopmentProject = can("Development:create");
-    const canViewLibraries = can("Libraries:view") && can("Development:view");
 
     const [robotQuery, setRobotQuery] = useState("");
     const [robotSort, setRobotSort] = useState<RobotSort>("name-asc");
@@ -119,6 +123,7 @@ function Robots() {
         setNewFolderName,
 
         newFolderParentId,
+        setNewFolderParentId,
         creatingFolder,
 
         showFolderForm,
@@ -127,6 +132,9 @@ function Robots() {
         setOpenFolderMenu,
 
         alternarPasta,
+        expandirTodasPastas,
+        recolherTodasPastas,
+        revelarPasta,
 
         abrirCriacaoPastaRaiz,
         abrirCriacaoSubpasta,
@@ -136,6 +144,7 @@ function Robots() {
         excluirPasta,
     } = useRobotFolders({
         setError,
+        setSuccess,
     });
 
 
@@ -213,6 +222,12 @@ function Robots() {
 
     const robotVersions = useRobotVersions();
 
+    useEffect(() => {
+        if (!rootSelected && selectedFolder === null) {
+            void carregarRobosRaiz();
+        }
+    }, [carregarRobosRaiz, rootSelected, selectedFolder]);
+
     const visibleRobots = useMemo(() => {
         const term = robotQuery.trim().toLocaleLowerCase("pt-BR");
         const filtered = term
@@ -226,15 +241,21 @@ function Robots() {
         });
     }, [robotQuery, robotSort, robots]);
 
+    const selectedFolderPath = useMemo(
+        () => selectedFolder ? getRobotFolderPath(folders, selectedFolder.id) : [],
+        [folders, selectedFolder],
+    );
     const selectedLocation = rootSelected
         ? "Raiz de Robôs"
-        : selectedFolder?.name || "Nenhuma pasta selecionada";
+        : selectedFolderPath.length > 0
+            ? ["Raiz de Robôs", ...selectedFolderPath.map((folder) => folder.name)].join(" / ")
+            : "Nenhuma pasta selecionada";
     // ========================================================
     // INTERFACE
     // ========================================================
 
     return (
-        <div className="page-container robots-page">
+        <div className={embedded ? "automation-center__view robots-page" : "page-container robots-page"}>
             {/* ========================================================
                 INPUT OCULTO - UPLOAD DE ROBOT
 
@@ -278,7 +299,7 @@ function Robots() {
 
 
             {/* Cabeçalho principal da página. */}
-            <RobotsHeader />
+            {!embedded && <RobotsHeader />}
 
             <RobotsOverview
                 folderCount={folders.length}
@@ -326,69 +347,43 @@ function Robots() {
             {/* ========================================================
                 CRIAÇÃO DE PASTAS
             ======================================================== */}
-            <div className="robots-management-grid">
-
-                {canCreateRobots && showFolderForm && (
-                    <CreateRobotFolderForm
-                        folders={folders}
-                        newFolderName={newFolderName}
-                        newFolderParentId={newFolderParentId}
-                        creatingFolder={creatingFolder}
-                        onFolderNameChange={
-                            setNewFolderName
-                        }
-                        onCreateFolder={
-                            criarPasta
-                        }
-                        onCancel={fecharCriacaoPasta}
-                    />
-                )}
-
-            </div>
+            {canCreateRobots && showFolderForm && (
+                <CreateRobotFolderForm
+                    folders={folders}
+                    newFolderName={newFolderName}
+                    newFolderParentId={newFolderParentId}
+                    creatingFolder={creatingFolder}
+                    onFolderNameChange={setNewFolderName}
+                    onParentChange={setNewFolderParentId}
+                    onCreateFolder={criarPasta}
+                    onCancel={fecharCriacaoPasta}
+                />
+            )}
 
             <div className="robots-workspace-grid">
             {/* Lista de pastas */}
             <section className="content-panel robots-folders-panel">
-                <div className="content-panel-header">
-                    <div className="section-heading-group">
-                        <div className="section-icon">
-                            <Folder size={18} strokeWidth={1.8} />
-                        </div>
-
-                        <div>
-                            <h2>Pastas de robôs</h2>
-                            <p>
-                                Selecione uma pasta para visualizar seus robôs.
-                            </p>
-                        </div>
-                    </div>
-
-
-                    <div className="robots-folder-header-actions">
-                        {!canCreateRobots && !canDeleteRobots && <AccessModeBadge />}
-                        <span className="panel-count-group" aria-label={`${folders.length} pastas cadastradas`}>
-                            <span className="panel-count">
-                                {folders.length}
+                <PanelHeader
+                    className="robots-folder-panel-header"
+                    icon={<Folder />}
+                    title="Pastas de robôs"
+                    description="Selecione uma pasta para visualizar seus robôs."
+                    actions={(
+                        <div className="robots-folder-header-actions">
+                            {!canCreateRobots && !canDeleteRobots && <AccessModeBadge />}
+                            <span className="panel-count-group" aria-label={`${folders.length} pastas cadastradas`}>
+                                <span className="panel-count">{folders.length}</span>
+                                <span className="panel-count-label">pastas</span>
                             </span>
-
-                            <span className="panel-count-label">
-                                pastas
-                            </span>
-                        </span>
-
-                        {canCreateRobots && <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={
-                                    abrirCriacaoPastaRaiz
-                                }
-                        >
-                            <Plus size={15} strokeWidth={1.9} />
-                            Nova pasta
-                        </Button>}
-                    </div>
-                    
-                </div>
+                            {canCreateRobots && (
+                                <Button size="sm" variant="secondary" onClick={abrirCriacaoPastaRaiz}>
+                                    <Plus size={15} strokeWidth={1.9} />
+                                    Nova pasta
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                />
 
                 <RobotFolderTree
                     canCreate={canCreateRobots}
@@ -405,16 +400,25 @@ function Robots() {
                     }
 
                     onSelectFolder={
-                        carregarRobos
+                        (folder) => {
+                            revelarPasta(folder.id);
+                            void carregarRobos(folder);
+                        }
                     }
 
                     onToggleFolder={
                         alternarPasta
                     }
 
+                    onExpandAll={expandirTodasPastas}
+
+                    onCollapseAll={recolherTodasPastas}
+
                     onSetOpenFolderMenu={
                         setOpenFolderMenu
                     }
+
+                    onCreateRootFolder={abrirCriacaoPastaRaiz}
 
                     onUploadRobot={(
                         folderId
@@ -442,36 +446,46 @@ function Robots() {
             {/* Robôs da pasta selecionada */}
             {(rootSelected || selectedFolder) && (
                 <section className="content-panel selected-robots-panel">
-                    <div className="content-panel-header">
-                        <div className="section-heading-group">
-                            <div className="section-icon">
-                                <Package size={18} strokeWidth={1.8} />
+                    <PanelHeader
+                        icon={<Package />}
+                        title={rootSelected ? "Raiz de Robôs" : selectedFolder?.name}
+                        description={rootSelected ? "Robôs publicados diretamente na raiz." : "Robôs disponíveis nesta pasta."}
+                        actions={(
+                            <div className="panel-header-meta">
+                                <span className="panel-count">{robots.length}</span>
+                                <span className="panel-count-label">robôs</span>
                             </div>
+                        )}
+                    />
 
-                            <div>
-                                <h2>
-                                    {rootSelected
-                                        ? "Raiz de Robôs"
-                                        : selectedFolder?.name}
-                                </h2>
-                                <p>
-                                    {rootSelected
-                                        ? "Robôs publicados diretamente na raiz."
-                                        : "Robôs disponíveis nesta pasta."}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="panel-header-meta">
-                            <span className="panel-count">
-                                {robots.length}
-                            </span>
-
-                            <span className="panel-count-label">
-                                robôs
-                            </span>
-                        </div>
-                    </div>
+                    <nav className="robot-location-path" aria-label="Caminho da pasta atual">
+                        <button
+                            type="button"
+                            aria-current={rootSelected ? "location" : undefined}
+                            onClick={() => void carregarRobosRaiz()}
+                        >
+                            <Folder size={14} aria-hidden="true" />
+                            <span>Raiz de Robôs</span>
+                        </button>
+                        {selectedFolderPath.map((folder, index) => {
+                            const current = index === selectedFolderPath.length - 1;
+                            return (
+                                <span className="robot-location-path__segment" key={folder.id}>
+                                    <ChevronRight size={14} aria-hidden="true" />
+                                    <button
+                                        type="button"
+                                        aria-current={current ? "location" : undefined}
+                                        onClick={() => {
+                                            revelarPasta(folder.id);
+                                            void carregarRobos(folder);
+                                        }}
+                                    >
+                                        {folder.name}
+                                    </button>
+                                </span>
+                            );
+                        })}
+                    </nav>
 
                     <RobotsToolbar
                         query={robotQuery}
@@ -592,19 +606,6 @@ function Robots() {
                 </section>
             )}
             </div>
-
-            {/* Catálogo global de Bibliotecas.
-                A lógica fica isolada em components/libraries. */}
-            {canViewLibraries && <><div className="robots-catalog-intro">
-                <span className="section-icon"><Blocks size={18} strokeWidth={1.8} aria-hidden="true" /></span>
-                <div>
-                    <small>Dependências reutilizáveis</small>
-                    <h2>Catálogo de bibliotecas</h2>
-                    <p>Consulte versões publicadas e os componentes compartilhados pelas automações.</p>
-                </div>
-            </div>
-            <LibrariesPanel />
-            </>}
 
             {robotVersions.selectedRobot && (
                 <RobotVersionsDialog

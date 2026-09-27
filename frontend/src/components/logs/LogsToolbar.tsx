@@ -1,8 +1,6 @@
-import { Search, X } from "lucide-react";
-import { IconButton } from "../ui/Button";
 import PremiumSelect from "../ui/PremiumSelect";
 import { Switch } from "../ui/Switch";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 
 export type LogLevelFilter = "all" | "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
 
@@ -25,22 +23,11 @@ export default function LogsToolbar({
 }: LogsToolbarProps) {
   return (
     <section className="logs-toolbar" aria-label="Filtros dos registros">
-      <TextField
+      <SearchField
         label="Pesquisar registros"
-        labelHidden
-        type="search"
         value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
+        onValueChange={onQueryChange}
         placeholder="Mensagem, evento ou referência da requisição..."
-        leadingIcon={<Search size={17} />}
-        trailingAction={query ? (
-          <IconButton
-            label="Limpar pesquisa"
-            icon={<X size={15} />}
-            size="sm"
-            onClick={() => onQueryChange("")}
-          />
-        ) : undefined}
         containerClassName="logs-toolbar__search"
       />
 

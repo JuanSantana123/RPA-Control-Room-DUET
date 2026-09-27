@@ -1,6 +1,7 @@
 import { FileClock, ScrollText } from "lucide-react";
 import type { SystemLog } from "../../types/logs";
 import EmptyState from "../ui/EmptyState";
+import PanelHeader from "../ui/PanelHeader";
 
 function formatTimestamp(value: string) {
   const date = new Date(value);
@@ -24,13 +25,13 @@ interface LogsPanelProps {
 export default function LogsPanel({ logs, loading, error, filtered, total, truncated }: LogsPanelProps) {
   return (
     <section className="logs-panel" aria-busy={loading} aria-labelledby="logs-panel-title">
-      <div className="logs-panel-header">
-        <div className="logs-panel-heading">
-          <span className="logs-panel-icon"><ScrollText size={19} aria-hidden="true" /></span>
-          <div><h2 id="logs-panel-title">Registros recentes</h2><p>{truncated ? `Exibindo os 500 mais recentes de ${total} eventos` : `${total} eventos disponíveis nesta leitura`}</p></div>
-        </div>
-        <span className="logs-panel-count" aria-label={`${logs.length} registros`}>{logs.length}</span>
-      </div>
+      <PanelHeader
+        titleId="logs-panel-title"
+        icon={<ScrollText />}
+        title="Registros recentes"
+        description={truncated ? `Exibindo os 500 mais recentes de ${total} eventos` : `${total} eventos disponíveis nesta leitura`}
+        actions={<span className="logs-panel-count" aria-label={`${logs.length} registros`}>{logs.length}</span>}
+      />
       {loading ? (
         <div className="logs-loading-state" role="status"><span className="logs-state-icon"><FileClock size={21} /></span>Carregando registros...</div>
       ) : logs.length === 0 ? (

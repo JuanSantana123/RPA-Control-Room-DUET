@@ -2,6 +2,7 @@
 @import "./styles/executions.css";
 @import "./styles/dashboard.css";
 @import "./styles/agents.css";
+@import "./styles/automations.css";
 @import "./styles/robots.css";
 @import "./styles/history.css";
 @import "./styles/schedules.css";
@@ -15,6 +16,7 @@
 @import "./styles/skeletons.css";
 @import "./styles/motion.css";
 @import "./styles/refinements.css";
+@import "./styles/modals.css";
 
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; }
@@ -123,8 +125,6 @@ tbody tr:hover td { background: var(--color-surface-muted) !important; }
 .alert, .roles-alert, .users-alert, .logs-alert, .execution-error-alert, .alert-message { border-radius: var(--radius-md) !important; }
 .alert-error, .roles-alert-error, .users-alert-error, .execution-error-alert, .logs-alert, .alert-message.error { color: var(--color-danger) !important; background: var(--color-danger-soft) !important; border-color: color-mix(in srgb, var(--color-danger) 28%, transparent) !important; }
 .alert-success, .roles-alert-success, .users-alert-success, .alert-message.success { color: var(--color-success) !important; background: var(--color-success-soft) !important; }
-.execution-modal-overlay, .schedule-modal-overlay, .library-modal-backdrop, .library-picker-backdrop { background: var(--color-overlay) !important; backdrop-filter: blur(4px); }
-.execution-modal, .schedule-modal, .library-modal, .library-picker-modal { color: var(--color-text-primary) !important; background: var(--color-surface-raised) !important; border: 1px solid var(--color-border) !important; box-shadow: var(--shadow-md) !important; }
 .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -167,14 +167,10 @@ tbody tr:hover td { background: var(--color-surface-muted) !important; }
   .page-heading h1 { font-size: 1.75rem; }
   .development-page .content-panel-header { flex-direction: column; }
   .development-page .section-heading-group { width: 100%; }
-  .development-page .panel-header-meta { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .development-page .panel-header-meta > * { min-width: 0; width: 100%; }
+  .development-page .content-panel-header > .panel-header-meta { display: grid; width: 100%; grid-template-columns: 1fr; }
+  .development-page .content-panel-header > .panel-header-meta > * { min-width: 0; width: 100%; }
   .development-toolbar-search { display: grid !important; width: 100%; grid-template-columns: minmax(0, 1fr) auto auto; padding: 0 17px; }
   .development-toolbar-search > div { min-width: 0; }
-}
-
-@media (max-width: 360px) {
-  .development-page .panel-header-meta { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

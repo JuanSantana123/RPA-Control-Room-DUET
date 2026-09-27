@@ -276,33 +276,13 @@ function KanbanBoard({
     return (
 
         <div
-            style={{
-                width:
-                    "100%",
-
-                overflowX:
-                    "auto",
-
-                paddingBottom:
-                    12,
-            }}
+            className="kanban-board"
+            role="region"
+            aria-label="Quadro de workflow. Use rolagem horizontal para consultar todas as etapas."
+            tabIndex={0}
         >
 
-            <div
-                style={{
-                    display:
-                        "flex",
-
-                    alignItems:
-                        "stretch",
-
-                    gap:
-                        14,
-
-                    minWidth:
-                        "max-content",
-                }}
-            >
+            <div className="kanban-board__track">
 
                 {/* =================================================
                     COLUNAS DO KANBAN

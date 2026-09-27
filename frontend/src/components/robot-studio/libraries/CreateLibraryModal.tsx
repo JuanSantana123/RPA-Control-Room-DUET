@@ -29,6 +29,7 @@ import type {
     CSSProperties,
     MouseEvent,
 } from "react";
+import { createPortal } from "react-dom";
 
 import {
     X,
@@ -141,13 +142,15 @@ function CreateLibraryModal({
     };
 
 
-    return (
+    return createPortal(
         <div
+            className="ui-modal-backdrop"
             style={styles.modalBackdrop}
             onMouseDown={handleBackdropMouseDown}
         >
             <div
                 ref={dialogRef}
+                className="ui-modal-surface"
                 style={styles.modalCard}
                 role="dialog"
                 aria-modal="true"
@@ -155,7 +158,7 @@ function CreateLibraryModal({
                 tabIndex={-1}
             >
 
-                <div style={styles.modalHeader}>
+                <div className="ui-modal-header" style={styles.modalHeader}>
 
                     <div>
                         <div style={styles.modalEyebrow}>
@@ -291,7 +294,7 @@ function CreateLibraryModal({
                 </div>
 
 
-                <div style={styles.modalFooter}>
+                <div className="ui-modal-footer" style={styles.modalFooter}>
 
                     <Button
                         variant="secondary"
@@ -331,7 +334,8 @@ function CreateLibraryModal({
                 </div>
 
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
 

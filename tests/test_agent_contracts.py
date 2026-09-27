@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from pydantic import ValidationError
 
@@ -8,6 +9,11 @@ from agents.serializers import (
     serializar_agent_consulta,
     serializar_agent_execucao,
     serializar_agent_lista,
+)
+from agents.token_security import (
+    AGENT_TOKEN_KEY_ENV,
+    configuracao_agent_token_disponivel,
+    gerar_chave_agent_token,
 )
 from schemas.agents import (
     AgentAvailabilityUpdateRequest,
@@ -50,6 +56,20 @@ def criar_agent_teste(**overrides):
 
 
 class AgentContractTests(unittest.TestCase):
+    def test_prontidao_da_protecao_de_token_exige_chave_fernet_valida(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertFalse(configuracao_agent_token_disponivel())
+
+        with patch.dict("os.environ", {AGENT_TOKEN_KEY_ENV: "chave-invalida"}, clear=True):
+            self.assertFalse(configuracao_agent_token_disponivel())
+
+        with patch.dict(
+            "os.environ",
+            {AGENT_TOKEN_KEY_ENV: gerar_chave_agent_token()},
+            clear=True,
+        ):
+            self.assertTrue(configuracao_agent_token_disponivel())
+
     def test_listagem_inclui_status_e_valida_contrato_publico(self):
         payload = serializar_agent_lista(criar_agent_teste())
 

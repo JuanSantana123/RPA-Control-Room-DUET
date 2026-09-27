@@ -30,9 +30,10 @@ import { TableSkeleton }
 import EmptyState from "../ui/EmptyState";
 import { FileClock } from "lucide-react";
 import { useMemo, useState } from "react";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 import PremiumSelect from "../ui/PremiumSelect";
 import { Button } from "../ui/Button";
+import PanelHeader from "../ui/PanelHeader";
 
 import type {
     HistoryExecution,
@@ -95,35 +96,24 @@ function HistoryTable({
                 CABEÇALHO DO PAINEL
                 ================================================== */}
 
-            <div className="content-panel-header">
-
-                <div>
-
-                    <h2>
-                        Execuções finalizadas
-                    </h2>
-
-                    <p>
-                        Consulte o histórico das automações executadas.
-                    </p>
-
-                </div>
-
-                <span className="history-result-count">
-                    {hasFilters ? `${filteredExecutions.length}/${executions.length}` : executions.length}
-                </span>
-
-            </div>
+            <PanelHeader
+                icon={<FileClock />}
+                title="Execuções finalizadas"
+                description="Consulte o histórico das automações executadas."
+                actions={(
+                    <span className="history-result-count">
+                        {hasFilters ? `${filteredExecutions.length}/${executions.length}` : executions.length}
+                    </span>
+                )}
+            />
 
             {executions.length > 0 && (
                 <div className="history-filterbar" aria-label="Filtros do histórico">
-                    <TextField
+                    <SearchField
                         label="Pesquisar no histórico"
-                        labelHidden
-                        type="search"
                         value={search}
                         placeholder="Pesquisar por robô, pasta, usuário, Device ou ID..."
-                        onChange={(event) => setSearch(event.target.value)}
+                        onValueChange={setSearch}
                     />
                     <PremiumSelect
                         value={status}

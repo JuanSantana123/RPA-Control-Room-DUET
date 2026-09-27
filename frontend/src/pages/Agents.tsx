@@ -1,7 +1,7 @@
 // ============================================================
 
 import { useMemo, useState } from "react";
-import { MonitorCheck, RefreshCw, Search, TriangleAlert, Wrench } from "lucide-react";
+import { MonitorCheck, RefreshCw, TriangleAlert, Wrench } from "lucide-react";
 // DUET CORE - AGENTS PAGE
 // ============================================================
 //
@@ -54,7 +54,7 @@ import {
     useAgentsData,
 } from "../hooks/agents/useAgentsData";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
-import { TextField } from "../components/ui/TextField";
+import SearchField from "../components/ui/SearchField";
 import PremiumSelect from "../components/ui/PremiumSelect";
 import { IconButton } from "../components/ui/Button";
 import { useAuth } from "../context/useAuth";
@@ -87,6 +87,7 @@ function Agents() {
         agents,
         loading,
         error,
+        errorKind,
         clearError,
 
         newAgent,
@@ -155,14 +156,20 @@ function Agents() {
                     tone="error"
                     title="Não foi possível concluir a operação"
                     message={error}
-                    hint={agents.length > 0
-                        ? "O último estado válido permanece visível enquanto você tenta novamente."
-                        : "Verifique a conexão com o Control Room e tente novamente."}
-                    action={{
-                        label: "Tentar novamente",
+                    hint={errorKind === "create"
+                        ? "O formulário foi preservado. A mensagem permanecerá visível até você fechar ou repetir o cadastro."
+                        : agents.length > 0
+                            ? "O último estado válido permanece visível enquanto você tenta novamente."
+                            : "Verifique a conexão com o Control Room e tente novamente."}
+                    action={errorKind === "create" ? {
+                        label: "Repetir cadastro",
+                        onClick: cadastrarAgent,
+                        busy: creatingAgent,
+                    } : errorKind === "catalog" ? {
+                        label: "Atualizar catálogo",
                         onClick: carregarAgents,
                         busy: refreshing,
-                    }}
+                    } : undefined}
                     onDismiss={clearError}
                 />
             )}
@@ -210,14 +217,11 @@ function Agents() {
                         <h2 id="agents-operations-title">Visão operacional dos Devices</h2>
                         <p>Encontre rapidamente a máquina adequada e controle novas reservas.</p>
                     </div>
-                    <TextField
-                        type="search"
+                    <SearchField
                         label="Pesquisar Devices"
-                        labelHidden
                         value={search}
                         placeholder="Pesquisar por nome, ID ou host…"
-                        leadingIcon={<Search size={16} />}
-                        onChange={(event) => setSearch(event.target.value)}
+                        onValueChange={setSearch}
                     />
                     <div className="agents-availability-filter">
                         <label htmlFor="agents-availability-filter">Disponibilidade</label>

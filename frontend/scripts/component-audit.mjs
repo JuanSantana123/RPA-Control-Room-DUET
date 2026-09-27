@@ -65,6 +65,15 @@ try {
     const confirmationDialog = page.getByRole("alertdialog", { name: "Publicar automação?" });
     await confirmationDialog.waitFor();
     const dialogFocused = await confirmationDialog.evaluate((dialog) => dialog.contains(document.activeElement));
+    const modalContractWorks = await confirmationDialog.evaluate((dialog) => {
+      const backdrop = dialog.closest(".ui-modal-backdrop");
+      if (!dialog.classList.contains("ui-modal-surface") || !backdrop) return false;
+      const rect = backdrop.getBoundingClientRect();
+      return Math.abs(rect.x) <= 1
+        && Math.abs(rect.y) <= 1
+        && Math.abs(rect.width - innerWidth) <= 1
+        && Math.abs(rect.height - innerHeight) <= 1;
+    });
     await page.keyboard.press("Escape");
     await confirmationDialog.waitFor({ state: "hidden" });
     const focusReturned = await confirmationTrigger.evaluate((trigger) => trigger === document.activeElement);
@@ -96,13 +105,13 @@ try {
     });
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, focusVisible, dialogFocused, focusReturned, consoleErrors });
+    results.push({ ...testCase, ...metrics, focusVisible, dialogFocused, focusReturned, modalContractWorks, consoleErrors });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.horizontalOverflow || result.unnamedButtons || result.unlabelledFields || result.undersizedButtons.length || !result.focusVisible || !result.dialogFocused || !result.focusReturned || !result.reducedMotionSafe || result.consoleErrors.length);
+const failures = results.filter((result) => result.horizontalOverflow || result.unnamedButtons || result.unlabelledFields || result.undersizedButtons.length || !result.focusVisible || !result.dialogFocused || !result.focusReturned || !result.modalContractWorks || !result.reducedMotionSafe || result.consoleErrors.length);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

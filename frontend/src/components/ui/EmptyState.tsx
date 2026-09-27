@@ -7,6 +7,12 @@ interface EmptyStateProps {
   action?: ReactNode;
   className?: string;
   compact?: boolean;
+  /**
+   * Ocupa a altura livre de um painel flex e centraliza o conjunto completo.
+   * Use em estados contextuais (por exemplo, enquanto nada foi selecionado),
+   * não em linhas vazias de tabelas ou listas compactas.
+   */
+  fill?: boolean;
 }
 
 /**
@@ -20,12 +26,14 @@ export default function EmptyState({
   action,
   className,
   compact = false,
+  fill = false,
 }: EmptyStateProps) {
   return (
     <div
       className={[
         "ui-empty-state",
         compact && "ui-empty-state--compact",
+        fill && "ui-empty-state--fill",
         className,
       ].filter(Boolean).join(" ")}
       role="status"

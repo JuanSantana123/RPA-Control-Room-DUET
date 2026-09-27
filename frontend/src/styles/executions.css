@@ -70,7 +70,7 @@
 
 .execution-summary-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 22px;
 }
@@ -551,8 +551,8 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: rgba(21, 30, 45, 0.42);
-    backdrop-filter: blur(3px);
+    background: var(--modal-backdrop-color);
+    backdrop-filter: var(--modal-backdrop-filter);
 }
 
 .execution-modal {
@@ -561,10 +561,10 @@
     max-height: calc(100vh - 48px);
     overflow: hidden;
     flex-direction: column;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    box-shadow: 0 20px 60px rgba(22, 32, 50, 0.18);
+    background: var(--modal-surface);
+    border: 1px solid var(--modal-border);
+    border-radius: var(--modal-radius);
+    box-shadow: var(--modal-shadow);
 }
 
 .execution-modal-header {

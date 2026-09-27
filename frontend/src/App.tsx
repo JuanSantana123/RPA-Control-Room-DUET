@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import MainLayout from "./layouts/MainLayout";
@@ -9,8 +9,7 @@ import InteractionProvider from "./components/ui/InteractionProvider";
 const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Agents = lazy(() => import("./pages/Agents"));
-const Robots = lazy(() => import("./pages/Robots"));
-const Development = lazy(() => import("./pages/Development"));
+const Automations = lazy(() => import("./pages/Automations"));
 const RobotStudio = lazy(() => import("./pages/RobotStudio"));
 const Executions = lazy(() => import("./pages/Executions"));
 const History = lazy(() => import("./pages/History"));
@@ -50,8 +49,14 @@ function App() {
             <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/agents" element={<Agents />} />
-              <Route path="/development" element={<Development />} />
-              <Route path="/robots" element={<Robots />} />
+              <Route path="/automations" element={<Navigate replace to="/automations/overview" />} />
+              <Route path="/automations/overview" element={<Automations />} />
+              <Route path="/automations/build" element={<Automations />} />
+              <Route path="/automations/catalog" element={<Navigate replace to="/automations/catalog/robots" />} />
+              <Route path="/automations/catalog/robots" element={<Automations />} />
+              <Route path="/automations/catalog/libraries" element={<Automations />} />
+              <Route path="/development" element={<Navigate replace to="/automations/build" />} />
+              <Route path="/robots" element={<Navigate replace to="/automations/catalog/robots" />} />
               <Route path="/executions" element={<Executions />} />
               <Route path="/history" element={<History />} />
               <Route path="/schedules" element={<Schedules />} />

@@ -10,23 +10,30 @@ import {
     ChevronRight,
     FileCode2,
     Folder,
+    FolderOpen,
     FolderPlus,
     MoreVertical,
     Move,
     Pencil,
     Plus,
     RefreshCw,
-    Search,
     Trash2,
     X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
 import { useAuth } from "../../context/useAuth";
 
 import api from "../../services/api";
 import { PanelSkeleton } from "../ui/Skeletons";
-import { Button, IconButton } from "../ui/Button";
-import { TextField } from "../ui/TextField";
+import { Button } from "../ui/Button";
+import {
+    FolderEditorDialog,
+} from "../ui/FolderEditorDialog";
+import type {
+    FolderDestinationOption,
+} from "../ui/FolderEditorDialog";
+import { FolderTreeToolbar } from "../ui/FolderTreeToolbar";
 import { TextAreaField } from "../ui/TextAreaField";
 import AccessModeBadge from "../ui/AccessModeBadge";
 // Componente visual utilizado para selecionar a pasta de destino.
@@ -175,7 +182,6 @@ type FolderEditorMode = "create" | "rename" | null;
 type LibraryEditorMode = "create" | "edit" | null;
 
 type FolderPickerMode =
-    | "folder-create-location"
     | "folder-move"
     | "library-create-location"
     | "library-move"
@@ -250,6 +256,82 @@ function obterPastasDoNivel(
     );
 }
 
+// Mantém a navegação previsível em qualquer profundidade: pastas primeiro,
+// depois bibliotecas, e nomes ordenados segundo o idioma da interface.
+function ordenarArvore(
+    nodes: LibraryTreeNode[]
+): LibraryTreeNode[] {
+    return [...nodes]
+        .sort((left, right) => {
+            if (left.type !== right.type) {
+                return left.type === "folder" ? -1 : 1;
+            }
+
+            return left.name.localeCompare(
+                right.name,
+                "pt-BR",
+                { sensitivity: "base", numeric: true }
+            );
+        })
+        .map((node) => node.type === "folder"
+            ? { ...node, children: ordenarArvore(node.children) }
+            : node
+        );
+}
+
+function obterIdsPastasComFilhos(
+    nodes: LibraryTreeNode[]
+): number[] {
+    const ids: number[] = [];
+
+    for (const folder of obterPastasDoNivel(nodes)) {
+        if (folder.children.length > 0) {
+            ids.push(folder.id);
+        }
+
+        ids.push(...obterIdsPastasComFilhos(folder.children));
+    }
+
+    return ids;
+}
+
+function encontrarIdsCaminhoPasta(
+    nodes: LibraryTreeNode[],
+    folderId: number,
+    caminhoAtual: number[] = []
+): number[] | null {
+    for (const folder of obterPastasDoNivel(nodes)) {
+        const caminho = [...caminhoAtual, folder.id];
+
+        if (folder.id === folderId) {
+            return caminho;
+        }
+
+        const encontrado = encontrarIdsCaminhoPasta(
+            folder.children,
+            folderId,
+            caminho
+        );
+
+        if (encontrado) {
+            return encontrado;
+        }
+    }
+
+    return null;
+}
+
+function contarNos(nodes: LibraryTreeNode[]): number {
+    return nodes.reduce(
+        (total, node) => total + 1 + (
+            node.type === "folder"
+                ? contarNos(node.children)
+                : 0
+        ),
+        0
+    );
+}
+
 // Converte a árvore completa para o formato independente utilizado pelo
 // LibraryFolderPicker. Bibliotecas são descartadas porque não são destinos.
 function converterParaFolderOptions(
@@ -261,6 +343,26 @@ function converterParaFolderOptions(
         parent_id: folder.parent_id,
         children: converterParaFolderOptions(folder.children),
     }));
+}
+
+function converterParaDestinos(
+    folders: LibraryFolderOption[],
+    depth: number = 0,
+    parentPath: string[] = []
+): FolderDestinationOption[] {
+    return folders.flatMap((folder) => {
+        const path = [...parentPath, folder.name];
+
+        return [
+            {
+                id: folder.id,
+                name: folder.name,
+                depth,
+                path,
+            },
+            ...converterParaDestinos(folder.children, depth + 1, path),
+        ];
+    });
 }
 
 // Localiza uma pasta em qualquer profundidade.
@@ -658,9 +760,19 @@ function LibrariesPanel() {
         [libraryTree]
     );
 
+    const folderDestinationOptions = useMemo(
+        () => converterParaDestinos(folderOptions),
+        [folderOptions]
+    );
+
     const visibleTree = useMemo(
         () => filtrarArvore(libraryTree, librarySearch),
         [libraryTree, librarySearch]
+    );
+
+    const visibleNodeCount = useMemo(
+        () => contarNos(visibleTree),
+        [visibleTree]
     );
 
     const selectedFolderPath = useMemo(() => {
@@ -709,8 +821,11 @@ function LibrariesPanel() {
                 "/libraries/tree"
             );
 
-            const tree: LibraryTreeNode[] =
-                response.data?.tree || [];
+            const tree = ordenarArvore(
+                Array.isArray(response.data?.tree)
+                    ? response.data.tree as LibraryTreeNode[]
+                    : []
+            );
 
             setLibraryTree(tree);
             setLibraryFolderCount(
@@ -1103,9 +1218,49 @@ const carregarRobosDaLibrary = async (
         });
     };
 
+    const expandirTodasPastas = () => {
+        setExpandedFolders(
+            new Set(obterIdsPastasComFilhos(libraryTree))
+        );
+    };
+
+    const recolherTodasPastas = () => {
+        const selectedFolderId = selectedFolder?.id
+            ?? selectedLibrary?.folder_id
+            ?? null;
+
+        if (selectedFolderId === null) {
+            setExpandedFolders(new Set());
+            return;
+        }
+
+        const selectedPath = encontrarIdsCaminhoPasta(
+            libraryTree,
+            selectedFolderId
+        ) || [];
+
+        // Mantém somente os ancestrais necessários para que a seleção atual
+        // não desapareça quando o usuário recolhe o restante do catálogo.
+        setExpandedFolders(new Set(
+            selectedFolder
+                ? selectedPath.slice(0, -1)
+                : selectedPath
+        ));
+    };
+
     const selecionarPasta = (
         folder: LibraryFolderTreeNode
     ) => {
+
+        const path = encontrarIdsCaminhoPasta(
+            libraryTree,
+            folder.id
+        ) || [];
+
+        setExpandedFolders((current) => new Set([
+            ...current,
+            ...path.slice(0, -1),
+        ]));
 
         setSelectedFolder(folder);
 
@@ -1128,6 +1283,18 @@ const carregarRobosDaLibrary = async (
     const selecionarLibrary = async (
         library: LibraryCatalogItem
     ) => {
+
+        if (library.folder_id !== null) {
+            const path = encontrarIdsCaminhoPasta(
+                libraryTree,
+                library.folder_id
+            ) || [];
+
+            setExpandedFolders((current) => new Set([
+                ...current,
+                ...path,
+            ]));
+        }
 
         setSelectedLibrary(
             library
@@ -1460,17 +1627,6 @@ const carregarRobosDaLibrary = async (
     // SELETOR DE PASTA
     // ========================================================
 
-    const abrirPickerCriacaoPasta = () => {
-        setPickerSelectedFolderId(
-            folderDestinationId
-        );
-        setPickerFolderItem(null);
-        setPickerLibraryItem(null);
-        setFolderPickerMode(
-            "folder-create-location"
-        );
-    };
-
     const abrirPickerMoverPasta = (
         folder: LibraryFolderTreeNode
     ) => {
@@ -1524,16 +1680,6 @@ const carregarRobosDaLibrary = async (
 
         // Nos formulários de criação o picker apenas devolve o local.
         // A persistência acontece quando o usuário salva o formulário.
-        if (
-            folderPickerMode === "folder-create-location"
-        ) {
-            setFolderDestinationId(
-                pickerSelectedFolderId
-            );
-            fecharPicker();
-            return;
-        }
-
         if (
             folderPickerMode === "library-create-location"
         ) {
@@ -1843,6 +1989,9 @@ const carregarRobosDaLibrary = async (
                 <div
                     key={`library-${node.id}`}
                     className="library-catalog-node"
+                    role="treeitem"
+                    aria-level={level + 1}
+                    aria-selected={selected}
                 >
                     <div
                         className={`library-catalog-row library-catalog-library-row ${
@@ -1854,16 +2003,18 @@ const carregarRobosDaLibrary = async (
                             paddingLeft: `${12 + level * 22}px`,
                         }}
                     >
-                        <span className="library-catalog-spacer" />
-
                         <button
                             type="button"
                             className="library-catalog-main-button"
+                            aria-pressed={selected}
+                            aria-label={`${node.name}, biblioteca ${node.import_name}`}
                             onClick={(event) => {
                                 event.stopPropagation();
                                 void selecionarLibrary(node);
                             }}
                         >
+                            <span className="library-catalog-spacer" aria-hidden="true" />
+
                             <FileCode2
                                 className="library-catalog-library-icon"
                                 size={16}
@@ -1887,6 +2038,9 @@ const carregarRobosDaLibrary = async (
                                 className="library-catalog-menu-button"
                                 aria-label={`Ações de ${node.name}`}
                                 title="Ações da biblioteca"
+                                aria-haspopup="menu"
+                                aria-expanded={openLibraryMenu === node.id}
+                                aria-controls={`library-actions-${node.id}`}
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     setOpenFolderMenu(null);
@@ -1905,13 +2059,17 @@ const carregarRobosDaLibrary = async (
 
                             {openLibraryMenu === node.id && (
                                 <div
+                                    id={`library-actions-${node.id}`}
                                     className="library-catalog-context-menu"
+                                    role="menu"
+                                    aria-label={`Ações da biblioteca ${node.name}`}
                                     onClick={(event) =>
                                         event.stopPropagation()
                                     }
                                 >
                                     <button
                                         type="button"
+                                        role="menuitem"
                                         onClick={() => {
                                             setOpenLibraryMenu(null);
                                             void selecionarLibrary(node);
@@ -1923,6 +2081,7 @@ const carregarRobosDaLibrary = async (
 
                                     {canEditLibraries && <button
                                         type="button"
+                                        role="menuitem"
                                         onClick={() =>
                                             abrirEdicaoLibrary(node)
                                         }
@@ -1933,6 +2092,7 @@ const carregarRobosDaLibrary = async (
 
                                     {canEditLibraries && <button
                                         type="button"
+                                        role="menuitem"
                                         onClick={() =>
                                             abrirPickerMoverLibrary(node)
                                         }
@@ -1943,6 +2103,7 @@ const carregarRobosDaLibrary = async (
 
                                     {canDeleteLibraries && <button
                                         type="button"
+                                        role="menuitem"
                                         className="library-context-danger"
                                         onClick={() => {
                                             setOpenLibraryMenu(null);
@@ -1975,6 +2136,10 @@ const carregarRobosDaLibrary = async (
             <div
                 key={`folder-${node.id}`}
                 className="library-catalog-node"
+                role="treeitem"
+                aria-level={level + 1}
+                aria-selected={selected}
+                aria-expanded={hasChildren ? expanded : undefined}
             >
                 <div
                     className={`library-catalog-row ${
@@ -1986,7 +2151,7 @@ const carregarRobosDaLibrary = async (
                         paddingLeft: `${12 + level * 22}px`,
                     }}
                 >
-                    {hasChildren ? (
+                    {hasChildren && (
                         <button
                             type="button"
                             className="library-catalog-expand"
@@ -2006,23 +2171,37 @@ const carregarRobosDaLibrary = async (
                                 <ChevronRight size={15} />
                             )}
                         </button>
-                    ) : (
-                        <span className="library-catalog-spacer" />
                     )}
 
                     <button
                         type="button"
                         className="library-catalog-main-button"
+                        aria-pressed={selected}
+                        aria-label={`${node.name}, pasta`}
                         onClick={(event) => {
                             event.stopPropagation();
                             selecionarPasta(node);
                         }}
                     >
-                        <Folder
-                            className="library-catalog-folder-icon"
-                            size={16}
-                            strokeWidth={1.8}
-                        />
+                        {!hasChildren && (
+                            <span className="library-catalog-spacer" aria-hidden="true" />
+                        )}
+
+                        {selected || expanded ? (
+                            <FolderOpen
+                                className="library-catalog-folder-icon"
+                                size={16}
+                                strokeWidth={1.8}
+                                aria-hidden="true"
+                            />
+                        ) : (
+                            <Folder
+                                className="library-catalog-folder-icon"
+                                size={16}
+                                strokeWidth={1.8}
+                                aria-hidden="true"
+                            />
+                        )}
 
                         <span className="library-catalog-text">
                             <strong className="library-catalog-name">
@@ -2030,17 +2209,37 @@ const carregarRobosDaLibrary = async (
                             </strong>
 
                             <small className="library-catalog-child-count">
-                                {node.children.length} itens
+                                <span aria-hidden="true">{node.children.length}</span>
+                                <span className="sr-only">
+                                    {node.children.length === 1 ? "1 item" : `${node.children.length} itens`}
+                                </span>
                             </small>
                         </span>
                     </button>
 
                     {(canCreateLibraries || canEditLibraries || canDeleteLibraries) && <div className="library-catalog-actions">
+                        {canCreateLibraries && (
+                            <button
+                                type="button"
+                                className="library-catalog-quick-add"
+                                aria-label={`Criar subpasta em ${node.name}`}
+                                title="Criar subpasta"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    abrirCriacaoPasta(node.id);
+                                }}
+                            >
+                                <FolderPlus size={16} strokeWidth={1.8} aria-hidden="true" />
+                            </button>
+                        )}
                         <button
                             type="button"
                             className="library-catalog-menu-button"
                             aria-label={`Ações da pasta ${node.name}`}
                             title="Ações da pasta"
+                            aria-haspopup="menu"
+                            aria-expanded={openFolderMenu === node.id}
+                            aria-controls={`library-folder-actions-${node.id}`}
                             onClick={(event) => {
                                 event.stopPropagation();
                                 setOpenLibraryMenu(null);
@@ -2059,13 +2258,17 @@ const carregarRobosDaLibrary = async (
 
                         {openFolderMenu === node.id && (
                             <div
+                                id={`library-folder-actions-${node.id}`}
                                 className="library-catalog-context-menu"
+                                role="menu"
+                                aria-label={`Ações da pasta ${node.name}`}
                                 onClick={(event) =>
                                     event.stopPropagation()
                                 }
                             >
                                 {canCreateLibraries && <button
                                     type="button"
+                                    role="menuitem"
                                     onClick={() =>
                                         abrirCriacaoPasta(node.id)
                                     }
@@ -2076,6 +2279,7 @@ const carregarRobosDaLibrary = async (
 
                                 {canCreateLibraries && <button
                                     type="button"
+                                    role="menuitem"
                                     onClick={() =>
                                         abrirCriacaoLibrary(node.id)
                                     }
@@ -2086,6 +2290,7 @@ const carregarRobosDaLibrary = async (
 
                                 {canEditLibraries && <button
                                     type="button"
+                                    role="menuitem"
                                     onClick={() =>
                                         abrirRenomearPasta(node)
                                     }
@@ -2096,6 +2301,7 @@ const carregarRobosDaLibrary = async (
 
                                 {canEditLibraries && <button
                                     type="button"
+                                    role="menuitem"
                                     onClick={() =>
                                         abrirPickerMoverPasta(node)
                                     }
@@ -2106,6 +2312,7 @@ const carregarRobosDaLibrary = async (
 
                                 {canDeleteLibraries && <button
                                     type="button"
+                                    role="menuitem"
                                     className="library-context-danger"
                                     onClick={() => {
                                         setOpenFolderMenu(null);
@@ -2124,7 +2331,7 @@ const carregarRobosDaLibrary = async (
                 </div>
 
                 {expanded && hasChildren && (
-                    <div className="library-catalog-children">
+                    <div className="library-catalog-children" role="group">
                         {node.children.map((child) =>
                             renderizarNo(child, level + 1)
                         )}
@@ -2140,8 +2347,6 @@ const carregarRobosDaLibrary = async (
 
     const pickerTitle = (() => {
         switch (folderPickerMode) {
-            case "folder-create-location":
-                return "Escolha onde criar a pasta";
             case "folder-move":
                 return "Mover pasta";
             case "library-create-location":
@@ -2155,8 +2360,6 @@ const carregarRobosDaLibrary = async (
 
     const pickerDescription = (() => {
         switch (folderPickerMode) {
-            case "folder-create-location":
-                return "Selecione a pasta pai. A raiz também é um destino válido.";
             case "folder-move":
                 return pickerFolderItem
                     ? `Escolha o novo local de “${pickerFolderItem.name}”.`
@@ -2176,11 +2379,6 @@ const carregarRobosDaLibrary = async (
     // INTERFACE
     // ========================================================
 
-    const folderEditorDialogRef = useDialogFocus<HTMLDivElement>({
-        open: Boolean(folderEditorMode),
-        onClose: fecharFolderEditor,
-        closeOnEscape: !savingFolder,
-    });
     const libraryEditorDialogRef = useDialogFocus<HTMLDivElement>({
         open: Boolean(libraryEditorMode),
         onClose: fecharLibraryEditor,
@@ -2191,6 +2389,82 @@ const carregarRobosDaLibrary = async (
         onClose: () => setConfirmation(null),
         closeOnEscape: !confirmingAction,
     });
+
+    useEffect(() => {
+        if (openFolderMenu === null && openLibraryMenu === null) {
+            return;
+        }
+
+        const menuId = openFolderMenu !== null
+            ? `library-folder-actions-${openFolderMenu}`
+            : `library-actions-${openLibraryMenu}`;
+        const focusFirstItem = window.requestAnimationFrame(() => {
+            document
+                .getElementById(menuId)
+                ?.querySelector<HTMLButtonElement>('[role="menuitem"]')
+                ?.focus();
+        });
+
+        const closeMenus = (event: PointerEvent) => {
+            const target = event.target;
+            if (
+                target instanceof Element &&
+                target.closest(".library-catalog-actions")
+            ) {
+                return;
+            }
+
+            setOpenFolderMenu(null);
+            setOpenLibraryMenu(null);
+        };
+        const closeWithKeyboard = (event: KeyboardEvent) => {
+            const menu = document.getElementById(menuId);
+            const items = menu
+                ? Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+                : [];
+
+            if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) && items.length > 0) {
+                event.preventDefault();
+                const currentIndex = items.findIndex(
+                    (item) => item === document.activeElement
+                );
+                const nextIndex = event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                        ? items.length - 1
+                        : event.key === "ArrowUp"
+                            ? (currentIndex <= 0 ? items.length - 1 : currentIndex - 1)
+                            : (currentIndex + 1) % items.length;
+
+                items[nextIndex]?.focus();
+                return;
+            }
+
+            if (event.key === "Tab") {
+                setOpenFolderMenu(null);
+                setOpenLibraryMenu(null);
+                return;
+            }
+
+            if (event.key !== "Escape") return;
+
+            event.preventDefault();
+            setOpenFolderMenu(null);
+            setOpenLibraryMenu(null);
+            document
+                .querySelector<HTMLButtonElement>(`[aria-controls="${menuId}"]`)
+                ?.focus();
+        };
+
+        document.addEventListener("pointerdown", closeMenus);
+        document.addEventListener("keydown", closeWithKeyboard);
+
+        return () => {
+            window.cancelAnimationFrame(focusFirstItem);
+            document.removeEventListener("pointerdown", closeMenus);
+            document.removeEventListener("keydown", closeWithKeyboard);
+        };
+    }, [openFolderMenu, openLibraryMenu]);
 
     return (
         <div
@@ -2307,38 +2581,30 @@ const carregarRobosDaLibrary = async (
 
                 <div className="libraries-workspace">
                     <aside className="libraries-explorer">
-                        <div className="libraries-explorer-toolbar">
-                            <TextField
-                                label="Buscar no catálogo de bibliotecas"
-                                labelHidden
-                                containerClassName="libraries-search-field"
-                                type="search"
-                                value={librarySearch}
-                                placeholder="Buscar por nome, import ou descrição"
-                                leadingIcon={<Search size={15} strokeWidth={1.8} />}
-                                trailingAction={librarySearch ? (
-                                    <IconButton
-                                        label="Limpar busca de bibliotecas"
-                                        icon={<X size={14} aria-hidden="true" />}
-                                        size="sm"
-                                        onClick={() => setLibrarySearch("")}
-                                    />
-                                ) : undefined}
-                                onChange={(event) => setLibrarySearch(event.target.value)}
-                            />
+                        <FolderTreeToolbar
+                            searchLabel="Buscar no catálogo de bibliotecas"
+                            searchPlaceholder="Buscar por nome, import ou descrição"
+                            searchValue={librarySearch}
+                            clearLabel="Limpar busca de bibliotecas"
+                            summary={(
+                                <>
+                                    <span>{libraryFolderCount} pastas</span>
+                                    <span className="libraries-explorer-stat-separator" />
+                                    <span>{libraryCount} bibliotecas</span>
+                                </>
+                            )}
+                            onSearchChange={setLibrarySearch}
+                            onExpandAll={expandirTodasPastas}
+                            onCollapseAll={recolherTodasPastas}
+                        />
 
-                            <div className="libraries-explorer-stats">
-                                <span>
-                                    {libraryFolderCount} pastas
-                                </span>
-
-                                <span className="libraries-explorer-stat-separator" />
-
-                                <span>
-                                    {libraryCount} bibliotecas
-                                </span>
+                        {librarySearch.trim() && (
+                            <div className="libraries-search-status" role="status">
+                                {visibleNodeCount === 0
+                                    ? "Nenhum item corresponde à pesquisa."
+                                    : `${visibleNodeCount} ${visibleNodeCount === 1 ? "item visível" : "itens visíveis"} com o contexto das pastas.`}
                             </div>
-                        </div>
+                        )}
 
                         <div className="libraries-tree-root">
                             <div className="libraries-tree-root-label">
@@ -2349,7 +2615,11 @@ const carregarRobosDaLibrary = async (
                                 <span>Bibliotecas</span>
                             </div>
 
-                            <div className="libraries-tree-content">
+                            <div
+                                className="libraries-tree-content"
+                                role="tree"
+                                aria-label="Pastas e bibliotecas"
+                            >
                                 {loadingLibraries ? (
                                     <PanelSkeleton lines={4} />
                                 ) : visibleTree.length === 0 ? (
@@ -2948,141 +3218,30 @@ const carregarRobosDaLibrary = async (
                 MODAL - CRIAR / RENOMEAR PASTA
                ================================================== */}
             {folderEditorMode && (folderEditorMode === "create" ? canCreateLibraries : canEditLibraries) && (
-                <div
-                    className="library-modal-backdrop"
-                    role="presentation"
-                    onMouseDown={(event) => {
-                        if (
-                            !savingFolder &&
-                            event.target === event.currentTarget
-                        ) {
-                            fecharFolderEditor();
-                        }
-                    }}
-                >
-                    <div
-                        ref={folderEditorDialogRef}
-                        className="library-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="library-folder-editor-title"
-                        tabIndex={-1}
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <div className="library-modal-header">
-                            <div>
-                                <div className="library-modal-eyebrow">
-                                    CATÁLOGO GLOBAL
-                                </div>
-
-                                <h3 id="library-folder-editor-title">
-                                    {folderEditorMode === "create"
-                                        ? "Nova pasta"
-                                        : "Renomear pasta"}
-                                </h3>
-
-                                <p>
-                                    {folderEditorMode === "create"
-                                        ? "Crie uma pasta organizacional em qualquer nível do catálogo."
-                                        : "Altere somente o nome desta pasta."}
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="library-modal-close"
-                                disabled={savingFolder}
-                                onClick={fecharFolderEditor}
-                                aria-label="Fechar"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <div className="library-modal-body">
-                            <div className="library-modal-field">
-                                <label htmlFor="library-folder-name">
-                                    Nome da pasta
-                                </label>
-
-                                <input
-                                    id="library-folder-name"
-                                    type="text"
-                                    autoFocus
-                                    value={folderName}
-                                    placeholder="Ex.: Financeiro"
-                                    disabled={savingFolder}
-                                    onChange={(event) =>
-                                        setFolderName(event.target.value)
-                                    }
-                                    onKeyDown={(event) => {
-                                        if (event.key === "Enter") {
-                                            void salvarPasta();
-                                        }
-                                    }}
-                                />
-                            </div>
-
-                            {folderEditorMode === "create" && (
-                                <div className="library-modal-location-card">
-                                    <div>
-                                        <span>Local</span>
-                                        <strong>
-                                            {folderDestinationId === null
-                                                ? "Bibliotecas"
-                                                : [
-                                                    "Bibliotecas",
-                                                    ...(encontrarCaminhoPasta(
-                                                        libraryTree,
-                                                        folderDestinationId
-                                                    ) || []),
-                                                ].join(" / ")}
-                                        </strong>
-                                    </div>
-
-                                    <Button variant="secondary"
-                                        disabled={savingFolder}
-                                        onClick={abrirPickerCriacaoPasta}
-                                    >
-                                        <Move size={15} />
-                                        Alterar local
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="library-modal-footer">
-                            <Button variant="secondary"
-                                disabled={savingFolder}
-                                onClick={fecharFolderEditor}
-                            >
-                                Cancelar
-                            </Button>
-
-                            <Button variant="primary"
-                                disabled={
-                                    savingFolder ||
-                                    !folderName.trim()
-                                }
-                                onClick={() => void salvarPasta()}
-                            >
-                                {savingFolder
-                                    ? "Salvando..."
-                                    : folderEditorMode === "create"
-                                        ? "Criar pasta"
-                                        : "Salvar nome"}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                <FolderEditorDialog
+                    idPrefix="library-folder-editor"
+                    mode={folderEditorMode}
+                    eyebrow="Organização do catálogo"
+                    rootLabel="Bibliotecas"
+                    name={folderName}
+                    parentId={folderDestinationId}
+                    options={folderDestinationOptions}
+                    busy={savingFolder}
+                    placeholder="Ex.: Financeiro"
+                    onNameChange={setFolderName}
+                    onParentChange={setFolderDestinationId}
+                    onSubmit={() => void salvarPasta()}
+                    onCancel={fecharFolderEditor}
+                />
             )}
 
             {/* ==================================================
                 MODAL - CRIAR / EDITAR LIBRARY
                ================================================== */}
-            {libraryEditorMode && (libraryEditorMode === "create" ? canCreateLibraries : canEditLibraries) && (
+            {libraryEditorMode && (libraryEditorMode === "create" ? canCreateLibraries : canEditLibraries) && createPortal(
+                <div className="libraries-module library-modal-portal">
                 <div
-                    className="library-modal-backdrop"
+                    className="library-modal-backdrop ui-modal-backdrop"
                     role="presentation"
                     onMouseDown={(event) => {
                         if (
@@ -3095,14 +3254,14 @@ const carregarRobosDaLibrary = async (
                 >
                     <div
                         ref={libraryEditorDialogRef}
-                        className="library-modal library-modal-large"
+                        className="library-modal library-modal-large ui-modal-surface"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="library-editor-title"
                         tabIndex={-1}
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="library-modal-header">
+                        <div className="library-modal-header ui-modal-header">
                             <div>
                                 <div className="library-modal-eyebrow">
                                     BIBLIOTECA REUTILIZÁVEL
@@ -3221,7 +3380,7 @@ const carregarRobosDaLibrary = async (
                             )}
                         </div>
 
-                        <div className="library-modal-footer">
+                        <div className="library-modal-footer ui-modal-footer">
                             <Button variant="secondary"
                                 disabled={savingLibrary}
                                 onClick={fecharLibraryEditor}
@@ -3249,6 +3408,8 @@ const carregarRobosDaLibrary = async (
                         </div>
                     </div>
                 </div>
+                </div>,
+                document.body,
             )}
 
             {/* ==================================================
@@ -3256,7 +3417,7 @@ const carregarRobosDaLibrary = async (
                ================================================== */}
             <LibraryFolderPicker
                 open={folderPickerMode !== null && (
-                    folderPickerMode === "folder-create-location" || folderPickerMode === "library-create-location"
+                    folderPickerMode === "library-create-location"
                         ? canCreateLibraries
                         : canEditLibraries
                 )}
@@ -3281,9 +3442,10 @@ const carregarRobosDaLibrary = async (
             {/* ==================================================
                 CONFIRMAÇÃO PROFISSIONAL DE AÇÃO DESTRUTIVA
                ================================================== */}
-            {confirmation && canDeleteLibraries && (
+            {confirmation && canDeleteLibraries && createPortal(
+                <div className="libraries-module library-modal-portal">
                 <div
-                    className="library-modal-backdrop library-confirm-backdrop"
+                    className="library-modal-backdrop library-confirm-backdrop ui-modal-backdrop"
                     role="presentation"
                     onMouseDown={(event) => {
                         if (
@@ -3296,7 +3458,7 @@ const carregarRobosDaLibrary = async (
                 >
                     <div
                         ref={confirmationDialogRef}
-                        className="library-confirm-modal"
+                        className="library-confirm-modal ui-modal-surface"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="library-confirm-title"
@@ -3351,6 +3513,8 @@ const carregarRobosDaLibrary = async (
                         </div>
                     </div>
                 </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

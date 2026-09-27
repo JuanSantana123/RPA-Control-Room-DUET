@@ -65,15 +65,15 @@ function UserPasswordPanel({
     return (
         <section className="users-panel users-edit-panel">
 
-            <div className="users-panel-header">
+            <div className="users-panel-header ui-panel-header">
 
-                <div className="users-panel-heading">
+                <div className="users-panel-heading ui-panel-header__identity">
 
-                    <div className="users-panel-icon">
+                    <div className="users-panel-icon ui-panel-header__icon">
                         <KeyRound size={18} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
-                    <div>
+                    <div className="ui-panel-header__copy">
 
                         <h2>
                             Alterar senha

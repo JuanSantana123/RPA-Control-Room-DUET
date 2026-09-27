@@ -1,4 +1,5 @@
 import { AlertTriangle, CircleStop, Copy, ListOrdered, X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import { useInteraction } from "../../context/useInteraction";
 import { useDialogFocus } from "../../hooks/ui/useDialogFocus";
@@ -76,13 +77,13 @@ export default function ExecutionDetailsModal({
     }
   };
 
-  return (
-    <div className="execution-modal-overlay" role="presentation" onMouseDown={(event) => {
+  return createPortal(
+    <div className="execution-modal-overlay ui-modal-backdrop" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !busy) onClose();
     }}>
-      <div ref={dialogRef} className="execution-modal" role="dialog" aria-modal="true"
+      <div ref={dialogRef} className="execution-modal ui-modal-surface" role="dialog" aria-modal="true"
         aria-labelledby="execution-details-title" aria-describedby="execution-details-description" tabIndex={-1}>
-        <header className="execution-modal-header">
+        <header className="execution-modal-header ui-modal-header">
           <div className="execution-modal-heading">
             <span className="page-eyebrow">CENTRAL DA EXECUÇÃO</span>
             <div className="execution-modal-title-row">
@@ -167,7 +168,7 @@ export default function ExecutionDetailsModal({
           )}
         </div>
 
-        <footer className="execution-modal-actions">
+        <footer className="execution-modal-actions ui-modal-footer">
           <Button variant="ghost" size="sm" onClick={() => void copyDiagnostics()}>
             <Copy size={15} aria-hidden="true" /> Copiar resumo
           </Button>
@@ -186,6 +187,7 @@ export default function ExecutionDetailsModal({
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -3,6 +3,7 @@
 import { ShieldPlus } from "lucide-react";
 import { Button } from "../ui/Button";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import PageHeader from "../ui/PageHeader";
 // DUET CORE - ROLES - HEADER
 // ============================================================
 //
@@ -49,42 +50,18 @@ function RolesHeader({
     onCreate,
 }: RolesHeaderProps) {
 
-    return (
-        <header className="page-heading roles-page-header">
-
-            <div>
-
-                <p className="page-eyebrow roles-eyebrow">
-                    CONTROLE DE ACESSO
-                </p>
-
-                <h1>
-                    Perfis de acesso
-                </h1>
-
-                <p>
-                    Gerencie os perfis de acesso e suas permissões.
-                </p>
-
-            </div>
-
-
-            {readOnly && <AccessModeBadge />}
-
-            {canCreate && !showCreateForm && (
-
-                <Button
+    const actions = <>
+        {readOnly && <AccessModeBadge />}
+        {canCreate && !showCreateForm && <Button
                     variant="primary"
                     onClick={onCreate}
                 >
                     <ShieldPlus size={17} strokeWidth={1.9} aria-hidden="true" />
                     Novo perfil
-                </Button>
+                </Button>}
+    </>;
 
-            )}
-
-        </header>
-    );
+    return <PageHeader eyebrow="CONTROLE DE ACESSO" title="Perfis de acesso" description="Defina responsabilidades e permissões com clareza e rastreabilidade." actions={actions} />;
 }
 
 

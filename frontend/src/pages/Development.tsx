@@ -172,6 +172,8 @@
     // conecta o painel ao restante da página.
     import CardDetailsPanel
         from "../components/development/kanban/CardDetailsPanel";
+    import PageHeader
+        from "../components/ui/PageHeader";
 
 
 
@@ -277,7 +279,9 @@
     } from "lucide-react";
 
     import {
+        useEffect,
         useMemo,
+        useRef,
         useState,
 
         type MouseEvent,
@@ -292,7 +296,12 @@
     // PÁGINA - DESENVOLVIMENTO
     // ============================================================
 
-    function Development() {
+    interface DevelopmentProps {
+        embedded?: boolean;
+        initialAction?: "new-project";
+    }
+
+    function Development({ embedded = false, initialAction }: DevelopmentProps) {
 
         const navigate = useNavigate();
 
@@ -739,6 +748,20 @@
             },
         });
 
+        const initialActionHandled = useRef(false);
+
+        useEffect(() => {
+            if (
+                initialAction === "new-project" &&
+                permissionsLoaded &&
+                canCreateDevelopment &&
+                !initialActionHandled.current
+            ) {
+                initialActionHandled.current = true;
+                openCreateForm();
+            }
+        }, [canCreateDevelopment, initialAction, openCreateForm, permissionsLoaded]);
+
         // ========================================================
         // DETALHES DOS CARDS DO KANBAN
         // ========================================================
@@ -765,10 +788,12 @@
             cardDueDate,
             cardEffortHours,
             newCardComment,
+            pendingCommentAttachments,
 
             loadingCardDetails,
             savingCardDetails,
             addingCardComment,
+            uploadingCommentAttachment,
             cardDetailsError,
 
             setCardFunctionalResponsibleId,
@@ -782,6 +807,8 @@
             closeCardDetails,
             saveCardDetails,
             addCardComment,
+            uploadCommentAttachment,
+            removeCommentAttachment,
         } = useDevelopmentCardDetails({
             canEditDevelopment,
 
@@ -1195,29 +1222,13 @@
         // ========================================================
 
         return (
-            <div className="page-container development-page">
+            <div className={embedded ? "automation-center__view development-page" : "page-container development-page"}>
 
                 {/* =================================================
                     CABEÇALHO
                 ================================================= */}
 
-                <div className="page-heading">
-                    <div>
-                        <div className="page-eyebrow">
-                            DESENVOLVIMENTO DE AUTOMAÇÕES
-                        </div>
-
-                        <h1>
-                            Desenvolvimento
-                        </h1>
-
-                        <p>
-                            Crie, edite e teste automações antes de publicá-las
-                            para execução em produção.
-                        </p>
-                    </div>
-
-                </div>
+                {!embedded && <PageHeader eyebrow="DESENVOLVIMENTO DE AUTOMAÇÕES" title="Desenvolvimento" description="Crie, teste e publique automações com controle de versão e workflow." />}
 
 
                 {/* =================================================
@@ -1235,7 +1246,7 @@
 
                 {(!permissionsLoaded || canViewDevelopment) && (
                 <>
-                <DevelopmentOverview projects={projects} stages={kanbanStages} />
+                {!showCreateForm && <DevelopmentOverview projects={projects} stages={kanbanStages} />}
                 <section className="content-panel">
 
                     
@@ -1256,6 +1267,10 @@
 
                             showTrash={
                                 showTrash
+                            }
+
+                            creationOpen={
+                                showCreateForm
                             }
 
 
@@ -1351,7 +1366,7 @@
                             }
                         />
 
-                    {!showTrash && (
+                    {!showTrash && !showCreateForm && (
                         <DevelopmentFiltersBar
                             status={statusFilter}
                             origin={originFilter}
@@ -1575,6 +1590,7 @@
                         ============================================= */}
 
                         {!showTrash &&
+                            !showCreateForm &&
                             viewMode === "projects" && (
 
                             <ProjectGrid
@@ -1682,6 +1698,7 @@
                     ============================================= */}
 
                     {!showTrash &&
+                        !showCreateForm &&
                         viewMode === "kanban" && (
 
                         <KanbanBoard
@@ -1919,6 +1936,8 @@
                         newCardComment
                     }
 
+                    pendingCommentAttachments={pendingCommentAttachments}
+
 
                     // Estados operacionais.
                     loading={
@@ -1932,6 +1951,8 @@
                     addingComment={
                         addingCardComment
                     }
+
+                    uploadingCommentAttachment={uploadingCommentAttachment}
 
                     error={
                         cardDetailsError
@@ -1980,6 +2001,10 @@
                     onAddComment={
                         addCardComment
                     }
+
+                    onUploadCommentAttachment={uploadCommentAttachment}
+
+                    onRemoveCommentAttachment={removeCommentAttachment}
                 />
                 {/* =========================================================
                     MODAL - EXECUTAR PROJETO DE DESENVOLVIMENTO

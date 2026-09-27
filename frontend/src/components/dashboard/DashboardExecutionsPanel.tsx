@@ -28,6 +28,7 @@ import type {
     DashboardExecution,
 } from "../../types/dashboard";
 import EmptyState from "../ui/EmptyState";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -55,34 +56,16 @@ function DashboardExecutionsPanel({
                 CABEÇALHO
                 ================================================== */}
 
-            <div className="panel-header">
-
-                <div>
-
-                    <h2>
-                        Execuções em andamento
-                    </h2>
-
-                    <p>
-                        Execuções atualmente processadas pelos dispositivos
-                    </p>
-
-                </div>
-
-
-                <div className="panel-header-meta">
-
-                    <span className="panel-count">
-                        {executions.length}
-                    </span>
-
-                    <span className="panel-count-label">
-                        ativas
-                    </span>
-
-                </div>
-
-            </div>
+            <PanelHeader
+                title="Execuções em andamento"
+                description="Execuções atualmente processadas pelos dispositivos"
+                actions={(
+                    <div className="panel-header-meta">
+                        <span className="panel-count">{executions.length}</span>
+                        <span className="panel-count-label">ativas</span>
+                    </div>
+                )}
+            />
 
 
             {/* ==================================================

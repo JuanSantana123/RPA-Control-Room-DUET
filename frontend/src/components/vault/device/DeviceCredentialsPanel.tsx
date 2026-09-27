@@ -44,7 +44,6 @@ import {
     RefreshCw,
     Search,
     ShieldCheck,
-    X,
 } from "lucide-react";
 
 
@@ -72,10 +71,11 @@ import type {
 
 import { CardGridSkeleton }
     from "../../ui/Skeletons";
-import { Button, IconButton } from "../../ui/Button";
-import { TextField } from "../../ui/TextField";
+import { Button } from "../../ui/Button";
+import SearchField from "../../ui/SearchField";
 import EmptyState from "../../ui/EmptyState";
 import AccessModeBadge from "../../ui/AccessModeBadge";
+import PanelHeader from "../../ui/PanelHeader";
 import { useInteraction } from "../../../context/useInteraction";
 
 
@@ -345,52 +345,17 @@ function DeviceCredentialsPanel({
                 CABEÇALHO INTERNO
                 ================================================== */}
 
-            <div className="device-credentials-panel-header">
-
-                <div>
-
-                    <div className="device-credentials-panel-title">
-
-                        <ShieldCheck
-                            size={18}
-                            aria-hidden="true"
-                        />
-
-                        <h2>
-                            Credenciais de Dispositivo
-                        </h2>
-
-                    </div>
-
-                    <p>
-                        Identidades Windows protegidas para execução
-                        controlada nos Devices.
-                    </p>
-
-                </div>
-
-
-                {canCreate ? <Button
-                    disabled={
-                        creatingCredential
-                    }
-                    onClick={
-                        openCreateForm
-                    }
-                >
-
-                    <Plus
-                        size={16}
-                        aria-hidden="true"
-                    />
-
-                    Nova credencial
-
-                </Button> : (
-                    <AccessModeBadge />
-                )}
-
-            </div>
+            <PanelHeader
+                icon={<ShieldCheck />}
+                title="Credenciais de Dispositivo"
+                description="Identidades Windows protegidas para execução controlada nos Devices."
+                actions={canCreate ? (
+                    <Button disabled={creatingCredential} onClick={openCreateForm}>
+                        <Plus size={16} aria-hidden="true" />
+                        Nova credencial
+                    </Button>
+                ) : <AccessModeBadge />}
+            />
 
 
             {/* ==================================================
@@ -434,23 +399,13 @@ function DeviceCredentialsPanel({
 
             <div className="device-credentials-toolbar">
 
-                <TextField
+                <SearchField
                     label="Buscar credenciais de dispositivo"
-                    labelHidden
                     containerClassName="device-credentials-search"
-                    type="search"
                     value={searchTerm}
                     placeholder="Buscar por nome, domínio ou usuário..."
-                    leadingIcon={<Search size={16} aria-hidden="true" />}
-                    trailingAction={searchTerm ? (
-                        <IconButton
-                            label="Limpar busca de credenciais"
-                            icon={<X size={14} aria-hidden="true" />}
-                            size="sm"
-                            onClick={() => setSearchTerm("")}
-                        />
-                    ) : undefined}
-                    onChange={(event) => setSearchTerm(event.target.value)}
+                    clearLabel="Limpar busca de credenciais"
+                    onValueChange={setSearchTerm}
                 />
 
 
@@ -489,6 +444,7 @@ function DeviceCredentialsPanel({
             ) : credentials.length === 0 ? (
 
                 <EmptyState
+                    fill
                     icon={<ShieldCheck />}
                     title="Nenhuma credencial de dispositivo"
                     description="Crie a primeira identidade Windows para utilização controlada pelos dispositivos."
@@ -503,6 +459,7 @@ function DeviceCredentialsPanel({
             ) : filteredCredentials.length === 0 ? (
 
                 <EmptyState
+                    fill
                     icon={<Search />}
                     title="Nenhuma credencial encontrada"
                     description="Ajuste o termo informado ou limpe a busca para visualizar todas as credenciais."

@@ -60,6 +60,7 @@ import {
 
 import type {
     CardComment,
+    CardCommentAttachment,
     CardUser,
     DevelopmentProject,
 } from "../../types/development";
@@ -126,6 +127,9 @@ interface UseDevelopmentCardDetailsResult {
     newCardComment:
         string;
 
+    pendingCommentAttachments:
+        CardCommentAttachment[];
+
 
     // Estados operacionais.
     loadingCardDetails:
@@ -135,6 +139,9 @@ interface UseDevelopmentCardDetailsResult {
         boolean;
 
     addingCardComment:
+        boolean;
+
+    uploadingCommentAttachment:
         boolean;
 
     cardDetailsError:
@@ -175,6 +182,12 @@ interface UseDevelopmentCardDetailsResult {
 
     addCardComment:
         () => Promise<void>;
+
+    uploadCommentAttachment:
+        (file: File) => Promise<void>;
+
+    removeCommentAttachment:
+        (attachmentId: number) => Promise<void>;
 }
 
 
@@ -258,6 +271,11 @@ function useDevelopmentCardDetails({
     ] =
         useState("");
 
+    const [
+        pendingCommentAttachments,
+        setPendingCommentAttachments,
+    ] = useState<CardCommentAttachment[]>([]);
+
 
     const [
         loadingCardDetails,
@@ -278,6 +296,11 @@ function useDevelopmentCardDetails({
         setAddingCardComment,
     ] =
         useState(false);
+
+    const [
+        uploadingCommentAttachment,
+        setUploadingCommentAttachment,
+    ] = useState(false);
 
 
     const [
@@ -359,6 +382,7 @@ function useDevelopmentCardDetails({
 
 
         setNewCardComment("");
+        setPendingCommentAttachments([]);
         setCardComments([]);
         setCardUsers([]);
         setCardDetailsError("");
@@ -470,6 +494,16 @@ function useDevelopmentCardDetails({
         setCardComments([]);
         setCardDetailsError("");
         setNewCardComment("");
+        const pendingIds = pendingCommentAttachments.map((attachment) => attachment.id);
+        const projectId = selectedCardProject?.id;
+        setPendingCommentAttachments([]);
+        if (projectId && pendingIds.length) {
+            void Promise.allSettled(
+                pendingIds.map((attachmentId) =>
+                    api.delete(`/development/projects/${projectId}/comment-attachments/${attachmentId}`)
+                )
+            );
+        }
     };
 
 
@@ -698,6 +732,7 @@ function useDevelopmentCardDetails({
                     `/development/projects/${selectedCardProject.id}/comments`,
                     {
                         content,
+                        attachment_ids: pendingCommentAttachments.map((attachment) => attachment.id),
                     }
                 );
 
@@ -737,6 +772,7 @@ function useDevelopmentCardDetails({
 
 
             setNewCardComment("");
+            setPendingCommentAttachments([]);
 
 
             // Atualiza o contador apresentado no card do Kanban.
@@ -766,6 +802,53 @@ function useDevelopmentCardDetails({
     };
 
 
+    const uploadCommentAttachment = async (file: File) => {
+        if (!selectedCardProject || !canEditDevelopment || uploadingCommentAttachment) return;
+        if (!file.type.startsWith("image/")) {
+            setCardDetailsError("Selecione uma imagem PNG, JPEG, GIF ou WebP.");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setCardDetailsError("A imagem excede o limite de 5 MB.");
+            return;
+        }
+
+        const body = new FormData();
+        body.append("file", file);
+        try {
+            setUploadingCommentAttachment(true);
+            setCardDetailsError("");
+            const response = await api.post(
+                `/development/projects/${selectedCardProject.id}/comment-attachments`,
+                body,
+            );
+            const attachment: CardCommentAttachment | undefined = response.data?.attachment;
+            if (attachment) {
+                setPendingCommentAttachments((current) => [...current, attachment]);
+            }
+        } catch (err) {
+            setCardDetailsError(getApiErrorMessage(err, "Não foi possível anexar a imagem."));
+        } finally {
+            setUploadingCommentAttachment(false);
+        }
+    };
+
+
+    const removeCommentAttachment = async (attachmentId: number) => {
+        if (!selectedCardProject) return;
+        try {
+            await api.delete(
+                `/development/projects/${selectedCardProject.id}/comment-attachments/${attachmentId}`,
+            );
+            setPendingCommentAttachments((current) =>
+                current.filter((attachment) => attachment.id !== attachmentId)
+            );
+        } catch (err) {
+            setCardDetailsError(getApiErrorMessage(err, "Não foi possível remover a imagem."));
+        }
+    };
+
+
     // ========================================================
     // CONTRATO PÚBLICO
     // ========================================================
@@ -781,10 +864,12 @@ function useDevelopmentCardDetails({
         cardDueDate,
         cardEffortHours,
         newCardComment,
+        pendingCommentAttachments,
 
         loadingCardDetails,
         savingCardDetails,
         addingCardComment,
+        uploadingCommentAttachment,
         cardDetailsError,
 
         setCardFunctionalResponsibleId,
@@ -798,6 +883,8 @@ function useDevelopmentCardDetails({
         closeCardDetails,
         saveCardDetails,
         addCardComment,
+        uploadCommentAttachment,
+        removeCommentAttachment,
     };
 }
 

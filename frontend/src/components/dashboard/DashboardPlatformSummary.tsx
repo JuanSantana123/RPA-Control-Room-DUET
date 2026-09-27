@@ -21,6 +21,8 @@
 import type {
     DashboardStats,
 } from "../../types/dashboard";
+import { Boxes } from "lucide-react";
+import PanelHeader from "../ui/PanelHeader";
 
 
 // ============================================================
@@ -44,21 +46,11 @@ function DashboardPlatformSummary({
     return (
         <div className="dashboard-module">
 
-            <div className="dashboard-module-header">
-
-                <div>
-
-                    <h2>
-                        Resumo da plataforma
-                    </h2>
-
-                    <p>
-                        Indicadores gerais do ambiente
-                    </p>
-
-                </div>
-
-            </div>
+            <PanelHeader
+                icon={<Boxes />}
+                title="Resumo da plataforma"
+                description="Indicadores gerais do ambiente"
+            />
 
 
             <div className="platform-summary">

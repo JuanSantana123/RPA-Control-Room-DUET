@@ -1,5 +1,6 @@
 import { CircleAlert, RefreshCw, Wifi } from "lucide-react";
 import { Button } from "../ui/Button";
+import PageHeader from "../ui/PageHeader";
 
 interface LogsHeaderProps {
   onRefresh: () => void;
@@ -19,13 +20,24 @@ export default function LogsHeader({ onRefresh, refreshing, lastUpdated, hasErro
       : "Conectando";
 
   return (
-    <header className="page-heading logs-page-header">
-      <div>
-        <p className="page-eyebrow logs-page-eyebrow">Observabilidade</p>
-        <h1>Atividade do sistema</h1>
-        <p>Investigue eventos técnicos com atualização automática controlável e referências rastreáveis.</p>
-      </div>
-      <div className="logs-header-actions">
+    <>
+      <PageHeader
+        eyebrow="OBSERVABILIDADE"
+        title="Atividade do sistema"
+        description="Investigue eventos técnicos, falhas e referências de requisição."
+        actions={
+          <Button
+            variant="secondary"
+            onClick={onRefresh}
+            busy={refreshing}
+            loadingLabel="Atualizando registros"
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            Atualizar
+          </Button>
+        }
+      />
+      <div className="page-operational-status logs-operational-status">
         <span
           className={`logs-live-indicator${hasError ? " logs-live-indicator--error" : ""}${!autoRefresh && !hasError ? " logs-live-indicator--paused" : ""}`}
           role="status"
@@ -34,17 +46,7 @@ export default function LogsHeader({ onRefresh, refreshing, lastUpdated, hasErro
           {hasError ? <CircleAlert size={14} aria-hidden="true" /> : <Wifi size={14} aria-hidden="true" />}
           {statusLabel}
         </span>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onRefresh}
-          busy={refreshing}
-          loadingLabel="Atualizando registros"
-        >
-          <RefreshCw size={15} aria-hidden="true" />
-          Atualizar
-        </Button>
       </div>
-    </header>
+    </>
   );
 }

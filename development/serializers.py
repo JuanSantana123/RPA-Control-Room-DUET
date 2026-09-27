@@ -37,6 +37,7 @@ from models import (
     DevelopmentStage,
     ProjectCheckout,
     ProjectComment,
+    ProjectCommentAttachment,
 )
 
 
@@ -274,6 +275,7 @@ def serializar_checkout(
 def serializar_comentario(
     comentario: ProjectComment,
     user_name: str | None = None,
+    attachments: list[ProjectCommentAttachment] | None = None,
 ) -> dict:
     """
     Converte um comentário do Kanban em um dicionário seguro
@@ -292,12 +294,26 @@ def serializar_comentario(
 
     return {
         "id": comentario.id,
+        "event_key": f"comment-{comentario.id}",
+        "kind": "comment",
         "project_id": comentario.project_id,
 
         "user_id": comentario.user_id,
         "user_name": user_name,
 
         "content": comentario.content,
+        "attachments": [
+            {
+                "id": attachment.id,
+                "project_id": attachment.project_id,
+                "comment_id": attachment.comment_id,
+                "name": attachment.original_name,
+                "media_type": attachment.media_type,
+                "size_bytes": attachment.size_bytes,
+                "created_at": attachment.created_at.isoformat() if attachment.created_at else None,
+            }
+            for attachment in (attachments or [])
+        ],
 
         "created_at": (
             comentario.created_at.isoformat()

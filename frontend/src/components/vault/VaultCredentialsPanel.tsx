@@ -36,11 +36,12 @@ import VaultCredentialEditForm
 
 import { CardGridSkeleton }
     from "../ui/Skeletons";
-import { KeyRound, MousePointer2, RefreshCw, Search, X } from "lucide-react";
-import { Button, IconButton } from "../ui/Button";
+import { KeyRound, MousePointer2, RefreshCw, Search } from "lucide-react";
+import { Button } from "../ui/Button";
 import EmptyState from "../ui/EmptyState";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 import AccessModeBadge from "../ui/AccessModeBadge";
+import PanelHeader from "../ui/PanelHeader";
 import { useMemo, useState } from "react";
 
 import type {
@@ -234,65 +235,34 @@ function VaultCredentialsPanel({
                 CABEÇALHO
                 ================================================== */}
 
-            <div className="vault-panel-header">
-
-                <div className="vault-panel-title-group">
-                    <h2>
-                        {selectedFolder
-                            ? `Credenciais — ${selectedFolder.name}`
-                            : "Credenciais"
-                        }
-                    </h2>
-                    {selectedFolder && !loadingCredentials && (
-                        <span>
-                            {credentials.length} {credentials.length === 1 ? "credencial" : "credenciais"}
-                            <i aria-hidden="true" />
-                            {secretFieldCount} {secretFieldCount === 1 ? "segredo" : "segredos"}
-                        </span>
-                    )}
-                </div>
-
-
-                {!canCreate && !canEdit && !canDelete && (
-                    <AccessModeBadge />
+            <PanelHeader
+                icon={<KeyRound />}
+                title={selectedFolder ? `Credenciais — ${selectedFolder.name}` : "Credenciais"}
+                description={selectedFolder && !loadingCredentials
+                    ? `${credentials.length} ${credentials.length === 1 ? "credencial" : "credenciais"} · ${secretFieldCount} ${secretFieldCount === 1 ? "segredo protegido" : "segredos protegidos"}`
+                    : "Selecione uma pasta para consultar suas credenciais."}
+                actions={(
+                    <>
+                        {!canCreate && !canEdit && !canDelete && <AccessModeBadge />}
+                        {canCreate && selectedFolder && selectedFolder.parent_id !== null && (
+                            <Button onClick={onOpenCreate}>
+                                <KeyRound size={15} strokeWidth={1.9} aria-hidden="true" />
+                                Nova credencial
+                            </Button>
+                        )}
+                    </>
                 )}
-
-                {canCreate && selectedFolder &&
-                    selectedFolder.parent_id !==
-                        null && (
-
-                        <Button
-                            onClick={
-                                onOpenCreate
-                            }
-                        >
-                            <KeyRound size={15} strokeWidth={1.9} aria-hidden="true" />
-                            Nova credencial
-                        </Button>
-
-                    )}
-
-            </div>
+            />
 
             {selectedFolder && (
                 <div className="vault-credentials-toolbar">
-                    <TextField
+                    <SearchField
                         label="Buscar credenciais de automação"
-                        labelHidden
                         containerClassName="vault-credentials-search"
-                        type="search"
                         value={query}
                         placeholder="Buscar por nome ou campo não secreto..."
-                        leadingIcon={<Search size={16} aria-hidden="true" />}
-                        trailingAction={query ? (
-                            <IconButton
-                                size="sm"
-                                label="Limpar busca de credenciais"
-                                icon={<X size={14} aria-hidden="true" />}
-                                onClick={() => setQuery("")}
-                            />
-                        ) : undefined}
-                        onChange={(event) => setQuery(event.target.value)}
+                        clearLabel="Limpar busca de credenciais"
+                        onValueChange={setQuery}
                     />
                     <div className="vault-credentials-refresh">
                         {lastUpdatedAt && (
@@ -399,6 +369,7 @@ function VaultCredentialsPanel({
 
                 <EmptyState
                     compact
+                    fill
                     icon={<MousePointer2 />}
                     title="Selecione uma pasta"
                     description="Escolha uma pasta ao lado para visualizar e administrar suas credenciais."
@@ -411,6 +382,7 @@ function VaultCredentialsPanel({
 
                 <EmptyState
                     compact
+                    fill
                     icon={<KeyRound />}
                     title="Nenhuma credencial nesta pasta"
                     description={canCreate
@@ -423,6 +395,7 @@ function VaultCredentialsPanel({
 
                 <EmptyState
                     compact
+                    fill
                     icon={<Search />}
                     title="Nenhuma credencial encontrada"
                     description="A busca considera o nome e apenas campos não secretos desta pasta."

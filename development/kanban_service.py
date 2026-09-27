@@ -34,11 +34,14 @@ import logging
 
 from fastapi import HTTPException
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from models import (
     AutomationProject,
+    DevelopmentStage,
     ProjectComment,
+    ProjectCommentAttachment,
+    ProjectStageHistory,
     User,
 )
 
@@ -565,21 +568,93 @@ def listar_comentarios_projeto_service(
         .all()
     )
 
+    attachment_rows = (
+        db.query(ProjectCommentAttachment)
+        .filter(
+            ProjectCommentAttachment.project_id == project_id,
+            ProjectCommentAttachment.comment_id.is_not(None),
+        )
+        .order_by(ProjectCommentAttachment.created_at.asc(), ProjectCommentAttachment.id.asc())
+        .all()
+    )
+    attachments_by_comment: dict[int, list[ProjectCommentAttachment]] = {}
+    for attachment in attachment_rows:
+        if attachment.comment_id is not None:
+            attachments_by_comment.setdefault(attachment.comment_id, []).append(attachment)
+
     comentarios = [
         serializar_comentario(
             comentario,
             user_name,
+            attachments_by_comment.get(comentario.id, []),
         )
 
         for comentario, user_name
         in registros
     ]
 
+    from_stage = aliased(DevelopmentStage)
+    to_stage = aliased(DevelopmentStage)
+    movimentacoes = (
+        db.query(
+            ProjectStageHistory,
+            User.name.label("user_name"),
+            from_stage.id.label("from_id"),
+            from_stage.code.label("from_code"),
+            from_stage.name.label("from_name"),
+            to_stage.id.label("to_id"),
+            to_stage.code.label("to_code"),
+            to_stage.name.label("to_name"),
+        )
+        .join(User, User.id == ProjectStageHistory.changed_by)
+        .outerjoin(from_stage, from_stage.id == ProjectStageHistory.from_stage_id)
+        .join(to_stage, to_stage.id == ProjectStageHistory.to_stage_id)
+        .filter(ProjectStageHistory.project_id == project_id)
+        .order_by(ProjectStageHistory.changed_at.asc(), ProjectStageHistory.id.asc())
+        .all()
+    )
+
+    eventos_movimentacao = [
+        {
+            "id": historico.id,
+            "event_key": f"stage-movement-{historico.id}",
+            "kind": "stage_movement",
+            "project_id": historico.project_id,
+            "user_id": historico.changed_by,
+            "user_name": user_name,
+            "content": None,
+            "attachments": [],
+            "from_stage": (
+                {"id": from_id, "code": from_code, "name": from_name}
+                if from_id is not None
+                else None
+            ),
+            "to_stage": {"id": to_id, "code": to_code, "name": to_name},
+            "created_at": historico.changed_at.isoformat() if historico.changed_at else None,
+            "updated_at": historico.changed_at.isoformat() if historico.changed_at else None,
+        }
+        for (
+            historico,
+            user_name,
+            from_id,
+            from_code,
+            from_name,
+            to_id,
+            to_code,
+            to_name,
+        ) in movimentacoes
+    ]
+
+    linha_do_tempo = sorted(
+        [*comentarios, *eventos_movimentacao],
+        key=lambda item: (item.get("created_at") or "", item["event_key"]),
+    )
+
     return {
         "status": "success",
         "project_id": project_id,
-        "total": len(comentarios),
-        "comments": comentarios,
+        "total": len(linha_do_tempo),
+        "comments": linha_do_tempo,
     }
 
 
@@ -657,6 +732,33 @@ def adicionar_comentario_projeto_service(
             comentario
         )
 
+        db.flush()
+
+        attachment_ids = list(dict.fromkeys(request.attachment_ids))
+        if len(attachment_ids) != len(request.attachment_ids):
+            raise HTTPException(status_code=400, detail="A lista de anexos contém itens repetidos.")
+
+        attachments: list[ProjectCommentAttachment] = []
+        if attachment_ids:
+            attachments = (
+                db.query(ProjectCommentAttachment)
+                .filter(
+                    ProjectCommentAttachment.id.in_(attachment_ids),
+                    ProjectCommentAttachment.project_id == projeto.id,
+                    ProjectCommentAttachment.uploaded_by == usuario.id,
+                    ProjectCommentAttachment.comment_id.is_(None),
+                )
+                .with_for_update()
+                .all()
+            )
+            if len(attachments) != len(attachment_ids):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Um ou mais anexos não estão disponíveis para este comentário.",
+                )
+            for attachment in attachments:
+                attachment.comment_id = comentario.id
+
         db.commit()
 
         db.refresh(
@@ -696,8 +798,14 @@ def adicionar_comentario_projeto_service(
                 serializar_comentario(
                     comentario,
                     usuario.name,
+                    attachments,
                 ),
         }
+
+    except HTTPException:
+
+        db.rollback()
+        raise
 
     except Exception as error:
 

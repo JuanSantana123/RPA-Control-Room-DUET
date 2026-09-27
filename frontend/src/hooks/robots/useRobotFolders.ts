@@ -42,6 +42,10 @@ import { useInteraction } from "../../context/useInteraction";
 import type {
     RobotFolder,
 } from "../../types/robots";
+import {
+    getRobotFolderAncestorIds,
+    isRobotFolder,
+} from "../../utils/robotFolders";
 
 
 interface UseRobotFoldersParams {
@@ -51,11 +55,16 @@ interface UseRobotFoldersParams {
     setError: React.Dispatch<
         React.SetStateAction<string>
     >;
+
+    setSuccess: React.Dispatch<
+        React.SetStateAction<string>
+    >;
 }
 
 
 export function useRobotFolders({
     setError,
+    setSuccess,
 }: UseRobotFoldersParams) {
 
     const { confirm } = useInteraction();
@@ -169,10 +178,30 @@ export function useRobotFolders({
                 );
 
 
-            // Mantém o contrato usado originalmente pela tela.
-            setFolders(
-                response.data.folders
-            );
+            const payload: unknown = response.data;
+            const responseRecord = typeof payload === "object" && payload !== null
+                ? payload as Record<string, unknown>
+                : null;
+            const receivedFolders = responseRecord?.folders;
+
+            if (responseRecord?.status !== "success" || !Array.isArray(receivedFolders)) {
+                const message = typeof responseRecord?.message === "string"
+                    ? responseRecord.message
+                    : "O Control Room retornou uma resposta inválida ao listar as pastas.";
+                setError(message);
+                return;
+            }
+
+            const validFolders = receivedFolders.filter(isRobotFolder);
+            if (validFolders.length !== receivedFolders.length) {
+                setError("Algumas pastas retornadas pelo Control Room possuem dados inválidos e não puderam ser exibidas.");
+            }
+
+            setFolders(validFolders);
+            setExpandedFolders((current) => {
+                const validIds = new Set(validFolders.map((folder) => folder.id));
+                return new Set([...current].filter((folderId) => validIds.has(folderId)));
+            });
 
         } catch (err) {
 
@@ -251,6 +280,34 @@ export function useRobotFolders({
 
             return novo;
         });
+    };
+
+
+    const expandirTodasPastas = () => {
+        const parentIds = new Set(
+            folders
+                .filter((folder) => folders.some((candidate) => candidate.parent_id === folder.id))
+                .map((folder) => folder.id),
+        );
+
+        setExpandedFolders(parentIds);
+    };
+
+
+    const recolherTodasPastas = () => {
+        const selectedPathIds = selectedFolder
+            ? getRobotFolderAncestorIds(folders, selectedFolder.id)
+            : [];
+
+        setExpandedFolders(new Set(selectedPathIds));
+    };
+
+
+    const revelarPasta = (folderId: number) => {
+        const ancestorIds = getRobotFolderAncestorIds(folders, folderId);
+        if (ancestorIds.length === 0) return;
+
+        setExpandedFolders((current) => new Set([...current, ...ancestorIds]));
     };
 
 
@@ -359,9 +416,10 @@ export function useRobotFolders({
             setCreatingFolder(true);
 
             setError("");
+            setSuccess("");
 
 
-            await api.post(
+            const response = await api.post(
                     "/robot-folders",
                     {
                         name: nome,
@@ -369,6 +427,21 @@ export function useRobotFolders({
                             newFolderParentId,
                     }
                 );
+
+            const payload: unknown = response.data;
+            const responseRecord = typeof payload === "object" && payload !== null
+                ? payload as Record<string, unknown>
+                : null;
+            const createdFolder = responseRecord?.folder;
+
+            if (responseRecord?.status !== "success" || !isRobotFolder(createdFolder)) {
+                setError(
+                    typeof responseRecord?.message === "string"
+                        ? responseRecord.message
+                        : `Não foi possível criar a pasta "${nome}". O Control Room não confirmou a operação.`,
+                );
+                return;
+            }
 
 
             // Se a pasta criada for uma subpasta,
@@ -403,6 +476,12 @@ export function useRobotFolders({
 
 
             await carregarPastas();
+
+            setSuccess(
+                createdFolder.parent_id === null
+                    ? `Pasta "${createdFolder.name}" criada na Raiz de Robôs.`
+                    : `Subpasta "${createdFolder.name}" criada com sucesso.`,
+            );
 
         } catch (err) {
 
@@ -453,11 +532,26 @@ export function useRobotFolders({
         try {
 
             setError("");
+            setSuccess("");
 
 
-            await api.delete(
+            const response = await api.delete(
                 `/robot-folders/${folder.id}`
             );
+
+            const payload: unknown = response.data;
+            const responseRecord = typeof payload === "object" && payload !== null
+                ? payload as Record<string, unknown>
+                : null;
+
+            if (responseRecord?.status !== "success") {
+                setError(
+                    typeof responseRecord?.message === "string"
+                        ? responseRecord.message
+                        : `Não foi possível excluir a pasta "${folder.name}". O Control Room não confirmou a operação.`,
+                );
+                return;
+            }
 
 
             // Mantém a mesma regra existente:
@@ -473,6 +567,7 @@ export function useRobotFolders({
 
 
             await carregarPastas();
+            setSuccess(`Pasta "${folder.name}" excluída com sucesso.`);
 
         } catch (err) {
 
@@ -524,6 +619,9 @@ export function useRobotFolders({
 
         obterSubpastas,
         alternarPasta,
+        expandirTodasPastas,
+        recolherTodasPastas,
+        revelarPasta,
 
         selecionarRaiz,
         selecionarPasta,

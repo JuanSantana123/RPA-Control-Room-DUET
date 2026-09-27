@@ -1,7 +1,7 @@
-import { LayoutGrid, List, Search, Upload, X } from "lucide-react";
+import { LayoutGrid, List, Upload } from "lucide-react";
 import PremiumSelect from "../ui/PremiumSelect";
 import { Button, IconButton } from "../ui/Button";
-import { TextField } from "../ui/TextField";
+import SearchField from "../ui/SearchField";
 
 export type RobotSort = "name-asc" | "name-desc" | "version-desc";
 export type RobotView = "grid" | "list";
@@ -35,23 +35,13 @@ export default function RobotsToolbar({
 }: RobotsToolbarProps) {
   return (
     <div className="robots-toolbar">
-      <TextField
+      <SearchField
         containerClassName="robots-toolbar__search"
         label="Pesquisar robôs nesta localização"
-        labelHidden
-        type="search"
         value={query}
-        leadingIcon={<Search size={16} strokeWidth={1.8} />}
-        trailingAction={query ? (
-          <IconButton
-            size="sm"
-            label="Limpar pesquisa de robôs"
-            icon={<X size={15} aria-hidden="true" />}
-            onClick={() => onQueryChange("")}
-          />
-        ) : undefined}
         placeholder="Pesquisar por nome, arquivo ou versão..."
-        onChange={(event) => onQueryChange(event.target.value)}
+        clearLabel="Limpar pesquisa de robôs"
+        onValueChange={onQueryChange}
       />
 
       <PremiumSelect value={sort} onChange={(event) => onSortChange(event.target.value as RobotSort)} aria-label="Ordenar robôs">

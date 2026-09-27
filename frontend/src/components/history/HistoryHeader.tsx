@@ -19,6 +19,7 @@
 
 import { RefreshCw } from "lucide-react";
 import { Button } from "../ui/Button";
+import PageHeader from "../ui/PageHeader";
 
 // ============================================================
 // COMPONENTE
@@ -31,36 +32,19 @@ interface HistoryHeaderProps {
 
 function HistoryHeader({ refreshing = false, onRefresh }: HistoryHeaderProps) {
 
-    return (
-        <section className="page-heading">
-
-            <div>
-
-                <div className="page-eyebrow">
-                    HISTÓRICO DE EXECUÇÕES
-                </div>
-
-                <h1>
-                    Histórico
-                </h1>
-
-                <p>
-                    Histórico das execuções finalizadas
-                </p>
-
-            </div>
-
-            <Button
+    return <PageHeader
+        eyebrow="HISTÓRICO DE EXECUÇÕES"
+        title="Histórico"
+        description="Consulte as automações finalizadas e investigue seus resultados."
+        actions={<Button
                 onClick={onRefresh}
                 busy={refreshing}
                 loadingLabel="Atualizando histórico"
             >
                 <RefreshCw size={16} aria-hidden="true" />
                 Atualizar
-            </Button>
-
-        </section>
-    );
+            </Button>}
+    />;
 }
 
 

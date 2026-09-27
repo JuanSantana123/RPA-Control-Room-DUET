@@ -26,10 +26,13 @@
 from fastapi import (
     APIRouter,
     Depends,
+    File,
     status,
+    UploadFile,
     WebSocket,
     WebSocketDisconnect,
 )
+from fastapi.responses import FileResponse
 
 from sqlalchemy.orm import Session
 
@@ -51,6 +54,9 @@ from schemas.development import (
     AutomationProjectCreate,
     AutomationProjectCardUpdate,
     ProjectCommentCreate,
+    ProjectActivityListResponse,
+    ProjectCommentAttachmentCreateResponse,
+    ProjectCommentCreateResponse,
     DevelopmentStageMove,
     DevelopmentPublishRequest,
     WorkspaceFileSave,
@@ -90,6 +96,11 @@ from development.kanban_service import (
     atualizar_detalhes_card_service,
     listar_comentarios_projeto_service,
     adicionar_comentario_projeto_service,
+)
+from development.comment_attachments_service import (
+    criar_anexo_comentario_service,
+    excluir_anexo_pendente_service,
+    obter_anexo_comentario_service,
 )
 
 
@@ -415,7 +426,8 @@ def atualizar_detalhes_card(
 
 
 @router.get(
-    "/projects/{project_id}/comments"
+    "/projects/{project_id}/comments",
+    response_model=ProjectActivityListResponse,
 )
 def listar_comentarios_projeto(
     project_id: int,
@@ -438,6 +450,7 @@ def listar_comentarios_projeto(
 @router.post(
     "/projects/{project_id}/comments",
     status_code=status.HTTP_201_CREATED,
+    response_model=ProjectCommentCreateResponse,
 )
 def adicionar_comentario_projeto(
     project_id: int,
@@ -1484,4 +1497,69 @@ def listar_robos_origem_release(
 
     return listar_robos_origem_release_service(
         db=db,
+    )
+
+
+@router.post(
+    "/projects/{project_id}/comment-attachments",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ProjectCommentAttachmentCreateResponse,
+)
+async def anexar_imagem_comentario(
+    project_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario=Depends(require_permission("Development", "edit")),
+):
+    """Recebe uma imagem pendente e a vincula ao usuário e projeto."""
+
+    return await criar_anexo_comentario_service(
+        project_id=project_id,
+        file=file,
+        db=db,
+        usuario=usuario,
+    )
+
+
+@router.delete(
+    "/projects/{project_id}/comment-attachments/{attachment_id}",
+)
+def excluir_imagem_pendente_comentario(
+    project_id: int,
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(require_permission("Development", "edit")),
+):
+    """Remove somente imagens ainda não associadas a um comentário."""
+
+    return excluir_anexo_pendente_service(
+        project_id=project_id,
+        attachment_id=attachment_id,
+        db=db,
+        usuario=usuario,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/comment-attachments/{attachment_id}",
+    response_class=FileResponse,
+)
+def obter_imagem_comentario(
+    project_id: int,
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(require_permission("Development", "view")),
+):
+    """Entrega uma imagem vinculada sem revelar seu caminho físico."""
+
+    path, media_type, filename = obter_anexo_comentario_service(
+        project_id=project_id,
+        attachment_id=attachment_id,
+        db=db,
+    )
+    return FileResponse(
+        path=path,
+        media_type=media_type,
+        filename=filename,
+        headers={"Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff"},
     )

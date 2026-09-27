@@ -166,10 +166,17 @@
 .ui-empty-state--compact { min-height: 156px; gap: 10px; padding: 24px 18px; }
 .ui-empty-state--compact .ui-empty-state__icon { width: 44px; height: 44px; border-radius: 14px; }
 .ui-empty-state--compact .ui-empty-state__icon > svg { width: 20px; height: 20px; }
+.ui-empty-state--fill {
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-self: stretch;
+}
 
 @media (max-width: 640px) {
   .ui-empty-state { min-height: 190px; padding: 28px 18px; }
   .ui-empty-state--compact { min-height: 142px; }
+  .ui-empty-state--fill { min-height: 220px; }
 }
 
 .ui-textarea-field__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -504,6 +511,8 @@ input[type="checkbox"]:focus-visible { outline: 0; box-shadow: var(--shadow-focu
 .ui-switch--compact { min-height: 34px; width: fit-content; gap: 8px; padding: 5px 8px; border-radius: var(--radius-sm); }
 .ui-switch--compact .ui-switch__copy strong { font-size: var(--text-xs); }
 .component-lab__feedback { display: grid; gap: 12px; padding: 20px 20px 0; }
+.component-lab__panel-preview { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.component-lab__panel-preview--selection { display: flex; min-height: 340px; flex-direction: column; }
 .component-lab__feedback .feedback-banner { margin-bottom: 0; }
 .component-lab__skeletons { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 20px; padding: 20px; }
 .component-lab__domain-preview { max-width: 720px; padding: 20px; }
