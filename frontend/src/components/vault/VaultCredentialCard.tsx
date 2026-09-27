@@ -19,8 +19,10 @@
 import type {
     VaultCredential,
 } from "../../types/vault";
-import { LockKeyhole } from "lucide-react";
-import { Button } from "../ui/Button";
+import { Clock3, Copy, EyeOff, LockKeyhole } from "lucide-react";
+import { Button, IconButton } from "../ui/Button";
+import { useInteraction } from "../../context/useInteraction";
+import { parseApiDateTime } from "../../utils/dateTime";
 
 
 // ============================================================
@@ -51,8 +53,29 @@ function VaultCredentialCard({
     onDelete,
 }: VaultCredentialCardProps) {
 
+    const { notify } = useInteraction();
+    const secretCount = credential.fields.filter((field) => field.is_secret).length;
+    const updatedAt = parseApiDateTime(credential.updated_at);
+
+    const copyPublicValue = async (fieldName: string, value: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            notify({
+                tone: "success",
+                title: "Valor copiado",
+                message: `O campo não secreto “${fieldName}” foi copiado.`,
+            });
+        } catch {
+            notify({
+                tone: "danger",
+                title: "Não foi possível copiar",
+                message: "O navegador bloqueou o acesso à área de transferência.",
+            });
+        }
+    };
+
     return (
-        <div className="vault-credential-card">
+        <article className="vault-credential-card">
 
             <div className="vault-credential-header">
 
@@ -96,27 +119,40 @@ function VaultCredentialCard({
             </div>
 
 
-            {credential.fields.map(
-                (field) => (
+            <div className="vault-credential-security-summary">
+                <span>
+                    <EyeOff size={14} aria-hidden="true" />
+                    {secretCount} {secretCount === 1 ? "campo protegido" : "campos protegidos"}
+                </span>
+                <span title={updatedAt?.toLocaleString("pt-BR") || "Data não registrada"}>
+                    <Clock3 size={14} aria-hidden="true" />
+                    {updatedAt ? `Atualizada em ${updatedAt.toLocaleDateString("pt-BR")}` : "Atualização não registrada"}
+                </span>
+            </div>
 
-                    <p key={field.id}>
+            <dl className="vault-credential-fields">
+                {credential.fields.map((field) => (
+                    <div key={field.id ?? field.name} className="vault-credential-field">
+                        <dt>{field.name}</dt>
+                        <dd className={field.is_secret ? "vault-credential-secret-value" : undefined}>
+                            <span title={field.is_secret ? "Valor protegido" : field.value}>
+                                {field.is_secret ? "••••••••" : field.value || "—"}
+                            </span>
+                            {!field.is_secret && field.value && (
+                                <IconButton
+                                    size="sm"
+                                    label={`Copiar ${field.name}`}
+                                    tooltip={`Copiar valor não secreto de ${field.name}`}
+                                    icon={<Copy size={14} aria-hidden="true" />}
+                                    onClick={() => void copyPublicValue(field.name, field.value)}
+                                />
+                            )}
+                        </dd>
+                    </div>
+                ))}
+            </dl>
 
-                        <strong>
-                            {field.name}:
-                        </strong>
-                        {" "}
-
-                        {field.is_secret
-                            ? "********"
-                            : field.value
-                        }
-
-                    </p>
-
-                )
-            )}
-
-        </div>
+        </article>
     );
 }
 

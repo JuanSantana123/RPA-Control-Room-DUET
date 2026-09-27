@@ -50,6 +50,8 @@ export interface VaultCredential {
     id: number;
     name: string;
     folder_id: number;
+    created_at: string | null;
+    updated_at: string | null;
     fields: VaultField[];
 }
 

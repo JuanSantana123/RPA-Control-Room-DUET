@@ -23,6 +23,7 @@
 
 import {
     useCallback,
+    useRef,
     useState,
 } from "react";
 
@@ -71,6 +72,11 @@ export function useVaultCredentials({
         setLoadingCredentials,
     ] = useState(false);
 
+    const [refreshingCredentials, setRefreshingCredentials] = useState(false);
+    const [loadedFolderId, setLoadedFolderId] = useState<number | null>(null);
+    const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+    const requestSequence = useRef(0);
+
 
     // ========================================================
     // CARREGAR CREDENCIAIS
@@ -82,39 +88,46 @@ export function useVaultCredentials({
                 folderId: number
             ) => {
 
+                const sequence = ++requestSequence.current;
+                const isRefresh = loadedFolderId === folderId;
+
                 try {
 
-                    setLoadingCredentials(true);
+                    if (isRefresh) {
+                        setRefreshingCredentials(true);
+                    } else {
+                        setCredentials([]);
+                        setLoadedFolderId(null);
+                        setLoadingCredentials(true);
+                    }
                     setError("");
 
 
                     const response =
                         await api.get(
-                            "/vault/credentials"
+                            "/vault/credentials",
+                            {
+                                params: {
+                                    folder_id: folderId,
+                                },
+                            }
                         );
 
+                    if (sequence !== requestSequence.current) return;
 
-                    const todasCredenciais =
-                        response.data.credentials ||
-                        [];
+                    const folderCredentials = Array.isArray(response.data?.credentials)
+                        ? response.data.credentials.filter(
+                            (credential: VaultCredential) => credential.folder_id === folderId,
+                        )
+                        : [];
 
-
-                    const credenciaisDaPasta =
-                        todasCredenciais.filter(
-                            (
-                                credential:
-                                    VaultCredential
-                            ) =>
-                                credential.folder_id ===
-                                folderId
-                        );
-
-
-                    setCredentials(
-                        credenciaisDaPasta
-                    );
+                    setCredentials(folderCredentials);
+                    setLoadedFolderId(folderId);
+                    setLastUpdatedAt(new Date());
 
                 } catch (err) {
+
+                    if (sequence !== requestSequence.current) return;
 
                     console.error(
                         "Erro ao buscar credenciais do Vault:",
@@ -123,15 +136,23 @@ export function useVaultCredentials({
 
 
                     setError(
-                        "Não foi possível carregar as credenciais."
+                        getApiErrorMessage(
+                            err,
+                            isRefresh
+                                ? "Não foi possível atualizar as credenciais. Os dados anteriores foram preservados."
+                                : "Não foi possível carregar as credenciais desta pasta.",
+                        )
                     );
 
                 } finally {
-
-                    setLoadingCredentials(false);
+                    if (sequence === requestSequence.current) {
+                        setLoadingCredentials(false);
+                        setRefreshingCredentials(false);
+                    }
                 }
             },
             [
+                loadedFolderId,
                 setError,
             ]
         );
@@ -141,10 +162,15 @@ export function useVaultCredentials({
     // LIMPAR CREDENCIAIS
     // ========================================================
 
-    const limparCredenciais =
+        const limparCredenciais =
         () => {
 
+            requestSequence.current += 1;
             setCredentials([]);
+            setLoadedFolderId(null);
+            setLastUpdatedAt(null);
+            setLoadingCredentials(false);
+            setRefreshingCredentials(false);
         };
 
 
@@ -230,6 +256,8 @@ export function useVaultCredentials({
     return {
         credentials,
         loadingCredentials,
+        refreshingCredentials,
+        lastUpdatedAt,
 
         carregarCredenciais,
         limparCredenciais,

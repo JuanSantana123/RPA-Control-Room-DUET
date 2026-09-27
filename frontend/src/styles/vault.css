@@ -476,6 +476,127 @@
 
 }
 
+.vault-panel-title-group {
+    min-width: 0;
+    display: grid;
+    gap: 5px;
+}
+
+.vault-panel-title-group > span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
+.vault-panel-title-group > span i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--color-border-strong);
+}
+
+.vault-credentials-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-surface-muted);
+}
+
+.vault-credentials-search {
+    flex: 1;
+    margin: 0;
+}
+
+.vault-credentials-refresh {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vault-credentials-refresh > span {
+    color: var(--color-text-muted);
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.vault-credential-security-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: -4px 0 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.vault-credential-security-summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
+.vault-credential-security-summary svg {
+    color: var(--color-success);
+}
+
+.vault-credential-fields {
+    margin: 0;
+}
+
+.vault-credential-field {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(110px, 0.45fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    min-height: 40px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-surface-subtle);
+}
+
+.vault-credential-field:last-child {
+    border-bottom: 0;
+}
+
+.vault-credential-field dt {
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vault-credential-field dd {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    margin: 0;
+}
+
+.vault-credential-field dd > span {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vault-credential-secret-value > span {
+    color: var(--color-text-secondary);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    letter-spacing: 0.08em;
+}
+
 @media (max-width: 600px) {
     .vault-page .page-heading {
         align-items: flex-start;
@@ -517,6 +638,26 @@
         align-items: flex-start;
         flex-direction: column;
         gap: 3px;
+    }
+
+    .vault-credentials-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 14px 16px;
+    }
+
+    .vault-credentials-refresh {
+        justify-content: space-between;
+    }
+
+    .vault-credential-field {
+        grid-template-columns: 1fr;
+        gap: 3px;
+        padding: 9px 0;
+    }
+
+    .vault-credential-field dd {
+        justify-content: space-between;
     }
 }
 

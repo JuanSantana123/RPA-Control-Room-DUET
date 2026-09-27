@@ -36,9 +36,11 @@ import VaultCredentialEditForm
 
 import { CardGridSkeleton }
     from "../ui/Skeletons";
-import { KeyRound, MousePointer2 } from "lucide-react";
-import { Button } from "../ui/Button";
+import { KeyRound, MousePointer2, RefreshCw, Search, X } from "lucide-react";
+import { Button, IconButton } from "../ui/Button";
 import EmptyState from "../ui/EmptyState";
+import { TextField } from "../ui/TextField";
+import { useMemo, useState } from "react";
 
 import type {
     EditCredentialField,
@@ -61,6 +63,10 @@ interface VaultCredentialsPanelProps {
 
     loadingCredentials:
         boolean;
+
+    refreshingCredentials: boolean;
+    lastUpdatedAt: Date | null;
+    onRefresh: () => void | Promise<void>;
 
 
     // --------------------------------------------------------
@@ -164,6 +170,9 @@ function VaultCredentialsPanel({
     selectedFolder,
     credentials,
     loadingCredentials,
+    refreshingCredentials,
+    lastUpdatedAt,
+    onRefresh,
 
     showNewCredentialForm,
     newCredentialName,
@@ -190,6 +199,27 @@ function VaultCredentialsPanel({
     onDelete,
 }: VaultCredentialsPanelProps) {
 
+    const [search, setSearch] = useState({ folderId: null as number | null, value: "" });
+    const selectedFolderId = selectedFolder?.id ?? null;
+    const query = search.folderId === selectedFolderId ? search.value : "";
+    const setQuery = (value: string) => setSearch({ folderId: selectedFolderId, value });
+    const filteredCredentials = useMemo(() => {
+        const normalized = query.trim().toLocaleLowerCase("pt-BR");
+        if (!normalized) return credentials;
+        return credentials.filter((credential) =>
+            credential.name.toLocaleLowerCase("pt-BR").includes(normalized)
+            || credential.fields.some((field) =>
+                !field.is_secret
+                && (`${field.name} ${field.value}`).toLocaleLowerCase("pt-BR").includes(normalized),
+            ),
+        );
+    }, [credentials, query]);
+
+    const secretFieldCount = credentials.reduce(
+        (total, credential) => total + credential.fields.filter((field) => field.is_secret).length,
+        0,
+    );
+
     return (
         <section className="vault-credentials-panel">
 
@@ -199,12 +229,21 @@ function VaultCredentialsPanel({
 
             <div className="vault-panel-header">
 
-                <h2>
-                    {selectedFolder
-                        ? `Credenciais — ${selectedFolder.name}`
-                        : "Credenciais"
-                    }
-                </h2>
+                <div className="vault-panel-title-group">
+                    <h2>
+                        {selectedFolder
+                            ? `Credenciais — ${selectedFolder.name}`
+                            : "Credenciais"
+                        }
+                    </h2>
+                    {selectedFolder && !loadingCredentials && (
+                        <span>
+                            {credentials.length} {credentials.length === 1 ? "credencial" : "credenciais"}
+                            <i aria-hidden="true" />
+                            {secretFieldCount} {secretFieldCount === 1 ? "segredo" : "segredos"}
+                        </span>
+                    )}
+                </div>
 
 
                 {selectedFolder &&
@@ -223,6 +262,47 @@ function VaultCredentialsPanel({
                     )}
 
             </div>
+
+            {selectedFolder && (
+                <div className="vault-credentials-toolbar">
+                    <TextField
+                        label="Buscar credenciais de automação"
+                        labelHidden
+                        containerClassName="vault-credentials-search"
+                        type="search"
+                        value={query}
+                        placeholder="Buscar por nome ou campo não secreto..."
+                        leadingIcon={<Search size={16} aria-hidden="true" />}
+                        trailingAction={query ? (
+                            <IconButton
+                                size="sm"
+                                label="Limpar busca de credenciais"
+                                icon={<X size={14} aria-hidden="true" />}
+                                onClick={() => setQuery("")}
+                            />
+                        ) : undefined}
+                        onChange={(event) => setQuery(event.target.value)}
+                    />
+                    <div className="vault-credentials-refresh">
+                        {lastUpdatedAt && (
+                            <span title={lastUpdatedAt.toLocaleString("pt-BR")}>
+                                Atualizado às {lastUpdatedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                        )}
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            busy={refreshingCredentials}
+                            loadingLabel="Atualizando credenciais"
+                            disabled={loadingCredentials}
+                            onClick={() => void onRefresh()}
+                        >
+                            <RefreshCw size={15} aria-hidden="true" />
+                            Atualizar
+                        </Button>
+                    </div>
+                </div>
+            )}
 
 
             {/* ==================================================
@@ -325,11 +405,21 @@ function VaultCredentialsPanel({
                     description="Adicione a primeira credencial para disponibilizá-la às automações autorizadas."
                 />
 
+            ) : filteredCredentials.length === 0 ? (
+
+                <EmptyState
+                    compact
+                    icon={<Search />}
+                    title="Nenhuma credencial encontrada"
+                    description="A busca considera o nome e apenas campos não secretos desta pasta."
+                    action={<Button size="sm" onClick={() => setQuery("")}>Limpar busca</Button>}
+                />
+
             ) : (
 
                 <div className="vault-credentials-list">
 
-                    {credentials.map(
+                    {filteredCredentials.map(
                         (credential) => (
 
                             <VaultCredentialCard

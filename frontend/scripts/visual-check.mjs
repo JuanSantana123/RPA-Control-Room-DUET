@@ -42,6 +42,8 @@ const allCases = [
   { name: "schedules-modal-768-light", route: "/schedules", width: 768, height: 720, colorScheme: "light", authenticated: true, interaction: "schedule-modal" },
   { name: "vault-390-dark", route: "/vault", width: 390, height: 844, colorScheme: "dark", authenticated: true },
   { name: "vault-1440-light", route: "/vault", width: 1440, height: 1000, colorScheme: "light", authenticated: true },
+  { name: "vault-automation-data-390-light", route: "/vault", width: 390, height: 844, colorScheme: "light", authenticated: true, vaultData: true, interaction: "vault-automation-data" },
+  { name: "vault-automation-data-1440-dark", route: "/vault", width: 1440, height: 1000, colorScheme: "dark", authenticated: true, vaultData: true, interaction: "vault-automation-data" },
   { name: "roles-1440-dark", route: "/roles", width: 1440, height: 1000, colorScheme: "dark", authenticated: true },
   { name: "users-390-light", route: "/users", width: 390, height: 844, colorScheme: "light", authenticated: true },
   { name: "logs-390-light", route: "/logs", width: 390, height: 844, colorScheme: "light", authenticated: true },
@@ -129,6 +131,25 @@ try {
                 { library_id: 8, name: "Integração Bancária", import_name: "duet_bank", library_version_id: 19, version: "2.4.0", is_current_production: true },
                 { library_id: 11, name: "Documentos Fiscais", import_name: "duet_fiscal", library_version_id: 22, version: "1.8.2", is_current_production: false },
               ] }
+          : pathname === "/vault/folders"
+            ? { status: "success", folders: testCase.vaultData ? [
+                { id: 4, name: "Financeiro", parent_id: null, children: [
+                  { id: 7, name: "Produção", parent_id: 4, children: [] },
+                ] },
+              ] : [] }
+          : pathname === "/vault/credentials"
+            ? { status: "success", credentials: testCase.vaultData ? [
+                { id: 21, name: "ERP Financeiro", folder_id: 7, created_at: "2026-06-12T10:00:00Z", updated_at: "2026-09-25T16:40:00Z", fields: [
+                  { id: 81, name: "Usuário", value: "svc.duet.financeiro", is_secret: false },
+                  { id: 82, name: "Senha", value: "********", is_secret: true },
+                  { id: 83, name: "Tenant", value: "BR-SP-01", is_secret: false },
+                ] },
+                { id: 22, name: "Portal Bancário", folder_id: 7, created_at: "2026-07-08T09:30:00Z", updated_at: "2026-09-20T13:15:00Z", fields: [
+                  { id: 84, name: "Login", value: "tesouraria.rpa", is_secret: false },
+                  { id: 85, name: "Senha", value: "********", is_secret: true },
+                  { id: 86, name: "Token MFA", value: "********", is_secret: true },
+                ] },
+              ] : [] }
           : pathname === "/schedules"
               ? { status: "success", total: testCase.scheduleData ? 1 : 0, schedules: testCase.scheduleData ? [{ id: 18, robot_id: 12, robot_name: "Conciliação financeira", agent_id: null, agent_name: "Automático", tipo: "daily", data_inicio: "2026-09-20T08:00:00", horario: "08:00", dias_semana: null, ativo: true, proxima_execucao: "2026-09-27T08:00:00", ultima_execucao: "2026-09-25T08:00:05", intervalo_ativo: false, intervalo_valor: null, intervalo_unidade: null, horario_fim: null, misfire_policy: "skip", misfire_grace_seconds: 600, ultima_ocorrencia_perdida: "2026-09-26T08:00:00" }] : [] }
             : pathname === "/schedules/options"
@@ -206,6 +227,23 @@ try {
         && await dialog.getByText("Vigente", { exact: true }).isVisible()
         && await dialog.getByText("Integração Bancária").isVisible()
         && await dialog.getByRole("button", { name: "Baixar v3" }).isVisible();
+      await page.waitForTimeout(180);
+    }
+    let vaultAutomationWorks = null;
+    if (testCase.interaction === "vault-automation-data") {
+      const credentialRequest = page.waitForRequest((request) => {
+        const url = new URL(request.url());
+        return url.pathname === "/vault/credentials" && url.searchParams.get("folder_id") === "7";
+      });
+      await page.getByRole("button", { name: "Produção", exact: true }).click();
+      await credentialRequest;
+      await page.getByText("ERP Financeiro", { exact: true }).waitFor();
+      const search = page.getByRole("searchbox", { name: "Buscar credenciais de automação" });
+      await search.fill("tesouraria");
+      vaultAutomationWorks = await page.locator(".vault-credential-card").count() === 1
+        && await page.getByText("Portal Bancário", { exact: true }).isVisible()
+        && await page.getByText("2 campos protegidos", { exact: true }).isVisible()
+        && await page.getByRole("button", { name: "Copiar Login" }).isVisible();
       await page.waitForTimeout(180);
     }
     let filterNavigationWorks = null;
@@ -358,13 +396,13 @@ try {
     }
 
     await page.screenshot({ path: path.join(outputDir, `${testCase.name}.png`), fullPage: true });
-    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
+    results.push({ ...testCase, ...metrics, rendered: true, rootUploadAvailable, schedulePolicyWorks, mobileNavigation, scheduleRecoveryWorks, robotVersionsWorks, vaultAutomationWorks, filterNavigationWorks, executionDetailsWorks, executionQueueDetailsWorks, logsExplorerWorks, agentMaintenanceWorks, agentMaintenanceEditorWorks, agentHealthAttentionWorks, consoleErrors, pageErrors, unavailableApiRequests });
     await context.close();
   }
 } finally {
   await browser.close();
 }
 
-const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
+const failures = results.filter((result) => result.rendered === false || result.horizontalOverflow || result.overflowingDialogs || result.unlabelledFields || result.unnamedButtons || result.undersizedTargets?.length || result.decorativeHeaderIcons || result.unstyledSearchFields || result.legacyEmptyStates || !result.reducedMotionSafe || result.language !== "pt-BR" || result.consoleErrors.length || result.pageErrors.length || result.mobileNavigation === false || result.rootUploadAvailable === false || result.schedulePolicyWorks === false || result.scheduleRecoveryWorks === false || result.robotVersionsWorks === false || result.vaultAutomationWorks === false || result.filterNavigationWorks === false || result.executionDetailsWorks === false || result.executionQueueDetailsWorks === false || result.logsExplorerWorks === false || result.agentMaintenanceWorks === false || result.agentMaintenanceEditorWorks === false || result.agentHealthAttentionWorks === false);
 console.log(JSON.stringify({ results, failures: failures.length }, null, 2));
 if (failures.length) process.exitCode = 1;

@@ -105,6 +105,7 @@ import {
 import type {
     VaultFolder,
 } from "../types/vault";
+import FeedbackBanner from "../components/ui/FeedbackBanner";
 
 
 // ============================================================
@@ -171,6 +172,8 @@ function Vault() {
     const {
         credentials,
         loadingCredentials,
+        refreshingCredentials,
+        lastUpdatedAt,
 
         carregarCredenciais,
         limparCredenciais,
@@ -527,9 +530,13 @@ function Vault() {
 
             {error && (
 
-                <div className="alert-message error">
-                    {error}
-                </div>
+                <FeedbackBanner
+                    tone="error"
+                    title="Não foi possível concluir a operação"
+                    message={error}
+                    hint="Nenhum segredo é removido ou alterado quando uma consulta falha."
+                    onDismiss={() => setError("")}
+                />
 
             )}
 
@@ -540,9 +547,12 @@ function Vault() {
 
             {successMessage && (
 
-                <div className="alert-message success">
-                    {successMessage}
-                </div>
+                <FeedbackBanner
+                    tone="success"
+                    title="Operação concluída"
+                    message={successMessage}
+                    onDismiss={() => setSuccessMessage("")}
+                />
 
             )}
 
@@ -601,6 +611,11 @@ function Vault() {
                     loadingCredentials={
                         loadingCredentials
                     }
+                    refreshingCredentials={refreshingCredentials}
+                    lastUpdatedAt={lastUpdatedAt}
+                    onRefresh={() => selectedFolder
+                        ? carregarCredenciais(selectedFolder.id)
+                        : Promise.resolve()}
 
                     // ----------------------------------------------
                     // CRIAÇÃO
