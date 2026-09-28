@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Baixar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Inicializar CodeQL
         uses: github/codeql-action/init@v3
@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Baixar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Bloquear novas vulnerabilidades altas
         uses: actions/dependency-review-action@v4
