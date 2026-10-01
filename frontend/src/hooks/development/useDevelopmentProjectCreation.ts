@@ -57,6 +57,7 @@ import {
 
 
 import type {
+    CreateDevelopmentProjectOptions,
     DevelopmentProject,
     OriginRobot,
     OriginRobotFolder,
@@ -176,7 +177,10 @@ interface UseDevelopmentProjectCreationResult {
         () => void;
 
     createProject:
-        () => Promise<void>;
+        (
+            options?:
+                CreateDevelopmentProjectOptions
+        ) => Promise<void>;
 }
 
 
@@ -454,7 +458,11 @@ function useDevelopmentProjectCreation({
     // CRIAR AUTOMATION PROJECT
     // ========================================================
 
-    const createProject = async () => {
+    const createProject =
+        async (
+            options?:
+                CreateDevelopmentProjectOptions
+        ) => {
 
         if (!canCreateDevelopment) {
             return;
@@ -465,17 +473,31 @@ function useDevelopmentProjectCreation({
             newProjectName.trim();
 
 
-        // Mantém exatamente as validações atuais:
+        const templateVersionId =
+            options
+                ?.templateVersionId ??
+            null;
+
+
+        // Mantém as validações existentes e acrescenta somente
+        // a origem Template:
         //
         // - título obrigatório;
         // - bloqueia duplo POST;
-        // - Robot obrigatório quando origem = existing.
+        // - Robot obrigatório quando origem = existing;
+        // - versão de Template obrigatória quando origem = template.
         if (
             !name ||
             creatingProject ||
             (
-                projectOriginMode === "existing" &&
+                projectOriginMode ===
+                    "existing" &&
                 !baseRobotId
+            ) ||
+            (
+                projectOriginMode ===
+                    "template" &&
+                !templateVersionId
             )
         ) {
             return;
@@ -494,13 +516,32 @@ function useDevelopmentProjectCreation({
             );
 
 
-            const response =
-                await api.post(
-                    "/development/projects",
-                    {
+            // ====================================================
+            // ENDPOINT / PAYLOAD CONFORME A ORIGEM
+            // ====================================================
+            //
+            // Novo ou Robot existente:
+            //     preserva POST /development/projects.
+            //
+            // Template:
+            //     utiliza POST /templates/projects para evitar
+            //     alterar o schema HTTP já utilizado pelo fluxo
+            //     existente de Development.
+            // ====================================================
+
+            const endpoint =
+                projectOriginMode ===
+                    "template"
+                    ? "/templates/projects"
+                    : "/development/projects";
+
+
+            const payload =
+                projectOriginMode ===
+                    "template"
+                    ? {
                         // Título da demanda.
                         name,
-
 
                         // Descrição continua opcional.
                         description:
@@ -508,12 +549,29 @@ function useDevelopmentProjectCreation({
                                 .trim() ||
                             null,
 
-
                         // Nesta arquitetura o projeto continua
                         // nascendo na raiz de Desenvolvimento.
                         folder_id:
                             null,
 
+                        // Snapshot exato escolhido no catálogo.
+                        template_version_id:
+                            templateVersionId,
+                    }
+                    : {
+                        // Título da demanda.
+                        name,
+
+                        // Descrição continua opcional.
+                        description:
+                            newProjectDescription
+                                .trim() ||
+                            null,
+
+                        // Nesta arquitetura o projeto continua
+                        // nascendo na raiz de Desenvolvimento.
+                        folder_id:
+                            null,
 
                         // Novo Robô:
                         //     null
@@ -522,12 +580,18 @@ function useDevelopmentProjectCreation({
                         //     ID do Robot de Produção selecionado.
                         base_robot_id:
                             projectOriginMode ===
-                            "existing"
+                                "existing"
                                 ? Number(
                                     baseRobotId
                                 )
                                 : null,
-                    }
+                    };
+
+
+            const response =
+                await api.post(
+                    endpoint,
+                    payload
                 );
 
 
@@ -590,7 +654,6 @@ function useDevelopmentProjectCreation({
             );
         }
     };
-
 
     // ========================================================
     // CONTRATO PÚBLICO

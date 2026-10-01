@@ -55,6 +55,8 @@ import { useRobotStudioLibraries } from "../hooks/robot-studio/useRobotStudioLib
 
 import RobotStudioTerminal from
     "../components/robot-studio/RobotStudioTerminal";
+import DevelopmentLibraryImportModal from
+    "../components/robot-studio/libraries/DevelopmentLibraryImportModal";
 import LibraryActionsModal from "../components/robot-studio/libraries/LibraryActionsModal";
 import AddExistingLibrariesModal from "../components/robot-studio/libraries/AddExistingLibrariesModal";
 import CreateLibraryModal from "../components/robot-studio/libraries/CreateLibraryModal";
@@ -257,10 +259,22 @@ function RobotStudio() {
         libraryCreateError,
         setLibraryCreateError,
         creatingLibrary,
+
+        showImportLibrary,
+        setShowImportLibrary,
+
+        importingLibrary,
+        importLibraryError,
+        setImportLibraryError,
+
         suggestImportName,
         abrirGerenciamentoBibliotecas,
         abrirCriacaoBiblioteca,
         criarBibliotecaProjeto,
+
+        abrirImportacaoBiblioteca,
+        importarBibliotecaProjeto,
+
         abrirBibliotecasExistentes,
         alternarBibliotecaExistente,
         selecionarVersaoBibliotecaExistente,
@@ -1357,9 +1371,22 @@ function RobotStudio() {
                 canViewLibraries={canViewLibraries}
                 canUseLibrary={canUseLibrary}
                 styles={styles}
-                onClose={() => setShowLibraryActions(false)}
-                onCreateLibrary={abrirCriacaoBiblioteca}
-                onAddExistingLibraries={abrirBibliotecasExistentes}
+
+                onClose={() =>
+                    setShowLibraryActions(false)
+                }
+
+                onCreateLibrary={
+                    abrirCriacaoBiblioteca
+                }
+
+                onImportLibrary={
+                    abrirImportacaoBiblioteca
+                }
+
+                onAddExistingLibraries={
+                    abrirBibliotecasExistentes
+                }
             />
 
             <AddExistingLibrariesModal
@@ -1394,6 +1421,63 @@ function RobotStudio() {
                 onClearError={() => setLibraryCreateError("")}
                 onSuggestImportName={suggestImportName}
                 onCreateLibrary={criarBibliotecaProjeto}
+            />
+
+            <DevelopmentLibraryImportModal
+                open={showImportLibrary}
+                busy={importingLibrary}
+                error={importLibraryError}
+                suggestImportName={suggestImportName}
+                onCancel={() => {
+
+                    if (importingLibrary) {
+                        return;
+                    }
+
+                    setImportLibraryError("");
+
+                    setShowImportLibrary(false);
+                }}
+                onImport={importarBibliotecaProjeto}
+            />
+
+                        <DevelopmentLibraryImportModal
+                open={
+                    showImportLibrary
+                }
+
+                busy={
+                    importingLibrary
+                }
+
+                error={
+                    importLibraryError
+                }
+
+                suggestImportName={
+                    suggestImportName
+                }
+
+                onCancel={() => {
+
+                    if (
+                        importingLibrary
+                    ) {
+                        return;
+                    }
+
+                    setImportLibraryError(
+                        ""
+                    );
+
+                    setShowImportLibrary(
+                        false
+                    );
+                }}
+
+                onImport={
+                    importarBibliotecaProjeto
+                }
             />
             {/* =================================================
                 STATUS BAR
@@ -2087,9 +2171,12 @@ const styles: RobotStudioStyles = {
 
     libraryChoiceGrid: {
         padding: 22,
+
         display: "grid",
+
         gridTemplateColumns:
-            "repeat(2, minmax(0, 1fr))",
+            "repeat(3, minmax(0, 1fr))",
+
         gap: 12,
     },
 

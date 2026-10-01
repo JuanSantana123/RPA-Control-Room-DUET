@@ -1,0 +1,236 @@
+/* ============================================================
+   LibraryUsage
+   Utilização: robôs vinculados, versões e estados de carregamento.
+
+   Escopo: .libraries-module.
+   A ordem das regras preserva a cascata do CSS de origem.
+   Estados e condições diferentes continuam em blocos próprios.
+   Cores e variáveis existentes foram preservadas nesta extração.
+   ============================================================ */
+
+.libraries-module .library-usage-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-surface);
+}
+
+.libraries-module .library-usage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 13px;
+}
+
+.libraries-module .library-usage-header > div:first-child {
+    min-width: 0;
+}
+
+.libraries-module .library-usage-header h4 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.libraries-module .library-usage-header p {
+    margin: 3px 0 0;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.libraries-module .library-usage-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.libraries-module .library-usage-list {
+    display: grid;
+    gap: 7px;
+}
+
+.libraries-module .library-usage-row {
+    min-height: 52px;
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr)
+        minmax(110px, 150px)
+        auto;
+    align-items: center;
+    gap: 16px;
+    padding: 9px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: var(--color-surface);
+    transition: border-color 0.15s ease,
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.libraries-module .library-usage-row:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-surface-muted);
+    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.035);
+}
+
+.libraries-module .library-usage-robot {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.libraries-module .library-usage-robot strong {
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 11px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-usage-robot span {
+    color: var(--color-text-muted);
+    font-size: 9px;
+    font-weight: 550;
+}
+
+.libraries-module .library-usage-version {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.libraries-module .library-usage-version span {
+    color: var(--color-text-muted);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.libraries-module .library-usage-version strong {
+    min-width: 52px;
+    height: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+    border: 1px solid var(--color-primary-soft);
+    border-radius: 7px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-family: "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.libraries-module .library-usage-status-current,
+.libraries-module .library-usage-status-previous {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 23px;
+    padding: 3px 7px;
+    border: 1px solid;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.libraries-module .library-usage-status-current {
+    border-color: color-mix(in srgb, var(--color-success) 30%, var(--color-border));
+    background: var(--color-success-soft);
+    color: var(--color-success);
+}
+
+.libraries-module .library-usage-status-previous {
+    border-color: var(--color-border);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+}
+
+.libraries-module .library-usage-state {
+    padding: 25px 14px;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    text-align: center;
+}
+
+.libraries-module .library-usage-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border: 1px dashed var(--color-border);
+    border-radius: 9px;
+    background: var(--color-surface-muted);
+}
+
+.libraries-module .library-usage-empty strong {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.libraries-module .library-usage-empty span {
+    color: var(--color-text-muted);
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-usage-section {
+        padding: 16px 18px;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-usage-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-usage-header-meta {
+        width: 100%;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-usage-row {
+        grid-template-columns: minmax(0, 1fr)
+                auto;
+        grid-template-areas: "robot status"
+                "version version";
+        gap: 8px 12px;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-usage-robot {
+        grid-area: robot;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-usage-version {
+        grid-area: version;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-usage-status-current,
+    .libraries-module .library-usage-status-previous {
+        grid-area: status;
+    }
+}

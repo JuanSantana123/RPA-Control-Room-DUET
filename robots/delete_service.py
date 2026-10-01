@@ -13,7 +13,7 @@
 from pathlib import Path
 
 from fastapi import HTTPException
-
+from sqlalchemy import or_
 from database import SessionLocal
 from models import (
     Robot,
@@ -372,13 +372,18 @@ def delete_robot_service(
         projetos_ativos = (
             db.query(AutomationProject)
             .filter(
+                # O projeto precisa realmente estar ativo na área
+                # de Desenvolvimento para bloquear a exclusão.
+                AutomationProject.is_active == 1,
+
+                # Precisa ter sido criado a partir deste Robot.
                 AutomationProject.base_robot_id ==
                     robot.id,
 
-                # Projeto já publicado não é mais um workspace
-                # ativo de alteração do Robot.
+                # Projetos já publicados são apenas histórico e
+                # também não bloqueiam o hard delete.
                 AutomationProject.status !=
-                    "published"
+                    "published",
             )
             .all()
         )
@@ -437,21 +442,47 @@ def delete_robot_service(
         # base_version continua preservado no projeto.
         # --------------------------------------------------------
 
-        projetos_publicados_desvinculados = (
+        # --------------------------------------------------------
+        # PROJETOS QUE NÃO BLOQUEIAM A EXCLUSÃO
+        # --------------------------------------------------------
+        #
+        # Dois tipos de projeto não devem impedir o hard delete:
+        #
+        # 1. projetos já publicados;
+        # 2. projetos enviados para a Lixeira.
+        #
+        # O vínculo técnico base_robot_id é removido porque o Robot
+        # deixará de existir.
+        #
+        # O histórico continua preservado através de:
+        #
+        #     base_robot_name
+        #     base_version
+        #
+        # Portanto o projeto continua sabendo de qual Robot e versão
+        # ele nasceu, mesmo depois da exclusão do Robot.
+        # --------------------------------------------------------
+
+        projetos_desvinculados = (
             db.query(AutomationProject)
             .filter(
                 AutomationProject.base_robot_id ==
                     robot.id,
 
-                AutomationProject.status ==
-                    "published"
+                or_(
+                    AutomationProject.status ==
+                        "published",
+
+                    AutomationProject.is_active ==
+                        0,
+                ),
             )
             .update(
                 {
                     AutomationProject.base_robot_id:
                         None
                 },
-                synchronize_session=False
+                synchronize_session=False,
             )
         )
         # 5. PRESERVA LIBRARYVERSIONS ORIGINADAS DO ROBOT
@@ -710,8 +741,14 @@ def delete_robot_service(
 
             # Projetos históricos publicados que deixaram de
             # apontar para o Robot removido.
-            "published_projects_detached":
-                projetos_publicados_desvinculados,
+            # Quantidade de projetos históricos que foram desvinculados
+            # do Robot durante o hard delete.
+            #
+            # Inclui:
+            # - projetos já publicados;
+            # - projetos enviados para a Lixeira.
+            "projects_detached":
+                projetos_desvinculados,
 
             # LibraryVersions preservadas cuja referência histórica
             # source_robot_id foi removida.

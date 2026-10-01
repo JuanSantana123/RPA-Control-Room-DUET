@@ -35,6 +35,7 @@ import RobotsGrid from "../components/robots/RobotsGrid";
 import RobotsOverview from "../components/robots/RobotsOverview";
 import RobotsToolbar, { type RobotSort, type RobotView } from "../components/robots/RobotsToolbar";
 import RobotVersionsDialog from "../components/robots/RobotVersionsDialog";
+import RobotExportDialog from "../components/robots/RobotExportDialog";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { Button } from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
@@ -58,6 +59,8 @@ import {
     useRobotLibraries,
 } from "../hooks/robots/useRobotLibraries";
 import { useRobotVersions } from "../hooks/robots/useRobotVersions";
+import { useRobotExport } from "../hooks/robots/useRobotExport";
+import { useRobotImport } from "../hooks/robots/useRobotImport";
 import { getRobotFolderPath } from "../utils/robotFolders";
 
 // ============================================================
@@ -73,6 +76,7 @@ interface RobotsProps {
 function Robots({ embedded = false }: RobotsProps) {
 
     const { can } = useAuth();
+    const canViewRobots = can("Robots:view");
     const canCreateRobots = can("Robots:create");
     const canDeleteRobots = can("Robots:delete");
     const canExecuteRobots = can("Executions:execute");
@@ -221,7 +225,35 @@ function Robots({ embedded = false }: RobotsProps) {
     });
 
     const robotVersions = useRobotVersions();
+    const robotExport = useRobotExport();
+    const robotImport = useRobotImport({
+        setError,
+        setSuccess,
 
+        onImported: async (
+            folderId,
+        ) => {
+
+            // Importação feita diretamente na raiz.
+            if (folderId === null) {
+                await carregarRobosRaiz();
+                return;
+            }
+
+            // Importação feita em uma pasta.
+            const folder =
+                folders.find(
+                    (item) =>
+                        item.id === folderId
+                );
+
+            if (folder) {
+                await carregarRobos(
+                    folder
+                );
+            }
+        },
+    });
     useEffect(() => {
         if (!rootSelected && selectedFolder === null) {
             void carregarRobosRaiz();
@@ -294,6 +326,26 @@ function Robots({ embedded = false }: RobotsProps) {
 
                     setUploadTargetFolderId(null);
                 }}
+            />
+
+            {/* ========================================================
+                INPUT OCULTO - IMPORTAÇÃO DE PACOTE DUET
+
+                Este input pertence exclusivamente ao botão superior
+                "Importar pacote".
+
+                Ele NÃO utiliza enviarRobo() e NÃO utiliza /robots/upload.
+            ======================================================== */}
+            <input
+                ref={robotImport.inputRef}
+                type="file"
+                accept=".zip"
+                style={{
+                    display: "none",
+                }}
+                onChange={
+                    robotImport.handleFileChange
+                }
             />
 
 
@@ -493,13 +545,22 @@ function Robots({ embedded = false }: RobotsProps) {
                         view={robotView}
                         visibleCount={visibleRobots.length}
                         totalCount={robots.length}
-                        canUpload={canCreateRobots}
-                        uploadLocation={rootSelected ? "Raiz de Robôs" : selectedFolder?.name || "pasta atual"}
+                        canImport={canCreateRobots}
+                        canExport={canViewRobots}
+                        importLocation={rootSelected ? "Raiz de Robôs" : selectedFolder?.name || "pasta atual"}
+                        exportDisabled={robots.length === 0}
                         onQueryChange={setRobotQuery}
                         onSortChange={setRobotSort}
                         onViewChange={setRobotView}
-                        onUpload={() => {
-                            abrirUploadParaPasta(selectedFolder?.id ?? null);
+                        onImport={() => {
+                            robotImport.open(
+                                rootSelected
+                                    ? null
+                                    : selectedFolder?.id ?? null
+                            );
+                        }}
+                        onExport={() => {
+                            robotExport.open(robots);
                         }}
                     />
 
@@ -621,6 +682,22 @@ function Robots({ embedded = false }: RobotsProps) {
                     onRetry={robotVersions.retry}
                     onDownload={robotVersions.downloadVersion}
                     onToggleLibraries={robotVersions.toggleLibraries}
+                />
+            )}
+
+            {robotExport.isOpen && (
+                <RobotExportDialog
+                    robots={robots}
+                    selectedRobot={robotExport.selectedRobot}
+                    versions={robotExport.versions}
+                    selectedVersion={robotExport.selectedVersion}
+                    loadingVersions={robotExport.loadingVersions}
+                    exporting={robotExport.exporting}
+                    error={robotExport.error}
+                    onClose={robotExport.close}
+                    onRobotChange={robotExport.selectRobot}
+                    onVersionChange={robotExport.selectVersion}
+                    onExport={robotExport.exportSelected}
                 />
             )}
         </div>

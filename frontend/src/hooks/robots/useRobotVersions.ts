@@ -1,12 +1,16 @@
 import { useCallback, useRef, useState } from "react";
 
 import api from "../../services/api";
+import {
+    downloadRobotVersion,
+    listRobotVersions,
+} from "../../services/robotPackagesApi";
 import type {
     Robot,
     RobotLibraryDependency,
     RobotReleaseVersion,
-    RobotVersionsResponse,
 } from "../../types/robots";
+import { downloadBlob } from "../../utils/browserDownload";
 import { obterMensagemErro } from "../../utils/robotErrors";
 
 
@@ -31,9 +35,9 @@ export function useRobotVersions() {
         setLoading(true);
 
         try {
-            const response = await api.get<RobotVersionsResponse>(`/robots/${robot.id}/versions`);
+            const robotVersions = await listRobotVersions(robot.id);
             if (sequence !== requestSequence.current) return;
-            setVersions(response.data.versions ?? []);
+            setVersions(robotVersions);
         } catch (requestError) {
             if (sequence !== requestSequence.current) return;
             setError(obterMensagemErro(
@@ -63,18 +67,15 @@ export function useRobotVersions() {
         setError("");
 
         try {
-            const response = await api.get(
-                `/robots/${selectedRobot.id}/versions/${version.version}/download`,
-                { responseType: "blob" },
+            const blob = await downloadRobotVersion(
+                selectedRobot.id,
+                version.version,
             );
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = version.filename;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+
+            downloadBlob(
+                blob,
+                version.filename,
+            );
         } catch (requestError) {
             setError(obterMensagemErro(
                 requestError,

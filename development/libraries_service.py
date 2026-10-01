@@ -32,16 +32,17 @@
 # Este arquivo NÃO registra endpoints FastAPI, não utiliza
 # Depends e não aplica RBAC.
 # ============================================================
-
-
 import logging
 import shutil
 
+from uuid import uuid4
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
+from libraries.identity_service import (
+    validar_identidade_library_unica,
+)
 from models import (
     AutomationProject,
     Library,
@@ -498,30 +499,14 @@ def criar_biblioteca_projeto_service(
     )
 
     # ========================================================
-    # IMPORT_NAME GLOBALMENTE ÚNICO
+    # IDENTIDADE GLOBALMENTE ÚNICA
     # ========================================================
 
-    existente = (
-        db.query(Library)
-        .filter(
-            func.lower(
-                Library.import_name
-            ) ==
-                import_name.lower()
-        )
-        .first()
+    validar_identidade_library_unica(
+        db=db,
+        nome=nome,
+        import_name=import_name,
     )
-
-    if existente:
-
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "Já existe uma biblioteca utilizando este "
-                "import_name. Adicione a biblioteca existente "
-                "ao projeto em vez de criar outra."
-            ),
-        )
 
     # ========================================================
     # WORKSPACE DO PROJETO
@@ -877,3 +862,489 @@ def criar_biblioteca_projeto_service(
                 "no projeto."
             ),
         )
+
+
+# ============================================================
+# EXCLUIR BIBLIOTECA DO PROJETO
+# ============================================================
+
+def excluir_biblioteca_projeto_service(
+    project_id: int,
+    library_id: int,
+    db: Session,
+    usuario,
+) -> dict:
+    """
+    Remove uma Library da composição do AutomationProject.
+
+    Existem dois cenários suportados:
+
+    1. Library nova, ainda não publicada:
+       - possui ProjectLibraryDraft;
+       - não possui LibraryVersion;
+       - não possui ProjectLibraryDependency.
+
+       Nesse caso a Working Copy é descartada e, se não existir
+       nenhuma outra referência ou histórico, a identidade global
+       da Library também é removida para liberar o import_name.
+
+    2. Library já publicada:
+       - possui ProjectLibraryDependency;
+       - pode possuir ProjectLibraryDraft.
+
+       Nesse caso apenas o vínculo e a Working Copy deste projeto
+       são removidos. Library e LibraryVersions permanecem intactas.
+
+    A exclusão dentro do Desenvolvimento é intencionalmente
+    destrutiva para alterações locais da Working Copy.
+    """
+
+    # ========================================================
+    # PROJETO
+    # ========================================================
+
+    projeto = (
+        db.query(AutomationProject)
+        .filter(
+            AutomationProject.id == project_id,
+            AutomationProject.is_active == 1,
+        )
+        .with_for_update()
+        .first()
+    )
+
+    if not projeto:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado.",
+        )
+
+    # ========================================================
+    # CHECKOUT OBRIGATÓRIO
+    # ========================================================
+    #
+    # Remover uma Library altera tanto o banco quanto o
+    # Workspace físico. Somente o proprietário do Checkout
+    # pode executar a operação.
+    # ========================================================
+
+    exigir_checkout_workspace(
+        project_id=project_id,
+        user_id=usuario.id,
+        db=db,
+    )
+
+    # ========================================================
+    # LIBRARY
+    # ========================================================
+    #
+    # Não filtramos is_active.
+    #
+    # Uma Library nova criada no Desenvolvimento permanece
+    # propositalmente com is_active = 0 até o primeiro Release.
+    # ========================================================
+
+    library = (
+        db.query(Library)
+        .filter(
+            Library.id == library_id
+        )
+        .with_for_update()
+        .first()
+    )
+
+    if not library:
+        raise HTTPException(
+            status_code=404,
+            detail="Biblioteca não encontrada.",
+        )
+
+    # ========================================================
+    # VÍNCULO PUBLICADO
+    # ========================================================
+
+    dependency = (
+        db.query(ProjectLibraryDependency)
+        .filter(
+            ProjectLibraryDependency.project_id == project_id,
+            ProjectLibraryDependency.library_id == library_id,
+        )
+        .first()
+    )
+
+    # ========================================================
+    # WORKING COPY
+    # ========================================================
+
+    draft = (
+        db.query(ProjectLibraryDraft)
+        .filter(
+            ProjectLibraryDraft.project_id == project_id,
+            ProjectLibraryDraft.library_id == library_id,
+        )
+        .first()
+    )
+
+    # A Library precisa pertencer ao projeto de alguma forma.
+    if dependency is None and draft is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Esta biblioteca não pertence ao projeto."
+            ),
+        )
+
+    # ========================================================
+    # VERIFICAR SE A IDENTIDADE GLOBAL PODE SER EXCLUÍDA
+    # ========================================================
+    #
+    # Uma identidade Library somente pode ser apagada quando
+    # nunca teve nenhuma versão publicada e não é referenciada
+    # por outro projeto.
+    #
+    # Libraries que já tiveram qualquer LibraryVersion são
+    # sempre preservadas para histórico.
+    # ========================================================
+
+    possui_versoes = (
+        db.query(LibraryVersion.id)
+        .filter(
+            LibraryVersion.library_id == library_id
+        )
+        .first()
+        is not None
+    )
+
+    outro_draft = (
+        db.query(ProjectLibraryDraft.id)
+        .filter(
+            ProjectLibraryDraft.library_id == library_id,
+            ProjectLibraryDraft.project_id != project_id,
+        )
+        .first()
+    )
+
+    outra_dependencia = (
+        db.query(ProjectLibraryDependency.id)
+        .filter(
+            ProjectLibraryDependency.library_id == library_id,
+            ProjectLibraryDependency.project_id != project_id,
+        )
+        .first()
+    )
+
+    excluir_identidade_global = (
+        dependency is None
+        and not possui_versoes
+        and library.production_version_id is None
+        and outro_draft is None
+        and outra_dependencia is None
+    )
+
+    # ========================================================
+    # LOCALIZAR WORKING COPY FÍSICA
+    # ========================================================
+
+    target = draft_path(
+        project_id,
+        library.import_name,
+    )
+
+    # Compatibilidade com projetos antigos onde uma Library
+    # podia permanecer diretamente na raiz do Workspace.
+    workspace_path = garantir_workspace(
+        project_id
+    )
+
+    root_copy = (
+        workspace_path /
+        library.import_name
+    )
+
+    # Não aceitamos duas cópias simultâneas do mesmo namespace.
+    if target.exists() and root_copy.exists():
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Existem duas cópias locais desta biblioteca. "
+                "Resolva a inconsistência antes de excluí-la."
+            ),
+        )
+
+    physical_target = None
+
+    if target.exists():
+        physical_target = target
+
+    elif root_copy.exists():
+        physical_target = root_copy
+
+    # ========================================================
+    # BACKUP TEMPORÁRIO DA WORKING COPY
+    # ========================================================
+    #
+    # Não apagamos os arquivos antes do commit.
+    #
+    # Primeiro renomeamos a pasta para um nome temporário.
+    # Se o banco falhar, restauramos a pasta original.
+    # ========================================================
+
+    backup_path = None
+
+    if physical_target is not None:
+
+        if (
+            not physical_target.is_dir()
+            or physical_target.is_symlink()
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "A Working Copy da biblioteca possui uma "
+                    "estrutura física inválida."
+                ),
+            )
+
+        backup_path = physical_target.with_name(
+            (
+                f".{physical_target.name}."
+                f"duet-delete-{uuid4().hex}"
+            )
+        )
+
+        try:
+            physical_target.rename(
+                backup_path
+            )
+
+        except Exception as error:
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Não foi possível preparar a Working Copy "
+                    "para exclusão."
+                ),
+            ) from error
+
+    # ========================================================
+    # TRANSAÇÃO
+    # ========================================================
+
+    try:
+
+        # ====================================================
+        # 1. REMOVER REFERÊNCIAS DO PROJETO
+        # ====================================================
+        #
+        # ProjectLibraryDraft e ProjectLibraryDependency possuem
+        # FK para Library.
+        #
+        # Portanto essas linhas precisam desaparecer fisicamente
+        # do PostgreSQL ANTES de tentarmos excluir uma Library
+        # nova que nunca foi publicada.
+        # ====================================================
+
+        if draft is not None:
+            db.delete(
+                draft
+            )
+
+        if dependency is not None:
+            db.delete(
+                dependency
+            )
+
+        # ----------------------------------------------------
+        # FLUSH DOS REGISTROS FILHOS
+        # ----------------------------------------------------
+        #
+        # Não dependemos da ordem automática do Unit of Work do
+        # SQLAlchemy.
+        #
+        # Depois deste flush, qualquer Draft/Dependency deste
+        # projeto já terá sido removido no banco dentro da mesma
+        # transação.
+        # ----------------------------------------------------
+
+        db.flush()
+
+
+        # ====================================================
+        # 2. REMOVER IDENTIDADE GLOBAL QUANDO FOR DESCARTÁVEL
+        # ====================================================
+        #
+        # Só acontece para Library criada em Desenvolvimento que:
+        #
+        # - nunca teve LibraryVersion;
+        # - nunca chegou a Produção;
+        # - não possui outro Draft;
+        # - não possui outra Dependency.
+        #
+        # Libraries publicadas jamais são removidas aqui.
+        # ====================================================
+
+        if excluir_identidade_global:
+            db.delete(
+                library
+            )
+
+            # Executa o DELETE da Library agora que suas
+            # referências já foram retiradas do PostgreSQL.
+            db.flush()
+
+
+        # ====================================================
+        # 3. CONFIRMAR TRANSAÇÃO
+        # ====================================================
+
+        db.commit()
+
+    except Exception as error:
+
+        db.rollback()
+
+        # Se o banco falhou, devolvemos a Working Copy exatamente
+        # ao caminho anterior.
+        if (
+            backup_path is not None
+            and backup_path.exists()
+            and physical_target is not None
+            and not physical_target.exists()
+        ):
+            try:
+                backup_path.rename(
+                    physical_target
+                )
+
+            except Exception:
+                logger.exception(
+                    "Falha ao restaurar Working Copy após rollback",
+                    extra={
+                        "event":
+                            "development_library_delete_restore_failed",
+
+                        "project_id":
+                            project_id,
+
+                        "library_id":
+                            library_id,
+
+                        "status":
+                            "error",
+                    },
+                )
+
+        logger.exception(
+            "Falha ao excluir biblioteca do projeto",
+            extra={
+                "event":
+                    "development_library_delete_failed",
+
+                "user_id":
+                    usuario.id,
+
+                "project_id":
+                    project_id,
+
+                "library_id":
+                    library_id,
+
+                "status":
+                    "error",
+
+                "error_type":
+                    type(error).__name__,
+
+                "error_message":
+                    str(error),
+            },
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Não foi possível excluir a biblioteca "
+                "do projeto."
+            ),
+        ) from error
+
+    # ========================================================
+    # LIMPEZA FÍSICA APÓS COMMIT
+    # ========================================================
+    #
+    # A partir daqui o banco já confirmou a exclusão.
+    # Portanto o backup temporário pode ser removido.
+    # ========================================================
+
+    if (
+        backup_path is not None
+        and backup_path.exists()
+    ):
+        shutil.rmtree(
+            backup_path,
+            ignore_errors=True,
+        )
+
+    # Remove _libraries caso tenha ficado vazio.
+    draft_root = (
+        workspace_path /
+        "_libraries"
+    )
+
+    if (
+        draft_root.is_dir()
+        and not any(
+            draft_root.iterdir()
+        )
+    ):
+        try:
+            draft_root.rmdir()
+
+        except OSError:
+            pass
+
+    # ========================================================
+    # AUDITORIA
+    # ========================================================
+
+    logger.info(
+        "Biblioteca excluída do projeto",
+        extra={
+            "event":
+                "development_library_deleted",
+
+            "user_id":
+                usuario.id,
+
+            "project_id":
+                project_id,
+
+            "library_id":
+                library_id,
+
+            "import_name":
+                library.import_name,
+
+            "global_identity_deleted":
+                excluir_identidade_global,
+
+            "status":
+                "success",
+        },
+    )
+
+    return {
+        "status": "success",
+        "message": (
+            "Biblioteca removida do projeto com sucesso."
+        ),
+        "project_id": project_id,
+        "library_id": library_id,
+        "global_identity_deleted":
+            excluir_identidade_global,
+        "tree":
+            montar_arvore_workspace(
+                workspace_path,
+                workspace_path,
+            ),
+    }

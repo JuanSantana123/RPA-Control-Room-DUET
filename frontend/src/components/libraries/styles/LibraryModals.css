@@ -1,0 +1,362 @@
+/* ============================================================
+   LibraryModals
+   Formulários, localização e confirmação de exclusão.
+
+   Escopo: .libraries-module.
+   A ordem das regras preserva a cascata do CSS de origem.
+   Estados e condições diferentes continuam em blocos próprios.
+   Cores e variáveis existentes foram preservadas nesta extração.
+   ============================================================ */
+
+.libraries-module .library-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: var(--modal-backdrop-color);
+    backdrop-filter: var(--modal-backdrop-filter);
+}
+
+.libraries-module .library-modal {
+    width: min(560px, 100%);
+    max-height: min(760px, calc(100vh - 48px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 15px;
+    background: var(--color-surface);
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2),
+        0 5px 18px rgba(15, 23, 42, 0.08);
+}
+
+.libraries-module .library-modal-large {
+    width: min(680px, 100%);
+}
+
+.libraries-module .library-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 22px 17px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.libraries-module .library-modal-eyebrow {
+    margin-bottom: 4px;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+}
+
+.libraries-module .library-modal-header h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.libraries-module .library-modal-header p {
+    max-width: 530px;
+    margin: 5px 0 0;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.libraries-module .library-modal-close {
+    width: 31px;
+    height: 31px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.libraries-module .library-modal-close:hover {
+    border-color: var(--color-border);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+}
+
+.libraries-module .library-modal-body {
+    display: grid;
+    gap: 17px;
+    padding: 20px 22px;
+    overflow-y: auto;
+}
+
+.libraries-module .library-modal-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.libraries-module .library-modal-field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.libraries-module .library-modal-field > label,
+.libraries-module .library-modal-field-heading label {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.libraries-module .library-modal-field input {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    outline: 0;
+    transition: border-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.libraries-module .library-modal-field input {
+    height: 40px;
+    padding: 0 11px;
+}
+
+.libraries-module .library-modal-field textarea {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    outline: 0;
+    transition: border-color 0.16s ease,
+        box-shadow 0.16s ease;
+    min-height: 92px;
+    padding: 10px 11px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.libraries-module .library-modal-field input:disabled,
+.libraries-module .library-modal-field textarea:disabled {
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+}
+
+.libraries-module .library-modal-field > small {
+    margin-top: -2px;
+    color: var(--color-text-muted);
+    font-size: 9px;
+}
+
+.libraries-module .library-modal-field-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.libraries-module .library-modal-field-heading span {
+    color: var(--color-text-muted);
+    font-size: 9px;
+    text-align: right;
+}
+
+.libraries-module .library-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--color-border-light);
+    background: var(--color-surface-muted);
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-modal-backdrop {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-modal {
+        max-height: calc(100vh - 24px);
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-modal-fields-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-modal-header,
+    .libraries-module .library-modal-body,
+    .libraries-module .library-modal-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-modal-field-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-modal-field-heading span {
+        text-align: left;
+    }
+}
+
+.libraries-module .library-modal-location-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 15px;
+    border: 1px solid var(--color-primary-soft);
+    border-radius: 11px;
+}
+
+.libraries-module .library-modal-location-card > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.libraries-module .library-modal-location-card span {
+    color: var(--color-text-secondary);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.libraries-module .library-modal-location-card strong {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-modal-location-card small {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.libraries-module .library-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.libraries-module .library-confirm-backdrop {
+    z-index: 23000;
+}
+
+.libraries-module .library-confirm-modal {
+    width: min(480px, 100%);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    padding: 22px;
+    border: 1px solid color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+    border-radius: 15px;
+    background: var(--color-surface);
+    box-shadow: 0 28px 70px rgba(15, 23, 42, 0.2),
+        0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.libraries-module .library-confirm-icon {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+    border-radius: 11px;
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.libraries-module .library-confirm-content h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.libraries-module .library-confirm-content p {
+    margin: 7px 0 0;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.libraries-module .library-confirm-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding-top: 6px;
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-modal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-modal-location-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 760px) {
+    .libraries-module .library-modal-backdrop {
+        padding: 12px;
+    }
+}
+
+.libraries-module .library-modal-eyebrow {
+    color: var(--color-primary);
+}
+
+.libraries-module .library-modal-field input:focus,
+.libraries-module .library-modal-field textarea:focus {
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.libraries-module .library-modal-location-card {
+    border-color: var(--color-primary-soft);
+    background: var(--color-surface-muted);
+}
+
+.libraries-module .library-modal-location-card strong {
+    color: var(--color-primary-active);
+}

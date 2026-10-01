@@ -27,6 +27,7 @@ import api from "./api";
 
 
 import type {
+    AutomationTemplate,
     CardComment,
     CardDetailsUpdatePayload,
     CardUser,
@@ -108,6 +109,170 @@ export const getDevelopmentReleaseRobots =
             robots:
                 response.data?.robots || [],
         };
+    };
+
+
+// ============================================================
+// TEMPLATES DE AUTOMAÇÃO
+// ============================================================
+
+export const getAvailableAutomationTemplates =
+    async (): Promise<AutomationTemplate[]> => {
+
+        const response =
+            await api.get(
+                "/templates/available"
+            );
+
+
+        return response.data?.templates || [];
+    };
+
+
+export const getAutomationTemplates =
+    async (
+        includeInactive: boolean = false
+    ): Promise<AutomationTemplate[]> => {
+
+        const response =
+            await api.get(
+                "/templates",
+                {
+                    params: {
+                        include_inactive:
+                            includeInactive,
+                    },
+                }
+            );
+
+
+        return response.data?.templates || [];
+    };
+
+
+export const createAutomationTemplate =
+    async (
+        payload: {
+            name: string;
+            description: string | null;
+            file: File;
+        }
+    ): Promise<AutomationTemplate> => {
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "name",
+            payload.name
+        );
+
+        if (
+            payload.description
+        ) {
+            formData.append(
+                "description",
+                payload.description
+            );
+        }
+
+        formData.append(
+            "file",
+            payload.file
+        );
+
+
+        const response =
+            await api.post(
+                "/templates",
+                formData
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const publishAutomationTemplateVersion =
+    async (
+        templateId: number,
+        file: File
+    ): Promise<AutomationTemplate> => {
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "file",
+            file
+        );
+
+
+        const response =
+            await api.post(
+                `/templates/${templateId}/versions`,
+                formData
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const updateAutomationTemplate =
+    async (
+        templateId: number,
+        payload: {
+            name?: string;
+            description?: string | null;
+            is_active?: boolean;
+        }
+    ): Promise<AutomationTemplate> => {
+
+        const response =
+            await api.patch(
+                `/templates/${templateId}`,
+                payload
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const setAutomationTemplateCurrentVersion =
+    async (
+        templateId: number,
+        versionId: number
+    ): Promise<AutomationTemplate> => {
+
+        const response =
+            await api.post(
+                `/templates/${templateId}/versions/${versionId}/set-current`
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const downloadAutomationTemplateVersion =
+    async (
+        templateId: number,
+        versionId: number
+    ): Promise<Blob> => {
+
+        const response =
+            await api.get(
+                `/templates/${templateId}/versions/${versionId}/download`,
+                {
+                    responseType:
+                        "blob",
+                }
+            );
+
+
+        return response.data;
     };
 
 

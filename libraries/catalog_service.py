@@ -45,6 +45,12 @@ from libraries.serializers import (
     serializar_library,
 )
 
+
+from libraries.identity_service import (
+    obter_estado_identidade_library,
+    validar_identidade_library_unica,
+)
+
 from libraries.validators import (
     obter_library_or_404,
     validar_destino_pasta,
@@ -92,6 +98,20 @@ def listar_bibliotecas_service(
         )
         .all()
     )
+
+    # Quando o catálogo solicita também inativas, removemos apenas
+    # identidades que estão reservadas por um Development e ainda
+    # não representam uma Library arquivada do catálogo global.
+    if include_inactive:
+
+        libraries = [
+            library
+            for library in libraries
+            if obter_estado_identidade_library(
+                db,
+                library,
+            ) != "reserved"
+        ]
 
     return {
         "status": "success",
@@ -155,27 +175,19 @@ def criar_biblioteca_service(
             ),
         )
 
-    # O namespace Python é único independentemente de maiúsculas
-    # e minúsculas.
-    import_existente = (
-        db.query(Library)
-        .filter(
-            func.lower(
-                Library.import_name
-            )
-            == import_name.lower()
-        )
-        .first()
+    # ========================================================
+    # IDENTIDADE GLOBALMENTE ÚNICA
+    # ========================================================
+    #
+    # Tanto o nome amigável quanto o namespace Python ficam
+    # reservados enquanto a identidade Library existir.
+    # ========================================================
+
+    validar_identidade_library_unica(
+        db=db,
+        nome=nome,
+        import_name=import_name,
     )
-
-    if import_existente:
-
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "Já existe uma biblioteca utilizando este import_name."
-            ),
-        )
 
     library = Library(
         name=nome,
@@ -360,6 +372,14 @@ def atualizar_biblioteca_service(
                     "O nome da biblioteca não pode ficar vazio."
                 ),
             )
+
+        # O nome amigável também faz parte da identidade global
+        # da Library e não pode colidir com outra identidade.
+        validar_identidade_library_unica(
+            db=db,
+            nome=nome,
+            ignorar_library_id=library.id,
+        )
 
         library.name = nome
 
@@ -643,5 +663,152 @@ def desativar_biblioteca_service(
             status_code=500,
             detail=(
                 "Não foi possível desativar a biblioteca."
+            ),
+        )
+
+
+
+
+# ============================================================
+# REATIVAR LIBRARY
+# ============================================================
+
+def reativar_biblioteca_service(
+    library_id: int,
+    db: Session,
+    usuario,
+) -> dict:
+    """
+    Reativa uma Library previamente desativada.
+
+    A identidade original é preservada:
+
+        - mesmo Library.id;
+        - mesmo import_name;
+        - mesmo histórico;
+        - mesmas LibraryVersions;
+        - mesma production_version_id.
+
+    Libraries apenas reservadas pelo Development, ainda sem
+    publicação, não podem ser "reativadas" pelo catálogo.
+    """
+
+    library = obter_library_or_404(
+        db,
+        library_id,
+    )
+
+    # Operação idempotente.
+    if library.is_active:
+
+        return {
+            "status": "success",
+            "message": (
+                "A biblioteca já está ativa."
+            ),
+            "already_active": True,
+            "library": serializar_library(
+                library
+            ),
+        }
+
+    estado_identidade = (
+        obter_estado_identidade_library(
+            db,
+            library,
+        )
+    )
+
+    # Somente uma identidade realmente vinculada a uma Working
+    # Copy de Development deve ficar fora do fluxo de reativação
+    # do catálogo global.
+    if estado_identidade == "reserved":
+
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code":
+                    "LIBRARY_RESERVED_BY_DEVELOPMENT",
+
+                "message": (
+                    "Esta identidade pertence atualmente a um "
+                    "projeto de Desenvolvimento e ainda não foi "
+                    "publicada. Ela não pode ser reativada pelo "
+                    "catálogo global."
+                ),
+
+                "library_id":
+                    library.id,
+
+                "library_name":
+                    library.name,
+            },
+        )
+
+    # Proteção adicional para bancos antigos que eventualmente
+    # possuam nomes duplicados criados antes desta regra.
+    validar_identidade_library_unica(
+        db=db,
+        nome=library.name,
+        import_name=library.import_name,
+        ignorar_library_id=library.id,
+    )
+
+    library.is_active = 1
+
+    try:
+
+        db.commit()
+
+        db.refresh(
+            library
+        )
+
+        logger.info(
+            "Biblioteca reativada",
+            extra={
+                "event": "library_reactivated",
+                "user_id": usuario.id,
+                "library_id": library.id,
+                "status": "success",
+            },
+        )
+
+        return {
+            "status": "success",
+            "message": (
+                "Biblioteca reativada com sucesso."
+            ),
+            "already_active": False,
+            "library": serializar_library(
+                library
+            ),
+        }
+
+    except HTTPException:
+
+        db.rollback()
+        raise
+
+    except Exception as error:
+
+        db.rollback()
+
+        logger.exception(
+            "Falha ao reativar biblioteca",
+            extra={
+                "event": "library_reactivate_failed",
+                "user_id": usuario.id,
+                "library_id": library_id,
+                "status": "error",
+                "error_type": type(error).__name__,
+                "error_message": str(error),
+            },
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Não foi possível reativar a biblioteca."
             ),
         )

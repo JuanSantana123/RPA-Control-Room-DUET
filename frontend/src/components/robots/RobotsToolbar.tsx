@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Upload } from "lucide-react";
+import { Download, LayoutGrid, List, Upload } from "lucide-react";
 import PremiumSelect from "../ui/PremiumSelect";
 import { Button, IconButton } from "../ui/Button";
 import SearchField from "../ui/SearchField";
@@ -12,12 +12,15 @@ interface RobotsToolbarProps {
   view: RobotView;
   visibleCount: number;
   totalCount: number;
-  canUpload: boolean;
-  uploadLocation: string;
+  canImport: boolean;
+  canExport: boolean;
+  importLocation: string;
+  exportDisabled?: boolean;
   onQueryChange: (value: string) => void;
   onSortChange: (value: RobotSort) => void;
   onViewChange: (value: RobotView) => void;
-  onUpload: () => void;
+  onImport: () => void;
+  onExport: () => void;
 }
 
 export default function RobotsToolbar({
@@ -26,12 +29,15 @@ export default function RobotsToolbar({
   view,
   visibleCount,
   totalCount,
-  canUpload,
-  uploadLocation,
+  canImport,
+  canExport,
+  importLocation,
+  exportDisabled = false,
   onQueryChange,
   onSortChange,
   onViewChange,
-  onUpload,
+  onImport,
+  onExport,
 }: RobotsToolbarProps) {
   return (
     <div className="robots-toolbar">
@@ -57,10 +63,30 @@ export default function RobotsToolbar({
 
       <span className="robots-toolbar__count" aria-live="polite">{visibleCount} de {totalCount}</span>
 
-      {canUpload && <Button variant="primary" title={`Enviar pacote ZIP para ${uploadLocation}`} onClick={onUpload}>
-        <Upload size={15} strokeWidth={1.9} aria-hidden="true" />
-        Enviar pacote
-      </Button>}
+      <div className="robots-toolbar__actions">
+        {canImport && (
+          <Button
+            variant="primary"
+            title={`Importar pacote ZIP para ${importLocation}`}
+            onClick={onImport}
+          >
+            <Upload size={15} strokeWidth={1.9} aria-hidden="true" />
+            Importar pacote
+          </Button>
+        )}
+
+        {canExport && (
+          <Button
+            variant="secondary"
+            title="Exportar um pacote publicado desta localização"
+            disabled={exportDisabled}
+            onClick={onExport}
+          >
+            <Download size={15} strokeWidth={1.9} aria-hidden="true" />
+            Exportar pacote
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

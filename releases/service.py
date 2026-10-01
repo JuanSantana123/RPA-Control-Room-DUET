@@ -517,7 +517,7 @@ def prepare_release(db, project, request, user_id, created_paths):
         # Segue o mesmo validador semântico utilizado pela publicação
         # standalone, mas aplica a política atual do DUET: nova biblioteca
         # começa em 1.0.0 e cada alteração publicada sobe a MAJOR.
-        from api.libraries import validar_versao
+        from libraries.validators import validar_versao
         version_name = validar_versao(version_name)
 
         expected_version = next_library_version(

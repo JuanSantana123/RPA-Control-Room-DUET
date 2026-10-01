@@ -10,10 +10,12 @@
 # - listagem de projetos ativos;
 # - criação de novos projetos;
 # - criação de projeto a partir de Robot publicado;
+# - criação de projeto a partir de Template versionado;
 # - validação de nome duplicado;
 # - definição do estágio inicial BACKLOG;
 # - captura da versão do Robot de origem;
 # - restauração do workspace de um Robot publicado;
+# - cópia inicial do código de uma versão de Template;
 # - consulta individual de projeto.
 #
 # IMPORTANTE:
@@ -65,6 +67,11 @@ from schemas.development import (
 from development.repository import (
     remover_workspace_controlado,
     validar_workspace_fisico,
+)
+
+from automation_templates.service import (
+    instanciar_template_no_workspace,
+    obter_template_version_or_404,
 )
 # ============================================================
 # LOGGER
@@ -162,66 +169,36 @@ def criar_projeto_service(
     request: AutomationProjectCreate,
     db: Session,
     usuario,
+    template_version_id: int | None = None,
 ) -> dict:
     """
     Cria um novo AutomationProject.
 
-    Parâmetros:
-        request:
-            Dados validados pelo schema
-            AutomationProjectCreate.
+    O fluxo existente continua aceitando:
 
-        db:
-            Sessão SQLAlchemy da requisição.
+        - projeto vazio;
+        - projeto baseado em Robot publicado.
 
-        usuario:
-            Usuário autenticado recebido pelo router.
+    A nova origem opcional aceita:
 
-    Regras preservadas:
+        - projeto baseado em uma versão imutável de Template.
 
-        1. A publicação é serializada através de
-           lock_publication(db).
+    Template e Robot são origens mutuamente exclusivas.
 
-        2. Todo projeto novo nasce com:
-
-               status = "draft"
-
-        3. Todo projeto novo nasce no estágio:
-
-               BACKLOG
-
-        4. Um projeto em andamento não pode reutilizar o
-           mesmo nome dentro da mesma pasta.
-
-        5. Projetos na Lixeira não bloqueiam reutilização
-           do nome.
-
-        6. Projetos no estágio PUBLISHED não bloqueiam
-           reutilização do nome.
-
-        7. Registros legados com current_stage_id=None
-           continuam sendo considerados conflito.
-
-        8. Quando base_robot_id for informado:
-
-               - o Robot precisa existir;
-               - sua versão atual é capturada;
-               - o workspace publicado é restaurado;
-               - a restauração acontece antes do commit.
-
-        9. Se a criação falhar antes do commit, qualquer
-           workspace restaurado nesta tentativa é removido.
+    IMPORTANTE:
+        O Template é utilizado somente para copiar o código inicial.
+        Depois da criação, o Workspace do projeto é independente.
     """
 
     # ========================================================
     # LOCK DE PUBLICAÇÃO
     # ========================================================
     #
-    # Esta chamada já existe no fluxo atual e precisa ocorrer
-    # antes das validações/criação.
+    # Preserva o mesmo lock já utilizado pelo fluxo de criação.
     #
-    # Ela protege a consistência entre Development, Robots,
-    # Libraries e Release durante operações concorrentes.
+    # A criação baseada em Template também precisa participar do
+    # mesmo fluxo transacional porque gera um Workspace de
+    # Desenvolvimento antes do commit.
     # ========================================================
 
     lock_publication(
@@ -242,6 +219,20 @@ def criar_projeto_service(
         else None
     )
 
+    folder_id = (
+        request.folder_id
+    )
+
+    # TemplateProjectCreate não possui base_robot_id.
+    #
+    # getattr preserva o contrato do endpoint antigo sem exigir
+    # alteração em schemas.development.
+    base_robot_id = getattr(
+        request,
+        "base_robot_id",
+        None,
+    )
+
     if not nome:
 
         raise HTTPException(
@@ -251,17 +242,32 @@ def criar_projeto_service(
             ),
         )
 
+    # Robot publicado e Template representam duas origens
+    # diferentes. Um projeto novo não pode receber ambas.
+    if (
+        base_robot_id is not None
+        and template_version_id is not None
+    ):
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Informe somente uma origem para o projeto: "
+                "Robot publicado ou Template."
+            ),
+        )
+
     # ========================================================
     # VALIDA PASTA
     # ========================================================
 
-    if request.folder_id is not None:
+    if folder_id is not None:
 
         pasta = (
             db.query(DevelopmentFolder)
             .filter(
                 DevelopmentFolder.id ==
-                    request.folder_id,
+                    folder_id,
 
                 DevelopmentFolder.is_active == 1,
             )
@@ -282,12 +288,8 @@ def criar_projeto_service(
     # LOCALIZA ESTÁGIO PUBLISHED
     # ========================================================
     #
-    # PUBLISHED possui uma função importante na validação
-    # de duplicidade.
-    #
-    # Um projeto já publicado continua ativo no histórico
-    # de Development, mas não deve reservar seu nome para
-    # sempre.
+    # PUBLISHED continua sendo utilizado somente para a regra
+    # atual de duplicidade de nomes.
     # ========================================================
 
     estagio_publicado = (
@@ -302,18 +304,6 @@ def criar_projeto_service(
     # ========================================================
     # EVITA PROJETO EM ANDAMENTO DUPLICADO
     # ========================================================
-    #
-    # Inicialmente buscamos:
-    #
-    # - somente projetos ativos;
-    # - com mesmo nome;
-    # - ignorando diferenças entre maiúsculas/minúsculas.
-    #
-    # Depois restringimos:
-    #
-    # - estágio;
-    # - localização na árvore.
-    # ========================================================
 
     consulta_duplicada = (
         db.query(AutomationProject)
@@ -326,14 +316,8 @@ def criar_projeto_service(
         )
     )
 
-    # --------------------------------------------------------
-    # IGNORA PROJETOS JÁ PUBLICADOS
-    # --------------------------------------------------------
-    #
-    # current_stage_id=None continua sendo considerado
-    # conflito para preservar registros legados.
-    # --------------------------------------------------------
-
+    # Registros legados com current_stage_id=None continuam
+    # sendo considerados conflito.
     if estagio_publicado:
 
         consulta_duplicada = (
@@ -350,11 +334,7 @@ def criar_projeto_service(
             )
         )
 
-    # --------------------------------------------------------
-    # MESMO LOCAL DA ÁRVORE
-    # --------------------------------------------------------
-
-    if request.folder_id is None:
+    if folder_id is None:
 
         consulta_duplicada = (
             consulta_duplicada
@@ -371,7 +351,7 @@ def criar_projeto_service(
             consulta_duplicada
             .filter(
                 AutomationProject.folder_id ==
-                    request.folder_id
+                    folder_id
             )
         )
 
@@ -392,32 +372,19 @@ def criar_projeto_service(
     # ========================================================
     # RESOLVE ROBOT DE ORIGEM
     # ========================================================
-    #
-    # Essas variáveis também são utilizadas na estratégia
-    # de rollback do workspace.
-    # ========================================================
 
-    # Versão e nome histórico do Robot utilizado como origem.
-    #
-    # Permanecem None quando o projeto é criado do zero.
     base_version = None
     base_robot_name = None
 
-    restored_workspace = None
-
-    project_committed = False
-
-    # A variável somente será utilizada posteriormente quando
-    # base_robot_id estiver preenchido.
     robot_base = None
 
-    if request.base_robot_id is not None:
+    if base_robot_id is not None:
 
         robot_base = (
             db.query(Robot)
             .filter(
                 Robot.id ==
-                    request.base_robot_id
+                    base_robot_id
             )
             .first()
         )
@@ -431,28 +398,61 @@ def criar_projeto_service(
                 ),
             )
 
-        # Captura a versão do Robot exatamente no momento
-        # da criação do projeto.
+        # Snapshot histórico da origem.
         base_version = (
             robot_base.version
         )
 
-        # Captura também o nome do Robot como snapshot histórico.
-        #
-        # Depois disso, a identificação visual da origem não depende
-        # de o registro do Robot continuar existindo futuramente.
         base_robot_name = (
             robot_base.name
         )
-        
+
+    # ========================================================
+    # RESOLVE TEMPLATE DE ORIGEM
+    # ========================================================
+    #
+    # Quando template_version_id é informado, validamos:
+    #
+    # - versão existente;
+    # - Template proprietário existente;
+    # - Template ativo para novas criações.
+    #
+    # Uma versão anterior continua válida quando escolhida
+    # explicitamente pelo usuário.
+    # ========================================================
+
+    template_base = None
+    template_version_base = None
+
+    base_template_id = None
+    base_template_name = None
+    base_template_version = None
+
+    if template_version_id is not None:
+
+        (
+            template_base,
+            template_version_base,
+        ) = obter_template_version_or_404(
+            db,
+            template_version_id,
+            somente_template_ativo=True,
+        )
+
+        base_template_id = (
+            template_base.id
+        )
+
+        base_template_name = (
+            template_base.name
+        )
+
+        base_template_version = (
+            template_version_base.version
+        )
 
     # ========================================================
     # ESTÁGIO INICIAL DO WORKFLOW
-    # ========================================================
-    #
-    # Não utilizamos ID numérico fixo.
-    #
-    # BACKLOG é localizado através de seu code estável.
     # ========================================================
 
     backlog = (
@@ -483,7 +483,7 @@ def criar_projeto_service(
     projeto = AutomationProject(
         name=nome,
         description=descricao,
-        folder_id=request.folder_id,
+        folder_id=folder_id,
 
         # Todo projeto novo começa como draft.
         status="draft",
@@ -491,24 +491,55 @@ def criar_projeto_service(
         # Todo projeto novo entra no BACKLOG.
         current_stage_id=backlog.id,
 
-        # Proveniência do Robot publicado.
-        #
-        # base_robot_id:
-        #     vínculo técnico enquanto o Robot existir.
-        #
-        # base_robot_name:
-        #     snapshot histórico independente da existência futura
-        #     do Robot.
-        #
-        # base_version:
-        #     versão utilizada para criar o workspace.
-        base_robot_id=request.base_robot_id,
-        base_robot_name=base_robot_name,
-        base_version=base_version,
+        # ----------------------------------------------------
+        # ROBOT DE ORIGEM
+        # ----------------------------------------------------
 
-        created_by=usuario.id,
+        base_robot_id=
+            base_robot_id,
+
+        base_robot_name=
+            base_robot_name,
+
+        base_version=
+            base_version,
+
+        # ----------------------------------------------------
+        # TEMPLATE DE ORIGEM
+        # ----------------------------------------------------
+        #
+        # Estes campos são apenas proveniência histórica.
+        # Nenhum vínculo operacional permanece depois que o
+        # Workspace é criado.
+        # ----------------------------------------------------
+
+        base_template_id=
+            base_template_id,
+
+        base_template_name=
+            base_template_name,
+
+        base_template_version_id=(
+            template_version_base.id
+            if template_version_base
+            else None
+        ),
+
+        base_template_version=
+            base_template_version,
+
+        created_by=
+            usuario.id,
+
         is_active=1,
     )
+
+    # Caminho criado a partir de Robot ou Template.
+    #
+    # É utilizado pela estratégia de rollback em caso de erro.
+    restored_workspace = None
+
+    project_committed = False
 
     # ========================================================
     # PERSISTÊNCIA
@@ -520,32 +551,18 @@ def criar_projeto_service(
             projeto
         )
 
-        # ----------------------------------------------------
-        # FLUSH ANTES DA RESTAURAÇÃO
-        # ----------------------------------------------------
-        #
-        # O projeto precisa possuir ID antes que seu workspace
-        # possa ser restaurado.
-        #
-        # flush envia o INSERT para o banco sem confirmar
-        # definitivamente a transação.
-        # ----------------------------------------------------
-
+        # O projeto precisa possuir ID antes da criação física
+        # de seu Workspace.
         db.flush()
 
-        # ----------------------------------------------------
-        # RESTAURA ROBOT PUBLICADO
-        # ----------------------------------------------------
-        #
-        # Somente ocorre quando o projeto foi criado a partir
-        # de um Robot existente.
-        #
-        # A restauração ocorre ANTES do commit para que banco
-        # e filesystem façam parte do mesmo fluxo lógico.
-        # ----------------------------------------------------
+        # ====================================================
+        # RESTAURA ORIGEM DO WORKSPACE
+        # ====================================================
 
-        if request.base_robot_id is not None:
+        if base_robot_id is not None:
 
+            # Preserva integralmente o fluxo existente de
+            # restauração de Robot publicado.
             restored_workspace = (
                 restore_project_from_robot(
                     db,
@@ -554,21 +571,27 @@ def criar_projeto_service(
                     usuario.id,
                 )
             )
-            # ------------------------------------------------
-            # VALIDA WORKSPACE RESTAURADO
-            # ------------------------------------------------
+
+        elif template_version_base is not None:
+
+            # Template é uma cópia inicial.
             #
-            # Neste ponto:
-            #
-            # - o projeto já recebeu ID através do db.flush();
-            # - o Robot de origem já foi restaurado;
-            # - restored_workspace contém o caminho criado;
-            # - a transação ainda não recebeu commit.
-            #
-            # Portanto, podemos validar com segurança que o
-            # Workspace restaurado corresponde exatamente ao
-            # Workspace oficial pertencente ao projeto.
-            # ------------------------------------------------
+            # Nenhuma referência ao ZIP é necessária para a
+            # execução futura do projeto.
+            restored_workspace = (
+                instanciar_template_no_workspace(
+                    version=
+                        template_version_base,
+                    project_id=
+                        projeto.id,
+                )
+            )
+
+        # ====================================================
+        # VALIDA WORKSPACE CRIADO/RESTAURADO
+        # ====================================================
+
+        if restored_workspace is not None:
 
             workspace_validado = (
                 validar_workspace_fisico(
@@ -585,14 +608,13 @@ def criar_projeto_service(
                     "Workspace restaurado não corresponde "
                     "ao Workspace oficial do projeto."
                 )
-        # ----------------------------------------------------
+
+        # ====================================================
         # COMMIT
-        # ----------------------------------------------------
+        # ====================================================
 
         db.commit()
 
-        # A partir daqui não podemos mais considerar o projeto
-        # como uma criação não confirmada.
         project_committed = True
 
         db.refresh(
@@ -618,10 +640,13 @@ def criar_projeto_service(
         )
 
         return {
-            "status": "success",
+            "status":
+                "success",
+
             "message": (
                 "Projeto criado com sucesso."
             ),
+
             "project":
                 serializar_projeto(
                     projeto
@@ -637,10 +662,12 @@ def criar_projeto_service(
         db.rollback()
 
         if (
-        restored_workspace is not None
-        and not project_committed
-    ):
+            restored_workspace is not None
+            and not project_committed
+        ):
+
             try:
+
                 workspace_rollback = (
                     validar_workspace_fisico(
                         projeto.id,
@@ -653,25 +680,25 @@ def criar_projeto_service(
                 )
 
             except Exception:
-                # Não escondemos uma falha de limpeza, mas também
-                # não substituímos a HTTPException funcional que
-                # originou o rollback.
+
                 logger.exception(
                     "Falha ao limpar Workspace após "
                     "rollback da criação do projeto",
                     extra={
                         "event":
                             "automation_project_create_rollback_workspace_failed",
+
                         "project_id":
                             projeto.id,
+
                         "user_id":
                             usuario.id,
+
                         "status":
                             "error",
                     },
                 )
 
-        # Preserva a HTTPException original.
         raise
 
     # ========================================================
@@ -686,7 +713,9 @@ def criar_projeto_service(
             restored_workspace is not None
             and not project_committed
         ):
+
             try:
+
                 workspace_rollback = (
                     validar_workspace_fisico(
                         projeto.id,
@@ -699,16 +728,20 @@ def criar_projeto_service(
                 )
 
             except Exception:
+
                 logger.exception(
                     "Falha ao limpar Workspace após "
                     "rollback da criação do projeto",
                     extra={
                         "event":
                             "automation_project_create_rollback_workspace_failed",
+
                         "project_id":
                             projeto.id,
+
                         "user_id":
                             usuario.id,
+
                         "status":
                             "error",
                     },
@@ -739,7 +772,7 @@ def criar_projeto_service(
             detail=(
                 "Não foi possível criar o projeto."
             ),
-        )
+        ) from error
 
 
 # ============================================================

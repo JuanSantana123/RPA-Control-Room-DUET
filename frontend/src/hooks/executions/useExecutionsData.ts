@@ -68,6 +68,23 @@ export function useExecutionsData() {
     const [queueWarningSeconds, setQueueWarningSeconds] = useState(900);
     const requestSequence = useRef(0);
 
+    // ========================================================
+    // STOP EM ANDAMENTO
+    // ========================================================
+    //
+    // Mantém o ID da execução cuja parada já foi aceita pelo
+    // Agent, mas cujo resultado final ainda não chegou ao
+    // Control Room.
+    //
+    // Usamos useRef porque o polling precisa consultar o valor
+    // atual sem depender do ciclo de renderização do React.
+    // ========================================================
+
+    const stoppingExecutionRef =
+        useRef<number | null>(
+            null
+        );
+
 
     // ID da execução que está recebendo comando de parada.
     const [
@@ -115,11 +132,69 @@ export function useExecutionsData() {
                 }
 
 
-                // Mantém exatamente o fallback existente.
-                setExecutions(
+                // ====================================================
+                // EXECUÇÕES RECEBIDAS
+                // ====================================================
+                //
+                // Normalizamos a resposta uma única vez porque ela
+                // também será utilizada para verificar se uma parada
+                // já foi efetivamente concluída.
+                // ====================================================
+
+                const execucoesRecebidas: Execution[] =
                     response.data.executions ??
-                    []
+                    [];
+
+                setExecutions(
+                    execucoesRecebidas
                 );
+
+
+                // ====================================================
+                // CONFIRMAÇÃO DA PARADA PELO POLLING
+                // ====================================================
+                //
+                // O POST de STOP agora representa apenas:
+                //
+                //     "Agent aceitou a solicitação"
+                //
+                // e NÃO:
+                //
+                //     "Robot já terminou".
+                //
+                // Portanto mantemos a interface em "Parando..."
+                // enquanto a Execution ainda aparece como running.
+                //
+                // Quando o callback final do Agent atualizar a
+                // execução para stopped, ela deixará de aparecer na
+                // coleção de execuções em andamento.
+                // ====================================================
+
+                const executionIdEmParada =
+                    stoppingExecutionRef.current;
+
+                if (executionIdEmParada !== null) {
+
+                    const aindaEstaExecutando =
+                        execucoesRecebidas.some(
+                            (execution) =>
+                                execution.id === executionIdEmParada
+                                && execution.status === "running"
+                        );
+
+                    if (!aindaEstaExecutando) {
+
+                        // O Control Room já não considera a execução
+                        // como running. Portanto a parada foi
+                        // consolidada e podemos remover o estado
+                        // visual "Parando...".
+                        stoppingExecutionRef.current = null;
+
+                        setParandoExecucao(
+                            null
+                        );
+                    }
+                }
 
                 if (
                     typeof response.data.queue_warning_seconds === "number"
@@ -203,6 +278,12 @@ export function useExecutionsData() {
 
             try {
 
+                // Mantém o ID da execução também na referência utilizada
+                // pelo polling para acompanhar a conclusão real do STOP.
+                stoppingExecutionRef.current =
+                    executionId;
+
+                // Atualiza o estado visual da interface.
                 setParandoExecucao(
                     executionId
                 );
@@ -236,25 +317,49 @@ export function useExecutionsData() {
                     response.data;
 
 
-                if (
+                                if (
                     response.status < 200 ||
                     response.status >= 300 ||
                     data.status !== "success"
                 ) {
 
-                    notify({
-                        tone: "danger",
-                        title: "A execução não foi interrompida",
-                        message: data.message || data.error || "O Control Room recusou o comando de parada.",
-                    });
+                // O STOP não foi aceito.
+                // Portanto não existe mais uma parada pendente
+                // para acompanhar pelo polling.
+                stoppingExecutionRef.current = null;
+
+                setParandoExecucao(
+                    null
+                );
+
+                notify({
+                    tone: "danger",
+                    title: "A execução não foi interrompida",
+                    message:
+                        data.message
+                        || data.error
+                        || "O Control Room recusou o comando de parada.",
+                });
+
+                return;
+            }
 
 
-                    return;
-                }
-
-
+                // Faz uma atualização imediata.
+                //
+                // Se o Agent já tiver terminado o Robot, essa carga
+                // removerá imediatamente o estado "Parando...".
+                //
+                // Caso contrário, o polling automático continuará
+                // acompanhando até a conclusão.
                 await carregarExecucoes();
-                notify({ tone: "success", title: "Comando de parada enviado", message: `A execução #${executionId} está sendo interrompida.` });
+
+                notify({
+                    tone: "success",
+                    title: "Parada solicitada",
+                    message:
+                        `A execução #${executionId} está sendo interrompida.`,
+                });
 
             } catch (err) {
 
@@ -264,13 +369,28 @@ export function useExecutionsData() {
                 );
 
 
-                notify({ tone: "danger", title: "Falha de comunicação", message: "Não foi possível enviar o comando de parada ao Control Room." });
+                // ====================================================
+                // FALHA ANTES DA ACEITAÇÃO DO STOP
+                // ====================================================
+                //
+                // Se houve erro HTTP/rede, não podemos manter a tela
+                // indefinidamente em "Parando...".
+                // ====================================================
 
-            } finally {
+                stoppingExecutionRef.current = null;
 
                 setParandoExecucao(
                     null
                 );
+
+
+                notify({
+                    tone: "danger",
+                    title: "Falha de comunicação",
+                    message:
+                        "Não foi possível enviar o comando de parada "
+                        + "ao Control Room.",
+                });
             }
         };
 

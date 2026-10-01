@@ -22,11 +22,11 @@
 # Regras de negócio novas devem ser implementadas nos
 # respectivos services, e não diretamente neste arquivo.
 # ============================================================
-
 from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     status,
     UploadFile,
     WebSocket,
@@ -148,9 +148,25 @@ from development.trash_service import (
 from development.libraries_service import (
     listar_bibliotecas_projeto_service,
     criar_biblioteca_projeto_service,
+    excluir_biblioteca_projeto_service,
 )
 
 
+# ============================================================
+# DEVELOPMENT - LIBRARY IMPORT SERVICE
+# ============================================================
+
+from development.library_import_service import (
+    importar_biblioteca_projeto_service,
+)
+
+# ============================================================
+# DEVELOPMENT - LIBRARY IMPORT SERVICE
+# ============================================================
+
+from development.library_import_service import (
+    importar_biblioteca_projeto_service,
+)
 # ============================================================
 # WORKSPACE SERVICE
 # ============================================================
@@ -836,6 +852,150 @@ def criar_biblioteca_projeto(
         db=db,
         usuario=usuario,
     )
+
+# ============================================================
+# PROJECT LIBRARIES - IMPORTAR ZIP PARA DEVELOPMENT
+# ============================================================
+
+@router.post(
+    "/projects/{project_id}/libraries/import",
+    status_code=status.HTTP_201_CREATED,
+)
+async def importar_biblioteca_projeto(
+    project_id: int,
+
+    # --------------------------------------------------------
+    # Metadados da Library enviados via multipart/form-data.
+    # --------------------------------------------------------
+
+    name: str = Form(...),
+
+    import_name: str = Form(...),
+
+    description: str | None = Form(None),
+
+    # --------------------------------------------------------
+    # Pacote ZIP que será materializado como Working Copy.
+    # --------------------------------------------------------
+
+    file: UploadFile = File(...),
+
+    db: Session = Depends(
+        get_db
+    ),
+
+    # --------------------------------------------------------
+    # RBAC - LIBRARIES
+    # --------------------------------------------------------
+    #
+    # A importação pode criar uma nova identidade global.
+    # --------------------------------------------------------
+
+    _libraries_create=Depends(
+        require_permission(
+            "Libraries",
+            "create",
+        )
+    ),
+
+    # --------------------------------------------------------
+    # Também pode reutilizar uma Library já publicada.
+    # --------------------------------------------------------
+
+    _libraries_use=Depends(
+        require_permission(
+            "Libraries",
+            "use",
+        )
+    ),
+
+    # --------------------------------------------------------
+    # RBAC - DEVELOPMENT
+    # --------------------------------------------------------
+    #
+    # A operação altera fisicamente o Workspace do projeto.
+    # --------------------------------------------------------
+
+    usuario=Depends(
+        require_permission(
+            "Development",
+            "edit",
+        )
+    ),
+):
+    """
+    Importa um ZIP de Library diretamente para o Development.
+
+    A operação cria/materializa uma Working Copy no projeto.
+
+    IMPORTANTE:
+
+    - não cria LibraryVersion;
+    - não promove versão para Produção;
+    - não executa publicação standalone;
+    - a publicação continua ocorrendo somente no Release.
+    """
+
+    return await importar_biblioteca_projeto_service(
+        project_id=project_id,
+        name=name,
+        import_name=import_name,
+        description=description,
+        file=file,
+        db=db,
+        usuario=usuario,
+    )
+
+
+# ============================================================
+# PROJECT LIBRARIES - EXCLUIR
+# ============================================================
+
+@router.delete(
+    "/projects/{project_id}/libraries/{library_id}"
+)
+def excluir_biblioteca_projeto(
+    project_id: int,
+    library_id: int,
+    db: Session = Depends(get_db),
+
+    # A Library faz parte da composição reutilizável do projeto.
+    # A permissão "use" mantém a mesma regra utilizada pela
+    # gestão de dependências publicadas.
+    _libraries_use=Depends(
+        require_permission(
+            "Libraries",
+            "use",
+        )
+    ),
+
+    # Como a operação altera o Workspace e a composição do
+    # AutomationProject, Development:edit também é obrigatório.
+    usuario=Depends(
+        require_permission(
+            "Development",
+            "edit",
+        )
+    ),
+):
+    """
+    Remove uma Library do AutomationProject.
+
+    Para Library nova ainda não publicada, descarta também
+    sua identidade global quando não existir histórico ou
+    qualquer outra referência.
+
+    Para Library já publicada, preserva todo o histórico global.
+    """
+
+    return excluir_biblioteca_projeto_service(
+        project_id=project_id,
+        library_id=library_id,
+        db=db,
+        usuario=usuario,
+    )
+
+
 
 
 # ============================================================

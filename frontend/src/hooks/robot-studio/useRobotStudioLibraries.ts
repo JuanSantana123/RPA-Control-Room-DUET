@@ -110,24 +110,6 @@ interface UseRobotStudioLibrariesParams {
 }
 
 
-interface ProjectLibraryDependency {
-    import_name: string;
-    library_id: number;
-}
-
-function isProjectLibraryDependency(
-    value: unknown
-): value is ProjectLibraryDependency {
-    if (typeof value !== "object" || value === null) {
-        return false;
-    }
-
-    const candidate = value as Record<string, unknown>;
-    return typeof candidate.import_name === "string" &&
-        typeof candidate.library_id === "number";
-}
-
-
 // ============================================================
 // SUGESTÃO DE IMPORT_NAME
 // ============================================================
@@ -301,6 +283,27 @@ export function useRobotStudioLibraries({
         setCreatingLibrary,
     ] = useState(false);
 
+    // ========================================================
+    // IMPORTAR LIBRARY POR ZIP
+    // ========================================================
+
+    const [
+        showImportLibrary,
+        setShowImportLibrary,
+    ] = useState(false);
+
+
+    const [
+        importingLibrary,
+        setImportingLibrary,
+    ] = useState(false);
+
+
+    const [
+        importLibraryError,
+        setImportLibraryError,
+    ] = useState("");
+
 
     // ========================================================
     // ABRIR GERENCIAMENTO
@@ -366,6 +369,53 @@ export function useRobotStudioLibraries({
             );
         };
 
+
+
+
+
+    // ========================================================
+    // ABRIR IMPORTAÇÃO POR ZIP
+    // ========================================================
+
+    const abrirImportacaoBiblioteca =
+        () => {
+
+            if (
+                !canWriteWorkspace ||
+                !canCreateLibrary
+            ) {
+                return;
+            }
+
+
+            if (
+                dirtyFiles.size > 0
+            ) {
+
+                setOutputLines(
+                    (current) => [
+                        ...current,
+
+                        "[DUET] Salve as alterações antes de importar uma biblioteca.",
+                    ]
+                );
+
+                return;
+            }
+
+
+            setShowLibraryActions(
+                false
+            );
+
+            setImportLibraryError(
+                ""
+            );
+
+            setShowImportLibrary(
+                true
+            );
+        };
 
     // ========================================================
     // CRIAR LIBRARY
@@ -560,6 +610,198 @@ export function useRobotStudioLibraries({
             }
         };
 
+
+
+
+
+
+    // ========================================================
+    // IMPORTAR LIBRARY POR ZIP
+    // ========================================================
+
+    const importarBibliotecaProjeto =
+        async (
+            payload: {
+                name: string;
+                importName: string;
+                description: string;
+                file: File;
+            }
+        ) => {
+
+            if (
+                !projectId ||
+                !canWriteWorkspace ||
+                !canCreateLibrary ||
+                importingLibrary
+            ) {
+                return;
+            }
+
+
+            try {
+
+                setImportingLibrary(
+                    true
+                );
+
+                setImportLibraryError(
+                    ""
+                );
+
+
+                const formData =
+                    new FormData();
+
+                formData.append(
+                    "name",
+                    payload.name.trim()
+                );
+
+                formData.append(
+                    "import_name",
+                    payload.importName.trim()
+                );
+
+                formData.append(
+                    "description",
+                    payload.description.trim()
+                );
+
+                formData.append(
+                    "file",
+                    payload.file
+                );
+
+
+                const response =
+                    await api.post(
+                        `/development/projects/${projectId}/libraries/import`,
+                        formData
+                    );
+
+
+                const tree:
+                    StudioNode[] =
+                        response.data?.tree ||
+                        [];
+
+
+                const importedLibrary =
+                    response.data?.library;
+
+
+                setWorkspace(
+                    tree
+                );
+
+
+                const namespace =
+                    importedLibrary?.import_name ||
+                    payload.importName.trim();
+
+
+                const namespacePath =
+                    `_libraries/${namespace}`;
+
+
+                setExpandedFolders(
+                    (current) => {
+
+                        const next =
+                            new Set(
+                                current
+                            );
+
+                        next.add(
+                            "_libraries"
+                        );
+
+                        next.add(
+                            namespacePath
+                        );
+
+                        return next;
+                    }
+                );
+
+
+                setSelectedFolderId(
+                    namespacePath
+                );
+
+
+                setShowImportLibrary(
+                    false
+                );
+
+
+                setOutputLines(
+                    (current) => [
+                        ...current,
+
+                        `[DUET] Biblioteca importada para o projeto: ${namespace}.`,
+
+                        importedLibrary?.is_new
+                            ? "[DUET] A biblioteca é nova e será publicada somente junto ao Release."
+                            : `[DUET] Working Copy criada a partir da Library publicada${
+                                importedLibrary?.version
+                                    ? ` (${importedLibrary.version})`
+                                    : ""
+                            }.`,
+                    ]
+                );
+
+
+                const initFile =
+                    findNodeById(
+                        tree,
+                        `${namespacePath}/__init__.py`
+                    );
+
+
+                if (
+                    initFile &&
+                    initFile.type === "file"
+                ) {
+
+                    await openFile(
+                        initFile
+                    );
+                }
+
+            } catch (err: unknown) {
+
+                console.error(
+                    "Erro ao importar biblioteca para o projeto:",
+                    err
+                );
+
+
+                if (
+                    getApiErrorStatus(err) === 423
+                ) {
+
+                    await carregarCheckout(
+                        false
+                    );
+                }
+
+
+                setImportLibraryError(
+                    getApiErrorMessage(
+                        err,
+                        "Não foi possível importar a biblioteca para o projeto."
+                    )
+                );
+
+            } finally {
+
+                setImportingLibrary(
+                    false
+                );
+            }
+        };
 
     // ========================================================
     // ABRIR LIBRARIES EXISTENTES
@@ -936,6 +1178,14 @@ export function useRobotStudioLibraries({
             node: StudioNode
         ) => {
 
+            // --------------------------------------------------------
+            // VALIDAÇÕES BÁSICAS
+            // --------------------------------------------------------
+            //
+            // A remoção modifica a composição do projeto e também
+            // pode alterar fisicamente o Workspace.
+            // --------------------------------------------------------
+
             if (
                 !projectId ||
                 !canWriteWorkspace ||
@@ -944,6 +1194,17 @@ export function useRobotStudioLibraries({
                 return;
             }
 
+
+            // --------------------------------------------------------
+            // ARQUIVOS NÃO SALVOS
+            // --------------------------------------------------------
+            //
+            // Não permitimos remover uma Library enquanto houver
+            // alterações pendentes no editor.
+            //
+            // Isso evita fechar abas ou apagar uma Working Copy que
+            // ainda possui conteúdo não salvo no frontend.
+            // --------------------------------------------------------
 
             if (
                 dirtyFiles.size > 0
@@ -961,6 +1222,19 @@ export function useRobotStudioLibraries({
             }
 
 
+            // --------------------------------------------------------
+            // IMPORT_NAME
+            // --------------------------------------------------------
+            //
+            // O node recebido representa algo como:
+            //
+            //     _libraries/logging_core
+            //
+            // Extraímos somente:
+            //
+            //     logging_core
+            // --------------------------------------------------------
+
             const importName =
                 node.id
                     .replace(
@@ -972,38 +1246,64 @@ export function useRobotStudioLibraries({
 
             try {
 
-                const dependenciesResponse =
+                // ----------------------------------------------------
+                // LISTAR LIBRARIES DO PROJETO
+                // ----------------------------------------------------
+                //
+                // Este endpoint conhece os dois tipos:
+                //
+                // - Library publicada:
+                //     dependency_id != null
+                //
+                // - Library nova:
+                //     dependency_id = null
+                //     draft_id != null
+                //
+                // Portanto o frontend não precisa mais tentar descobrir
+                // ProjectLibraryDependency diretamente.
+                // ----------------------------------------------------
+
+                const librariesResponse =
                     await api.get(
-                        `/libraries/projects/${projectId}/dependencies`
+                        `/development/projects/${projectId}/libraries`
                     );
 
 
-                const dependencies: ProjectLibraryDependency[] =
+                const projectLibraries =
                     Array.isArray(
-                        dependenciesResponse
-                            .data?.dependencies
+                        librariesResponse.data
+                            ?.libraries
                     )
-                        ? dependenciesResponse
-                            .data.dependencies
-                            .filter(isProjectLibraryDependency)
+                        ? librariesResponse.data
+                            .libraries
                         : [];
 
 
-                const dependency =
-                    dependencies.find(
-                        (item) =>
+                const library =
+                    projectLibraries.find(
+                        (
+                            item: {
+                                import_name?: string;
+                                library_id?: number;
+                                is_new?: boolean;
+                            }
+                        ) =>
                             item.import_name ===
                             importName
                     );
 
 
-                if (!dependency) {
+                if (
+                    !library ||
+                    typeof library.library_id !==
+                        "number"
+                ) {
 
                     setOutputLines(
                         (current) => [
                             ...current,
 
-                            `[DUET] Não foi possível localizar a dependência da biblioteca ${importName}.`,
+                            `[DUET] Não foi possível localizar a biblioteca ${importName} no projeto.`,
                         ]
                     );
 
@@ -1011,34 +1311,81 @@ export function useRobotStudioLibraries({
                 }
 
 
-                const confirmed = await confirm({
-                    title: "Remover biblioteca do projeto?",
-                    description: `A dependência “${importName}” será removida deste projeto.`,
-                    detail: "Referências existentes no código poderão deixar de funcionar.",
-                    confirmLabel: "Remover biblioteca",
-                    tone: "danger",
-                });
+                // ----------------------------------------------------
+                // CONFIRMAÇÃO
+                // ----------------------------------------------------
+                //
+                // Para Library nova, a Working Copy ainda não foi
+                // publicada e será descartada.
+                //
+                // Para Library já publicada, somente este projeto deixa
+                // de utilizá-la; o histórico global permanece intacto.
+                // ----------------------------------------------------
+
+                const confirmed =
+                    await confirm({
+                        title:
+                            "Remover biblioteca do projeto?",
+
+                        description:
+                            library.is_new
+                                ? `A biblioteca nova “${importName}” e sua Working Copy serão removidas deste projeto.`
+                                : `A biblioteca “${importName}” será removida deste projeto.`,
+
+                        detail:
+                            library.is_new
+                                ? "Como ela ainda não foi publicada, seu código local será descartado."
+                                : "As versões publicadas da biblioteca continuarão preservadas em Produção.",
+
+                        confirmLabel:
+                            "Remover biblioteca",
+
+                        tone:
+                            "danger",
+                    });
 
 
-                if (!confirmed) {
+                if (
+                    !confirmed
+                ) {
                     return;
                 }
 
 
-                await api.delete(
-                    `/libraries/projects/${projectId}/dependencies/${dependency.library_id}`
-                );
+                // ----------------------------------------------------
+                // REMOÇÃO OFICIAL DO DEVELOPMENT
+                // ----------------------------------------------------
+                //
+                // O backend decide corretamente:
+                //
+                // Library nova:
+                //     remove Draft + Working Copy e, quando seguro,
+                //     também remove a identidade global não publicada.
+                //
+                // Library publicada:
+                //     remove somente vínculo + Working Copy do projeto.
+                //
+                // Não usamos mais a rota antiga de dependencies.
+                // ----------------------------------------------------
 
-
-                const treeResponse =
-                    await api.get(
-                        `/development/projects/${projectId}/workspace/tree`
+                const deleteResponse =
+                    await api.delete(
+                        `/development/projects/${projectId}/libraries/${library.library_id}`
                     );
 
 
+                // ----------------------------------------------------
+                // ÁRVORE DEVOLVIDA PELO BACKEND
+                // ----------------------------------------------------
+                //
+                // A nova rota já retorna a árvore oficial após a
+                // exclusão. Portanto não precisamos fazer uma segunda
+                // requisição GET para workspace/tree.
+                // ----------------------------------------------------
+
                 const tree:
                     StudioNode[] =
-                        treeResponse.data
+                        deleteResponse.data
                             ?.tree || [];
 
 
@@ -1050,6 +1397,10 @@ export function useRobotStudioLibraries({
                 const libraryPath =
                     `_libraries/${importName}`;
 
+
+                // ----------------------------------------------------
+                // FECHAR ABAS DA LIBRARY REMOVIDA
+                // ----------------------------------------------------
 
                 setOpenTabs(
                     (current) =>
@@ -1063,6 +1414,10 @@ export function useRobotStudioLibraries({
                 );
 
 
+                // ----------------------------------------------------
+                // LIMPAR ARQUIVO ATIVO
+                // ----------------------------------------------------
+
                 setActiveFileId(
                     (current) =>
                         pathBelongsToNode(
@@ -1073,6 +1428,10 @@ export function useRobotStudioLibraries({
                             : current
                 );
 
+
+                // ----------------------------------------------------
+                // LIMPAR PASTA SELECIONADA
+                // ----------------------------------------------------
 
                 setSelectedFolderId(
                     (current) =>
@@ -1085,6 +1444,10 @@ export function useRobotStudioLibraries({
                             : current
                 );
 
+
+                // ----------------------------------------------------
+                // LIMPAR DIRTY FILES DA LIBRARY
+                // ----------------------------------------------------
 
                 setDirtyFiles(
                     (current) => {
@@ -1116,6 +1479,10 @@ export function useRobotStudioLibraries({
                 );
 
 
+                // ----------------------------------------------------
+                // REMOVER EXPANSÕES DA LIBRARY
+                // ----------------------------------------------------
+
                 setExpandedFolders(
                     (current) => {
 
@@ -1146,6 +1513,10 @@ export function useRobotStudioLibraries({
                 );
 
 
+                // ----------------------------------------------------
+                // OUTPUT
+                // ----------------------------------------------------
+
                 setOutputLines(
                     (current) => [
                         ...current,
@@ -1162,6 +1533,7 @@ export function useRobotStudioLibraries({
                 );
 
 
+                // Checkout perdido ou inválido.
                 if (
                     getApiErrorStatus(err) === 423
                 ) {
@@ -1186,8 +1558,6 @@ export function useRobotStudioLibraries({
                 );
             }
         };
-
-
     return {
         showLibraryActions,
         setShowLibraryActions,
@@ -1223,12 +1593,20 @@ export function useRobotStudioLibraries({
         setLibraryCreateError,
 
         creatingLibrary,
+        showImportLibrary,
+        setShowImportLibrary,
+
+        importingLibrary,
+        importLibraryError,
+        setImportLibraryError,
 
         suggestImportName,
 
         abrirGerenciamentoBibliotecas,
         abrirCriacaoBiblioteca,
         criarBibliotecaProjeto,
+        abrirImportacaoBiblioteca,
+        importarBibliotecaProjeto,
 
         abrirBibliotecasExistentes,
         alternarBibliotecaExistente,

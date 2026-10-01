@@ -109,7 +109,7 @@ export default function RobotVersionsDialog({
                             <span className="page-eyebrow">CENTRAL DE VERSÕES</span>
                             <h2 id="robot-versions-title">{robot.name}</h2>
                             <p id="robot-versions-description">
-                                Consulte a proveniência e baixe snapshots imutáveis já publicados.
+                                Consulte a proveniência e exporte snapshots imutáveis já publicados.
                             </p>
                         </div>
                     </div>
@@ -206,12 +206,12 @@ export default function RobotVersionsDialog({
                                                     size="sm"
                                                     variant={version.is_current ? "primary" : "secondary"}
                                                     busy={downloadingVersion === version.version}
-                                                    loadingLabel={`Validando e baixando versão ${version.version}`}
+                                                    loadingLabel={`Validando e exportando versão ${version.version}`}
                                                     disabled={busy && downloadingVersion !== version.version}
                                                     onClick={() => void onDownload(version)}
                                                 >
                                                     <Download size={15} aria-hidden="true" />
-                                                    Baixar v{version.version}
+                                                    Exportar v{version.version}
                                                 </Button>
                                             </div>
 

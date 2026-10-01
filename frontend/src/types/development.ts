@@ -90,6 +90,15 @@ export interface DevelopmentProject {
     base_robot_name: string | null;
     base_version: number | null;
 
+    // Template utilizado somente como origem inicial do projeto.
+    //
+    // Estes campos podem não estar presentes em respostas de
+    // versões anteriores do backend, por isso permanecem opcionais.
+    base_template_id?: number | null;
+    base_template_name?: string | null;
+    base_template_version_id?: number | null;
+    base_template_version?: number | null;
+
 
     // ========================================================
     // AUDITORIA
@@ -168,12 +177,16 @@ export interface DevelopmentProject {
 // "new":
 //     automação criada do zero.
 //
+// "template":
+//     projeto novo criado a partir de uma versão de Template.
+//
 // "existing":
 //     projeto criado a partir de um Robot existente.
 // ============================================================
 
 export type ProjectOriginMode =
     | "new"
+    | "template"
     | "existing";
 
 
@@ -206,6 +219,72 @@ export interface OriginRobot {
 
     // Caminho amigável utilizado pela interface.
     folder_label: string;
+}
+
+
+// ============================================================
+// TEMPLATES DE AUTOMAÇÃO
+// ============================================================
+//
+// Templates são somente a origem inicial de um projeto.
+// Depois da criação, o Workspace pertence ao AutomationProject.
+// ============================================================
+
+export interface AutomationTemplateVersion {
+
+    id: number;
+
+    template_id: number;
+
+    // Versionamento inteiro automático: v1, v2, v3...
+    version: number;
+
+    filename: string;
+
+    file_hash: string;
+
+    published_by: number;
+
+    published_at: string | null;
+
+    // true quando esta é a versão selecionada por padrão
+    // para novos projetos.
+    is_current: boolean;
+}
+
+
+export interface AutomationTemplate {
+
+    id: number;
+
+    name: string;
+
+    description: string | null;
+
+    current_version_id: number | null;
+
+    current_version: number | null;
+
+    created_by: number;
+
+    created_at: string | null;
+
+    updated_at: string | null;
+
+    is_active: boolean;
+
+    versions: AutomationTemplateVersion[];
+}
+
+
+// ============================================================
+// OPÇÕES DA CRIAÇÃO DO PROJETO
+// ============================================================
+
+export interface CreateDevelopmentProjectOptions {
+
+    // Preenchido somente quando originMode = "template".
+    templateVersionId?: number | null;
 }
 
 

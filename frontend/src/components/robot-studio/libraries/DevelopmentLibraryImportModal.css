@@ -1,0 +1,553 @@
+/* ============================================================
+   DUET CORE - DEVELOPMENT LIBRARY IMPORT MODAL
+   ============================================================
+
+   Este componente utiliza os tokens globais já existentes no
+   frontend do DUET.
+
+   Não cria paleta própria.
+   ============================================================ */
+
+
+.development-library-import-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 18px;
+
+    background: var(--modal-backdrop-color);
+    backdrop-filter: var(--modal-backdrop-filter);
+}
+
+
+.development-library-import-modal {
+    width: min(620px, 100%);
+    max-height: calc(100vh - 40px);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+
+    box-shadow: var(--shadow-lg);
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.development-library-import-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+
+    padding: 20px 22px 17px;
+
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+
+.development-library-import-header > div {
+    min-width: 0;
+}
+
+
+.development-library-import-eyebrow {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: var(--color-primary);
+
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+
+.development-library-import-header h2 {
+    margin: 0;
+
+    color: var(--color-text-primary);
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+
+.development-library-import-header p {
+    max-width: 470px;
+
+    margin: 7px 0 0;
+
+    color: var(--color-text-muted);
+
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+
+.development-library-import-close {
+    width: 32px;
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    padding: 0;
+
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+
+    background: transparent;
+    color: var(--color-text-muted);
+
+    cursor: pointer;
+}
+
+
+.development-library-import-close:hover:not(:disabled) {
+    border-color: var(--color-border);
+    background: var(--color-surface-muted);
+    color: var(--color-text-primary);
+}
+
+
+.development-library-import-close:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   BODY
+   ============================================================ */
+
+.development-library-import-body {
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+
+    overflow-y: auto;
+
+    padding: 19px 22px 22px;
+}
+
+
+/* ============================================================
+   INPUT NATIVO
+   ============================================================ */
+
+.development-library-import-file-input {
+    position: absolute !important;
+
+    width: 1px !important;
+    height: 1px !important;
+
+    overflow: hidden !important;
+
+    clip: rect(0, 0, 0, 0) !important;
+
+    white-space: nowrap !important;
+}
+
+
+/* ============================================================
+   DROPZONE
+   ============================================================ */
+
+.development-library-import-dropzone {
+    width: 100%;
+    min-height: 94px;
+
+    display: grid;
+    grid-template-columns:
+        auto
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+    gap: 13px;
+
+    padding: 14px 15px;
+
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+
+    font: inherit;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+
+.development-library-import-dropzone:hover:not(:disabled),
+.development-library-import-dropzone-active {
+    border-color: var(--color-border-focus);
+    background: var(--color-primary-soft);
+}
+
+
+.development-library-import-dropzone:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+
+.development-library-import-dropzone-icon {
+    width: 40px;
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface);
+    color: var(--color-primary);
+}
+
+
+.development-library-import-dropzone-copy {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+
+.development-library-import-dropzone-copy strong {
+    overflow: hidden;
+
+    color: var(--color-text-primary);
+
+    font-size: 12px;
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.development-library-import-dropzone-copy small {
+    color: var(--color-text-muted);
+
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+
+.development-library-import-dropzone-action {
+    min-height: 31px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 10px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   DEVELOPMENT INFO
+   ============================================================ */
+
+.development-library-import-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    padding: 11px 12px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface-muted);
+}
+
+
+.development-library-import-info > svg {
+    flex-shrink: 0;
+
+    margin-top: 1px;
+
+    color: var(--color-primary);
+}
+
+
+.development-library-import-info > div {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+
+.development-library-import-info strong {
+    color: var(--color-text-secondary);
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.development-library-import-info span {
+    color: var(--color-text-muted);
+
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   CAMPOS
+   ============================================================ */
+
+.development-library-import-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+
+.development-library-import-field > span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    color: var(--color-text-secondary);
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.development-library-import-field > span em {
+    color: var(--color-text-muted);
+
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 500;
+}
+
+
+.development-library-import-field input,
+.development-library-import-field textarea {
+    width: 100%;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    outline: none;
+
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+
+    font: inherit;
+    font-size: 12px;
+
+    box-sizing: border-box;
+}
+
+
+.development-library-import-field input {
+    height: 39px;
+
+    padding: 0 11px;
+}
+
+
+.development-library-import-field textarea {
+    min-height: 82px;
+
+    resize: vertical;
+
+    padding: 10px 11px;
+
+    line-height: 1.5;
+}
+
+
+.development-library-import-field input:focus,
+.development-library-import-field textarea:focus {
+    border-color: var(--color-border-focus);
+}
+
+
+.development-library-import-field input:disabled,
+.development-library-import-field textarea:disabled {
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+
+    cursor: not-allowed;
+}
+
+
+.development-library-import-field > small {
+    margin-top: -2px;
+
+    color: var(--color-text-muted);
+
+    font-size: 9px;
+    line-height: 1.45;
+}
+
+
+/* ============================================================
+   ERRO
+   ============================================================ */
+
+.development-library-import-error {
+    padding: 10px 11px;
+
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-sm);
+
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.development-library-import-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+
+    padding: 14px 22px;
+
+    border-top: 1px solid var(--color-border-light);
+
+    background: var(--color-surface-muted);
+}
+
+
+.development-library-import-secondary,
+.development-library-import-primary {
+    min-height: 35px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 14px;
+
+    border-radius: var(--radius-sm);
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+
+    cursor: pointer;
+}
+
+
+.development-library-import-secondary {
+    border: 1px solid var(--color-border);
+
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+}
+
+
+.development-library-import-primary {
+    border: 1px solid var(--color-primary);
+
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+
+.development-library-import-secondary:hover:not(:disabled) {
+    background: var(--color-surface-muted);
+}
+
+
+.development-library-import-primary:hover:not(:disabled) {
+    background: var(--color-primary-active);
+}
+
+
+.development-library-import-secondary:disabled,
+.development-library-import-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+
+@media (max-width: 640px) {
+
+    .development-library-import-backdrop {
+        padding: 10px;
+    }
+
+
+    .development-library-import-dropzone {
+        grid-template-columns:
+            auto
+            minmax(0, 1fr);
+    }
+
+
+    .development-library-import-dropzone-action {
+        display: none;
+    }
+
+
+    .development-library-import-footer {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+
+    .development-library-import-secondary,
+    .development-library-import-primary {
+        width: 100%;
+    }
+}

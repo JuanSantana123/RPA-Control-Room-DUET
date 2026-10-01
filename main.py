@@ -70,6 +70,8 @@ from api.development import router as development_router
 # Importa o router responsável pelo módulo de
 # Bibliotecas reutilizáveis do DUET CORE.
 from api.libraries import router as libraries_router
+# Importa o router responsável pelo catálogo versionado de Templates.
+from api.templates import router as templates_router
 from api.dashboard import router as dashboard_router
 # Router HTTP responsável pelas operações de agendamentos.
 from api.schedules import (
@@ -167,6 +169,8 @@ app.include_router(robots_router)
 app.include_router(development_router)
 # Registra as APIs responsáveis pelas bibliotecas reutilizáveis.
 app.include_router(libraries_router)
+# Registra as APIs responsáveis pelos Templates de automação.
+app.include_router(templates_router)
 # Registra todas as APIs relacionadas ao dashboard.
 app.include_router(dashboard_router)
 # Registra todas as APIs relacionadas aos agendamentos.

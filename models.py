@@ -514,6 +514,180 @@ class DevelopmentStage(Base):
         default=datetime.utcnow
     )
 # ============================================================
+# TEMPLATES DE AUTOMAÇÃO
+# ============================================================
+
+class AutomationTemplate(Base):
+    """
+    Representa um Template reutilizável para iniciar novos
+    AutomationProjects.
+
+    O Template possui identidade estável, enquanto o código
+    publicado fica preservado em AutomationTemplateVersion.
+
+    A versão atual é apenas o ponto de entrada padrão para
+    novos projetos. Projetos já criados não recebem alterações
+    quando uma nova versão do Template é publicada.
+    """
+
+    __tablename__ = "automation_templates"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # Nome amigável exibido no catálogo de Templates.
+    name = Column(
+        String(180),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    # Descrição opcional do objetivo/uso recomendado.
+    description = Column(
+        Text,
+        nullable=True
+    )
+
+    # ========================================================
+    # VERSÃO ATUAL
+    # ========================================================
+    #
+    # Aponta para a versão selecionada por padrão quando um
+    # novo projeto é criado a partir deste Template.
+    #
+    # O ponteiro pode voltar para uma versão anterior sem
+    # apagar nenhuma versão publicada.
+    # ========================================================
+
+    current_version_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_template_versions.id",
+            name="fk_templates_current_version",
+            ondelete="SET NULL",
+            use_alter=True
+        ),
+        nullable=True,
+        index=True
+    )
+
+    created_by = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+
+    # 1 = disponível para novos projetos.
+    # 0 = oculto/desativado, preservando todo o histórico.
+    is_active = Column(
+        Integer,
+        nullable=False,
+        default=1,
+        index=True
+    )
+
+
+class AutomationTemplateVersion(Base):
+    """
+    Snapshot imutável de uma versão publicada de Template.
+
+    O ZIP completo é armazenado no repositório físico do
+    Control Room e identificado por SHA-256.
+    """
+
+    __tablename__ = "automation_template_versions"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "template_id",
+            "version",
+            name=(
+                "uq_automation_template_versions_"
+                "template_version"
+            )
+        ),
+    )
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    template_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_templates.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False,
+        index=True
+    )
+
+    # Versionamento inteiro e automático:
+    # v1, v2, v3...
+    version = Column(
+        Integer,
+        nullable=False,
+        index=True
+    )
+
+    # Nome original do ZIP enviado pelo usuário.
+    filename = Column(
+        String,
+        nullable=False
+    )
+
+    # Caminho do snapshot imutável.
+    #
+    # Novos registros utilizam caminho relativo à raiz do
+    # Control Room para facilitar portabilidade.
+    artifact_path = Column(
+        String,
+        nullable=False
+    )
+
+    # SHA-256 do ZIP completo.
+    file_hash = Column(
+        String(64),
+        nullable=False
+    )
+
+    # Usuário responsável pela publicação.
+    published_by = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    published_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True
+    )
+
+
+# ============================================================
 # PROJETOS DE AUTOMAÇÃO - DESENVOLVIMENTO
 # ============================================================
 
@@ -536,15 +710,24 @@ class AutomationProject(Base):
         - versão disponível para execução;
         - utilizada por Agent, schedules e executions.
 
-    Um projeto pode nascer de duas maneiras:
+    Um projeto pode nascer de três maneiras:
 
     1. Automação nova:
        base_robot_id = NULL
        base_version = NULL
+       base_template_id = NULL
+       base_template_version = NULL
 
     2. Alteração de automação já publicada:
        base_robot_id = ID do Robot
        base_version = versão utilizada como base
+
+    3. Automação nova baseada em Template:
+       base_template_id = ID do Template
+       base_template_version = versão utilizada como base
+
+    Template é somente a origem inicial do Workspace.
+    Depois da criação, o código pertence ao projeto.
     """
 
     __tablename__ = "automation_projects"
@@ -695,6 +878,63 @@ class AutomationProject(Base):
     # Quando uma nova versão for publicada futuramente,
     # poderemos atualizar esta referência.
     base_version = Column(
+        Integer,
+        nullable=True
+    )
+
+
+
+    # ========================================================
+    # TEMPLATE DE ORIGEM
+    # ========================================================
+    #
+    # Estes campos são somente um snapshot de proveniência.
+    #
+    # Eles NÃO criam uma dependência de runtime entre o projeto
+    # e o Template e NÃO provocam atualização automática.
+    #
+    # Se o Template receber v4 depois que este projeto nasceu
+    # da v3, o Workspace deste projeto continua exatamente como
+    # estava.
+    # ========================================================
+
+    # Identidade do Template utilizado na criação.
+    #
+    # ON DELETE SET NULL permite preservar o projeto caso o
+    # Template seja removido fisicamente no futuro.
+    base_template_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_templates.id",
+            ondelete="SET NULL"
+        ),
+        nullable=True,
+        index=True
+    )
+
+    # Nome do Template no momento em que o projeto foi criado.
+    #
+    # É um snapshot histórico independente da existência futura
+    # do registro em automation_templates.
+    base_template_name = Column(
+        String(180),
+        nullable=True
+    )
+
+    # ID exato do snapshot imutável utilizado na criação.
+    base_template_version_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_template_versions.id",
+            ondelete="SET NULL"
+        ),
+        nullable=True,
+        index=True
+    )
+
+    # Número amigável da versão utilizada:
+    # 1, 2, 3...
+    base_template_version = Column(
         Integer,
         nullable=True
     )

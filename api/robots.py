@@ -72,7 +72,9 @@ from schemas.robots import RobotFolderRequest, RobotVersionsResponse
 from robots.upload_service import (
     upload_robot_service,
 )
-
+from robots.import_service import (
+    import_robot_package_service,
+)
 from robots.delete_service import (
     delete_robot_service,
 )
@@ -179,6 +181,53 @@ async def upload_robot(
     """
 
     return await upload_robot_service(
+        file=file,
+        folder_id=folder_id,
+        usuario=usuario,
+    )
+
+
+# ============================================================
+# IMPORTAÇÃO DE PACOTE DUET
+# ============================================================
+
+@router.post(
+    "/robots/import",
+    summary="Importar pacote de Robot",
+    description=(
+        "Importa um pacote ZIP para o catálogo de Robots e "
+        "regenera o manifesto utilizando a identidade local."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Robots",
+                "create",
+            )
+        )
+    ],
+)
+async def import_robot_package(
+    file: UploadFile = File(
+        ...,
+        description="Pacote ZIP do Robot."
+    ),
+
+    folder_id: int | None = Form(
+        None,
+        description="Pasta de destino do Robot."
+    ),
+
+    usuario=Depends(
+        get_usuario_atual
+    ),
+):
+    """
+    Recebe o pacote pelo HTTP e delega toda a regra de
+    importação ao import_service.
+    """
+
+    return await import_robot_package_service(
         file=file,
         folder_id=folder_id,
         usuario=usuario,
