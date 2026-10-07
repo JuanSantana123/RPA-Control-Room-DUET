@@ -88,3 +88,4 @@ storage/
 # Pacotes e versões de robôs são dados administrados pelo DUET,
 # e não código-fonte do Control Room.
 repository/
+.venv-security/
