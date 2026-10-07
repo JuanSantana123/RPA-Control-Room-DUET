@@ -16,10 +16,7 @@
 # Assim, a migração não altera o contrato atual da API.
 # ============================================================
 from pathlib import Path
-
-# Logging utilizado pelos endpoints e operações que ainda
-# permanecem sob responsabilidade deste router.
-import logging
+from datetime import datetime
 
 import requests
 import uuid
@@ -51,6 +48,10 @@ from auth.dependencies import get_usuario_atual
 from auth.permissions import require_permission
 
 
+# DUET_PROJECT_CHECKOUT_V22_20261002:EXECUTION_GUARD
+from development.checkout_service import exigir_checkout_workspace
+
+
 # ============================================================
 # EXECUTIONS - MÓDULOS INTERNOS
 # ============================================================
@@ -70,12 +71,24 @@ from schemas.executions import (
 
 from core.queue_policy import get_queue_warning_seconds, queue_sort_key
 
-from executions.logging_context import (
-    obter_contexto_execucao_log,
-)
 
 from executions.service import (
     _executar_robot,
+)
+
+from executions.agent_control_observability import (
+    registrar_falha_consulta_status_agent,
+    registrar_erro_http_consulta_status_agent,
+    registrar_resposta_invalida_consulta_status_agent,
+    registrar_falha_envio_stop_agent,
+    registrar_erro_http_stop_agent,
+    registrar_resposta_invalida_stop_agent,
+    registrar_stop_recusado_agent,
+)
+
+from executions.queue_management_observability import (
+    registrar_falha_cancelamento_fila,
+    registrar_falha_atualizacao_prioridade,
 )
 # Recupera o token técnico do Agent somente em memória
 # para chamadas Control Room -> Agent.
@@ -90,16 +103,6 @@ router = APIRouter(
         Depends(get_usuario_atual)
     ]
 )
-
-
-
-
-# ============================================================
-# PROCESSADOR DA FILA DE EXECUÇÕES
-# ============================================================
-# Logger do Control Room.
-# O main.py configura esse mesmo nome de logger.
-logger = logging.getLogger("control_room")
 
 
 # ============================================================
@@ -212,6 +215,19 @@ def run_development_project(
     as LibraryVersions fixadas no projeto.
     """
 
+    # DUET_PROJECT_CHECKOUT_V22_20261002:EXECUTION_GUARD
+    # Execução de projeto em Desenvolvimento exige o Checkout do
+    # próprio usuário. A regra fica no backend contra bypass HTTP.
+    checkout_db = SessionLocal()
+    try:
+        exigir_checkout_workspace(
+            project_id=project_id,
+            user_id=usuario.id,
+            db=checkout_db,
+        )
+    finally:
+        checkout_db.close()
+
     return _executar_robot(
         agent_id=request.agent_id,
         request=ExecutionRequest(
@@ -322,13 +338,10 @@ def get_execution_status(
 
     except requests.RequestException as error:
 
-        logger.warning(
-            "Falha ao consultar status do Agent",
-            extra={
-                "event": "agent_execution_status_request_failed",
-                "agent_id": agent_id,
-                "error_type": type(error).__name__,
-            },
+        registrar_falha_consulta_status_agent(
+            agent_id=agent_id,
+            user_id=usuario.id,
+            error=error,
         )
 
         return {
@@ -348,13 +361,10 @@ def get_execution_status(
 
     if response.status_code != 200:
 
-        logger.warning(
-            "Agent respondeu com erro ao consultar status",
-            extra={
-                "event": "agent_execution_status_http_error",
-                "agent_id": agent_id,
-                "http_status": response.status_code,
-            },
+        registrar_erro_http_consulta_status_agent(
+            agent_id=agent_id,
+            user_id=usuario.id,
+            http_status=response.status_code,
         )
 
         return {
@@ -379,6 +389,10 @@ def get_execution_status(
         resultado = response.json()
 
     except ValueError:
+        registrar_resposta_invalida_consulta_status_agent(
+            agent_id=agent_id,
+            user_id=usuario.id,
+        )
 
         return {
 
@@ -599,14 +613,11 @@ def stop_agent_execution(
 
     except requests.RequestException as error:
 
-        logger.warning(
-            "Falha ao enviar comando de parada ao Agent",
-            extra={
-                "event": "agent_execution_stop_request_failed",
-                "agent_id": agent_id,
-                "execution_id": execution_id,
-                "error_type": type(error).__name__,
-            },
+        registrar_falha_envio_stop_agent(
+            execution_id=execution_id,
+            agent_id=agent_id,
+            user_id=usuario.id,
+            error=error,
         )
 
         return {
@@ -626,14 +637,11 @@ def stop_agent_execution(
 
     if response.status_code != 200:
 
-        logger.warning(
-            "Agent respondeu com erro ao parar execução",
-            extra={
-                "event": "agent_execution_stop_http_error",
-                "agent_id": agent_id,
-                "execution_id": execution_id,
-                "http_status": response.status_code,
-            },
+        registrar_erro_http_stop_agent(
+            execution_id=execution_id,
+            agent_id=agent_id,
+            user_id=usuario.id,
+            http_status=response.status_code,
         )
 
         return {
@@ -656,6 +664,11 @@ def stop_agent_execution(
         resultado = response.json()
 
     except ValueError:
+        registrar_resposta_invalida_stop_agent(
+            execution_id=execution_id,
+            agent_id=agent_id,
+            user_id=usuario.id,
+        )
 
         return {
             "status": "error",
@@ -673,6 +686,16 @@ def stop_agent_execution(
     # ========================================================
 
     if resultado.get("status") != "success":
+
+        registrar_stop_recusado_agent(
+            execution_id=execution_id,
+            agent_id=agent_id,
+            user_id=usuario.id,
+            agent_message=resultado.get(
+                "message",
+                "Agent recusou o comando de stop",
+            ),
+        )
 
         return {
             "status": "error",
@@ -809,43 +832,6 @@ def cancel_execution(
 
         db.commit()
 
-        # ========================================================
-        # MANTÉM OS IDENTIFICADORES CARREGADOS APÓS O COMMIT
-        # ========================================================
-        #
-        # Após o commit, o SQLAlchemy pode expirar os atributos
-        # do objeto ORM.
-        #
-        # Como ainda precisamos desses IDs para montar o log,
-        # acessamos os valores enquanto a sessão continua aberta.
-        # ========================================================
-
-        execucao.robot_id
-        execucao.agent_id
-        execucao.user_id
-
-        # ========================================================
-        # LOG TÉCNICO - EXECUÇÃO CANCELADA
-        # ========================================================
-
-        contexto_log = obter_contexto_execucao_log(
-            execution_id=execution_id,
-            robot_id=execucao.robot_id,
-            agent_id=execucao.agent_id,
-            user_id=execucao.user_id
-        )
-
-        logger.info(
-            "Execução da fila cancelada",
-            extra={
-                "event": "queued_execution_cancelled",
-                **contexto_log,
-                "status": "cancelled",
-                "status_before": "queued",
-                "status_after": "cancelled"
-            }
-        )
-
         return {
             "status": "success",
             "message": "Execução da fila cancelada com sucesso.",
@@ -856,15 +842,10 @@ def cancel_execution(
 
         db.rollback()
 
-        logger.exception(
-            "Erro ao cancelar execução da fila",
-            extra={
-                "event": "queued_execution_cancel_failed",
-                "execution_id": execution_id,
-                "status": "error",
-                "error_type": type(error).__name__,
-                "error_message": str(error)
-            }
+        registrar_falha_cancelamento_fila(
+            execution_id=execution_id,
+            user_id=usuario.id,
+            error=error,
         )
 
         return {
@@ -916,7 +897,6 @@ def update_execution_priority(
                 "status_atual": execution.status,
             }
 
-        previous_priority = execution.priority
         updated_rows = (
             db.query(Execution)
             .filter(
@@ -940,18 +920,6 @@ def update_execution_priority(
 
         db.commit()
 
-        logger.info(
-            "Prioridade da execução atualizada",
-            extra={
-                "event": "queued_execution_priority_updated",
-                "execution_id": execution_id,
-                "user_id": usuario.id,
-                "priority_before": previous_priority,
-                "priority_after": request.priority,
-                "status": "success",
-            },
-        )
-
         return {
             "status": "success",
             "message": "Prioridade da execução atualizada.",
@@ -961,14 +929,10 @@ def update_execution_priority(
 
     except Exception as error:
         db.rollback()
-        logger.exception(
-            "Falha ao atualizar prioridade da execução",
-            extra={
-                "event": "queued_execution_priority_update_failed",
-                "execution_id": execution_id,
-                "error_type": type(error).__name__,
-                "status": "error",
-            },
+        registrar_falha_atualizacao_prioridade(
+            execution_id=execution_id,
+            user_id=usuario.id,
+            error=error,
         )
         return {
             "status": "error",

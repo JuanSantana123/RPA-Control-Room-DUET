@@ -21,6 +21,12 @@ from agents.repository import (
     listar_agents_ativos,
     listar_execucoes_running_agent,
 )
+
+from agents.observability import (
+    registrar_agent_offline,
+)
+
+
 from core.agent_health import get_agent_heartbeat_timeout_seconds
 from core.timezone import local_now_naive
 
@@ -65,16 +71,11 @@ def verificar_agents_offline():
 
                 if agent.status != "offline":
 
-                    logger.warning(
-                        "Agent ficou offline por ausência de heartbeat",
-                        extra={
-                            "event": "agent_offline_detected",
-                            "agent_id": agent.agent_id,
-                            "agent_name": agent.name,
-                            "agent_host": agent.host,
-                            "agent_port": agent.port,
-                            "reason": "heartbeat_timeout",
-                        },
+                    registrar_agent_offline(
+                        agent_id=agent.agent_id,
+                        agent_name=agent.name,
+                        agent_host=agent.host,
+                        agent_port=agent.port,
                     )
 
                     agent.status = "offline"

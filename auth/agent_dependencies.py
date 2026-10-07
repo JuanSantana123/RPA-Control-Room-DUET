@@ -2,9 +2,15 @@ from fastapi import Header, HTTPException
 
 from database import SessionLocal
 from models import Agent
+
 # Calcula a impressão digital do token recebido.
 # O token plaintext não é utilizado para consulta no banco.
 from agents.token_security import calcular_hash_agent_token
+
+from agents.observability import (
+    registrar_falha_autenticacao_agent,
+)
+
 
 def get_agent_atual(
     authorization: str | None = Header(default=None)
@@ -16,35 +22,65 @@ def get_agent_atual(
         Authorization: Bearer <agent_token>
     """
 
-    # Verifica se o header Authorization foi enviado.
+    # ========================================================
+    # HEADER AUSENTE
+    # ========================================================
+
     if not authorization:
+        registrar_falha_autenticacao_agent(
+            reason="authorization_header_missing",
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Token do Agent não informado."
         )
 
-    # Verifica o formato esperado:
-    # Authorization: Bearer <token>
+    # ========================================================
+    # FORMATO DO HEADER INVÁLIDO
+    # ========================================================
+    #
+    # Esperado:
+    #
+    #     Authorization: Bearer <token>
+    #
+    # ========================================================
+
     if not authorization.startswith("Bearer "):
+        registrar_falha_autenticacao_agent(
+            reason="invalid_authorization_scheme",
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Formato do token do Agent inválido."
         )
 
-    # Remove o prefixo "Bearer ".
+    # ========================================================
+    # EXTRAI TOKEN
+    # ========================================================
+
     agent_token = authorization[7:].strip()
 
+    # Bearer foi informado, porém sem conteúdo depois dele.
     if not agent_token:
+        registrar_falha_autenticacao_agent(
+            reason="agent_token_missing",
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Token do Agent não informado."
         )
 
+    # ========================================================
+    # CONSULTA AGENT
+    # ========================================================
+
     db = SessionLocal()
 
     try:
 
-        # Procura um Agent que possua esse token.
         # --------------------------------------------------------
         # LOCALIZA SOMENTE AGENT ATIVO
         # --------------------------------------------------------
@@ -74,26 +110,32 @@ def get_agent_atual(
             .first()
         )
 
-        # Token inexistente OU pertencente a Agent desativado.
+        # ====================================================
+        # TOKEN INVÁLIDO OU AGENT INATIVO
+        # ====================================================
         #
         # Mantemos a mesma resposta nos dois casos para não
         # revelar ao cliente se determinada credencial existe.
+        # ====================================================
+
         if not agent:
+            registrar_falha_autenticacao_agent(
+                reason="invalid_or_inactive_agent_token",
+            )
+
             raise HTTPException(
                 status_code=401,
                 detail="Token do Agent inválido."
             )
 
-        # Token não pertence a nenhum Agent.
-        if not agent:
-            raise HTTPException(
-                status_code=401,
-                detail="Token do Agent inválido."
-            )
+        # ====================================================
+        # AUTENTICAÇÃO OK
+        # ====================================================
+        #
+        # Não geramos evento de sucesso para não poluir os logs.
+        # ====================================================
 
-        # Retorna o Agent autenticado.
         return agent
 
     finally:
-
         db.close()

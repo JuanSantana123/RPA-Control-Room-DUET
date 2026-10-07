@@ -20,8 +20,6 @@
 # Nenhum novo token é criado durante o registro.
 # ============================================================
 
-import logging
-
 import requests
 from sqlalchemy.orm import Session
 
@@ -41,12 +39,18 @@ from agents.network_security import (
 )
 # Recupera a credencial original somente durante
 # as chamadas Control Room -> Agent.
-from agents.token_security import descriptografar_agent_token
+from agents.token_security import (
+    AgentTokenSecurityError,
+    descriptografar_agent_token,
+)
+
+from agents.observability import (
+    registrar_falha_registro_agent,
+)
 
 from schemas.agents import AgentRegisterRequest
 
 
-logger = logging.getLogger("control_room")
 
 
 def registrar_agent_service(
@@ -95,15 +99,12 @@ def registrar_agent_service(
 
     except AgentNetworkSecurityError as error:
 
-        logger.warning(
-            "Destino de rede recusado durante registro do Agent",
-            extra={
-                "event": "agent_registration_target_rejected",
-                "agent_id": agent_id,
-                "agent_host": str(host),
-                "agent_port": str(port),
-                "reason": str(error),
-            },
+        registrar_falha_registro_agent(
+            reason="target_rejected",
+            agent_id=agent_id,
+            agent_host=str(host),
+            agent_port=str(port),
+            error=error,
         )
 
         return {
@@ -111,7 +112,6 @@ def registrar_agent_service(
             "message": "Destino de rede do Agent inválido.",
             "agent_id": agent_id,
         }
-
     # A partir deste ponto usamos somente os valores que
     # passaram pela validação.
     host = destino.host
@@ -129,14 +129,11 @@ def registrar_agent_service(
 
     if not agent_existente:
 
-        logger.warning(
-            "Tentativa de registrar Agent inexistente no Control Room",
-            extra={
-                "event": "agent_registration_not_found",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="agent_not_found",
+            agent_id=agent_id,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -159,14 +156,12 @@ def registrar_agent_service(
 
     if agent_existente.is_active != 1:
 
-        logger.warning(
-            "Tentativa de registrar Agent desativado",
-            extra={
-                "event": "agent_registration_inactive",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="agent_inactive",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -181,12 +176,36 @@ def registrar_agent_service(
     # O token foi criado anteriormente pelo Control Room.
     # Não deve ser regenerado durante o registro.
     # ========================================================
-
     # O banco não fornece mais o token em plaintext.
     # A credencial é recuperada somente para esta operação.
-    agent_token = descriptografar_agent_token(
-        agent_existente.agent_token_encrypted
-    )
+    #
+    # Falhas de configuração da chave, ciphertext inválido ou
+    # impossibilidade de descriptografia são tratadas como uma
+    # falha operacional do registro do Agent.
+    try:
+        agent_token = descriptografar_agent_token(
+            agent_existente.agent_token_encrypted
+        )
+
+    except AgentTokenSecurityError as error:
+
+        registrar_falha_registro_agent(
+            reason="token_decryption_failed",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
+            error=error,
+        )
+
+        return {
+            "status": "error",
+            "message": (
+                "Não foi possível recuperar a credencial "
+                "técnica do Agent."
+            ),
+            "agent_id": agent_id,
+        }
 
     # ========================================================
     # 1. CONSULTA HEALTH DO AGENT
@@ -212,16 +231,13 @@ def registrar_agent_service(
 
     except requests.RequestException as error:
 
-        logger.error(
-            "Não foi possível consultar o health do Agent durante o registro",
-            extra={
-                "event": "agent_registration_health_request_failed",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-            },
+        registrar_falha_registro_agent(
+            reason="health_connection_failed",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
+            error=error,
         )
 
         # Detalhes da exceção permanecem somente nos logs.
@@ -238,15 +254,12 @@ def registrar_agent_service(
 
     if response.status_code != 200:
 
-        logger.error(
-            "Agent respondeu com erro HTTP durante validação de health",
-            extra={
-                "event": "agent_registration_health_http_error",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-                "http_status": response.status_code,
-            },
+        registrar_falha_registro_agent(
+            reason="health_http_error",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -267,14 +280,12 @@ def registrar_agent_service(
 
     except ValueError:
 
-        logger.error(
-            "Agent retornou JSON inválido no health durante registro",
-            extra={
-                "event": "agent_registration_health_invalid_json",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="health_invalid_json",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -288,14 +299,12 @@ def registrar_agent_service(
 
     if health.get("status") != "online":
 
-        logger.warning(
-            "Agent respondeu ao health, mas não está disponível",
-            extra={
-                "event": "agent_registration_not_online",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="agent_not_online",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -312,14 +321,12 @@ def registrar_agent_service(
 
     if not agent_id_agent:
 
-        logger.warning(
-            "Agent não informou identificador no health",
-            extra={
-                "event": "agent_registration_missing_agent_id",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="health_missing_agent_id",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -330,15 +337,12 @@ def registrar_agent_service(
 
     if agent_id_agent != agent_id:
 
-        logger.warning(
-            "Identificador retornado pelo Agent não corresponde ao cadastro",
-            extra={
-                "event": "agent_registration_agent_id_mismatch",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-                "reason": f"received_agent_id={agent_id_agent}",
-            },
+        registrar_falha_registro_agent(
+            reason="health_agent_id_mismatch",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -370,16 +374,13 @@ def registrar_agent_service(
 
     except requests.RequestException as error:
 
-        logger.error(
-            "Não foi possível consultar a configuração do Agent",
-            extra={
-                "event": "agent_registration_config_request_failed",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-            },
+        registrar_falha_registro_agent(
+            reason="config_connection_failed",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
+            error=error,
         )
 
         # Detalhes técnicos permanecem somente nos logs.
@@ -395,15 +396,12 @@ def registrar_agent_service(
 
     if response.status_code != 200:
 
-        logger.error(
-            "Agent respondeu com erro HTTP ao consultar configuração",
-            extra={
-                "event": "agent_registration_config_http_error",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-                "http_status": response.status_code,
-            },
+        registrar_falha_registro_agent(
+            reason="config_http_error",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -419,14 +417,12 @@ def registrar_agent_service(
 
     except ValueError:
 
-        logger.error(
-            "Agent retornou JSON inválido ao consultar configuração",
-            extra={
-                "event": "agent_registration_config_invalid_json",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="config_invalid_json",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -434,7 +430,6 @@ def registrar_agent_service(
             "message": "Agent retornou JSON inválido no /config",
             "agent_id": agent_id,
         }
-
     # ========================================================
     # 8. VALIDA DADOS DA CONFIGURAÇÃO
     # ========================================================
@@ -451,15 +446,12 @@ def registrar_agent_service(
 
         if field not in config:
 
-            logger.warning(
-                "Configuração do Agent não contém campo obrigatório",
-                extra={
-                    "event": "agent_registration_config_missing_field",
-                    "agent_id": agent_id,
-                    "agent_host": host,
-                    "agent_port": port,
-                    "reason": f"missing_field={field}",
-                },
+            registrar_falha_registro_agent(
+                reason="config_missing_required_field",
+                agent_id=agent_id,
+                agent_name=agent_existente.name,
+                agent_host=host,
+                agent_port=port,
             )
 
             return {
@@ -470,24 +462,18 @@ def registrar_agent_service(
                 ),
                 "agent_id": agent_id,
             }
-
     # ========================================================
     # 9. VALIDA AGENT_ID DA CONFIGURAÇÃO
     # ========================================================
 
     if config["agent_id"] != agent_id:
 
-        logger.warning(
-            "Identificador da configuração do Agent não corresponde ao cadastro",
-            extra={
-                "event": "agent_registration_config_agent_id_mismatch",
-                "agent_id": agent_id,
-                "agent_host": host,
-                "agent_port": port,
-                "reason": (
-                    f"config_agent_id={config['agent_id']}"
-                ),
-            },
+        registrar_falha_registro_agent(
+            reason="config_agent_id_mismatch",
+            agent_id=agent_id,
+            agent_name=agent_existente.name,
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -535,20 +521,17 @@ def registrar_agent_service(
 
     except requests.RequestException as error:
 
-        logger.error(
-            "Falha de comunicação ao ativar Agent",
-            extra={
-                "event": "agent_activation_request_failed",
-                "agent_id": agent_id,
-                "agent_name": agent_validado["name"],
-                "agent_host": host,
-                "agent_port": port,
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-            },
+        registrar_falha_registro_agent(
+            reason="activation_connection_failed",
+            agent_id=agent_id,
+            agent_name=agent_validado["name"],
+            agent_host=host,
+            agent_port=port,
+            error=error,
         )
 
-        # A exceção completa já foi registrada pelo logger acima.
+        # A exceção completa já foi registrada pelo helper de
+        # observabilidade.
         # A resposta da API não expõe detalhes internos da
         # comunicação entre Control Room e Agent.
         return {
@@ -565,16 +548,12 @@ def registrar_agent_service(
 
     if response.status_code != 200:
 
-        logger.error(
-            "Agent respondeu com erro HTTP durante ativação",
-            extra={
-                "event": "agent_activation_http_error",
-                "agent_id": agent_id,
-                "agent_name": agent_validado["name"],
-                "agent_host": host,
-                "agent_port": port,
-                "http_status": response.status_code,
-            },
+        registrar_falha_registro_agent(
+            reason="activation_http_error",
+            agent_id=agent_id,
+            agent_name=agent_validado["name"],
+            agent_host=host,
+            agent_port=port,
         )
 
         # Não refletimos o corpo retornado pelo Agent.
@@ -595,15 +574,12 @@ def registrar_agent_service(
 
     except ValueError:
 
-        logger.error(
-            "Agent retornou JSON inválido durante ativação",
-            extra={
-                "event": "agent_activation_invalid_json",
-                "agent_id": agent_id,
-                "agent_name": agent_validado["name"],
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="activation_invalid_json",
+            agent_id=agent_id,
+            agent_name=agent_validado["name"],
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -616,15 +592,12 @@ def registrar_agent_service(
 
     if status_response.get("status") != "success":
 
-        logger.warning(
-            "Agent não confirmou a ativação",
-            extra={
-                "event": "agent_activation_not_confirmed",
-                "agent_id": agent_id,
-                "agent_name": agent_validado["name"],
-                "agent_host": host,
-                "agent_port": port,
-            },
+        registrar_falha_registro_agent(
+            reason="activation_not_confirmed",
+            agent_id=agent_id,
+            agent_name=agent_validado["name"],
+            agent_host=host,
+            agent_port=port,
         )
 
         return {
@@ -633,7 +606,6 @@ def registrar_agent_service(
             "agent_id": agent_id,
             "response": status_response,
         }
-
     # ========================================================
     # 13. ATUALIZA O CADASTRO NO BANCO
     # ========================================================
@@ -645,20 +617,14 @@ def registrar_agent_service(
             db,
             agent_id,
         )
-
         if not db_agent:
 
-            logger.error(
-                "Agent não encontrado ao atualizar cadastro após validação",
-                extra={
-                    "event": (
-                        "agent_registration_database_record_missing"
-                    ),
-                    "agent_id": agent_id,
-                    "agent_name": agent_validado["name"],
-                    "agent_host": host,
-                    "agent_port": port,
-                },
+            registrar_falha_registro_agent(
+                reason="database_record_missing",
+                agent_id=agent_id,
+                agent_name=agent_validado["name"],
+                agent_host=host,
+                agent_port=port,
             )
 
             return {
@@ -682,20 +648,15 @@ def registrar_agent_service(
 
         db.rollback()
 
-        logger.exception(
-            "Erro ao atualizar cadastro do Agent no banco",
-            extra={
-                "event": "agent_registration_database_update_failed",
-                "agent_id": agent_id,
-                "agent_name": agent_validado["name"],
-                "agent_host": host,
-                "agent_port": port,
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-            },
+        registrar_falha_registro_agent(
+            reason="database_update_failed",
+            agent_id=agent_id,
+            agent_name=agent_validado["name"],
+            agent_host=host,
+            agent_port=port,
+            error=error,
         )
 
-        # A exceção completa já foi registrada pelo logger.
         return {
             "status": "error",
             "message": (
@@ -707,17 +668,6 @@ def registrar_agent_service(
     # ========================================================
     # 14. RETORNO
     # ========================================================
-
-    logger.info(
-        "Agent registrado e ativado com sucesso",
-        extra={
-            "event": "agent_registered",
-            "agent_id": agent_id,
-            "agent_name": agent_validado["name"],
-            "agent_host": agent_validado["host"],
-            "agent_port": agent_validado["port"],
-        },
-    )
 
     return {
         "status": "success",

@@ -180,14 +180,23 @@ export function useUserPassword({
 
             try {
 
-                await api.put(
+                const response = await api.put(
                     `/auth/users/${changingPasswordUserId}/password`,
                     {
-                        password:
-                            newPassword,
+                        new_password: newPassword
                     }
                 );
 
+                // O backend pode responder HTTP 200 com status funcional "error".
+                // Portanto, não devemos considerar apenas o código HTTP.
+                if (response.data?.status !== "success") {
+                    setError(
+                        response.data?.message ||
+                        "Não foi possível alterar a senha do usuário."
+                    );
+
+                    return;
+                }
 
                 setSuccess(
                     "Senha do usuário alterada com sucesso."

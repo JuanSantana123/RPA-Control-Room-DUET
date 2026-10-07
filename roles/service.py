@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from models import User
+from roles.audit import registrar_alteracao_permissoes_role
 
 # ============================================================
 # SEGURANÇA RBAC
@@ -398,6 +399,36 @@ def atualizar_permissoes_role_service(
         db=db,
     )
 
+    # ========================================================
+    # SNAPSHOT PARA AUDITORIA
+    # ========================================================
+    #
+    # Capturamos o estado atual antes de qualquer DELETE/INSERT.
+    #
+    # O evento só será emitido depois do commit e somente se
+    # houver diferença real entre o estado anterior e o novo.
+    # ========================================================
+
+    permissoes_atuais = listar_permissoes_role(
+        db=db,
+        role_id=role_id,
+    )
+
+    permissoes_antes = sorted(
+        f"{permissao.resource}:{permissao.action}"
+        for permissao in permissoes_atuais
+    )
+
+    permissoes_depois = sorted(
+        f"{permissao.resource}:{permissao.action}"
+        for permissao in permissoes
+    )
+
+    houve_alteracao = (
+        permission_ids_atuais
+        != set(permission_ids)
+    )
+
     permission_ids_novos = (
         set(permission_ids)
         - permission_ids_atuais
@@ -456,6 +487,23 @@ def atualizar_permissoes_role_service(
 
         db.rollback()
         raise
+
+    # ========================================================
+    # AUDITORIA - PERMISSÕES DA ROLE
+    # ========================================================
+    #
+    # O evento é emitido somente após o commit e somente quando
+    # o estado final é realmente diferente do estado anterior.
+    # ========================================================
+
+    if houve_alteracao:
+        registrar_alteracao_permissoes_role(
+            usuario_executor=usuario_executor,
+            role_id=role.id,
+            role_name=role.name,
+            permissoes_antes=permissoes_antes,
+            permissoes_depois=permissoes_depois,
+        )
 
     return {
         "status": "success",

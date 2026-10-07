@@ -48,6 +48,9 @@ class RequestContextMiddleware:
                 "Falha não tratada durante requisição HTTP",
                 extra={
                     "event": "http_request_failed",
+                    "category": "SYSTEM",
+                    "component": "http",
+                    "ui_visible": True,
                     "http_method": scope.get("method"),
                     "endpoint": scope.get("path"),
                     "http_status": 500,
@@ -61,6 +64,9 @@ class RequestContextMiddleware:
                 "Requisição HTTP concluída",
                 extra={
                     "event": "http_request_completed",
+                    "category": "HTTP",
+                    "component": "http",
+                    "ui_visible": False,
                     "http_method": scope.get("method"),
                     "endpoint": scope.get("path"),
                     "http_status": status_code,

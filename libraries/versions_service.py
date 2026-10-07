@@ -67,6 +67,9 @@ from libraries.validators import (
     validar_zip_biblioteca,
 )
 
+from libraries.publication_observability import (
+    registrar_falha_publicacao_library,
+)
 
 logger = logging.getLogger(
     "control_room"
@@ -674,20 +677,11 @@ async def publicar_versao_standalone_service(
                 ignore_errors=True,
             )
 
-        logger.exception(
-            "Falha ao publicar versão da biblioteca",
-            extra={
-                "event":
-                    "library_version_publish_failed",
-                "user_id":
-                    usuario.id,
-                "status":
-                    "error",
-                "error_type":
-                    type(error).__name__,
-                "error_message":
-                    str(error),
-            },
+        registrar_falha_publicacao_library(
+            library_id=library.id,
+            version=versao,
+            user_id=usuario.id,
+            error=error,
         )
 
         raise HTTPException(

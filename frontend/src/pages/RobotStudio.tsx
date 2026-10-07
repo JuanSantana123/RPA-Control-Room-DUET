@@ -18,18 +18,21 @@ import {
     ArrowLeft,
     ChevronDown,
     ChevronRight,
+    Download,
     FileCode2,
     FileJson,
     FilePlus2,
     Folder,
     FolderOpen,
     FolderPlus,
+    LockKeyhole,
     Pencil,
     Plus,
     Save,
     Terminal,
     Trash2,
     Unlink,
+    Upload,
     X,
 } from "lucide-react";
 
@@ -41,7 +44,10 @@ import type {
 import { useRobotStudioData } from "../hooks/robot-studio/useRobotStudioData";
 import { useRobotStudioCheckout } from "../hooks/robot-studio/useRobotStudioCheckout";
 import { useRobotStudioWorkspace } from "../hooks/robot-studio/useRobotStudioWorkspace";
+import { useRobotStudioEntrypoint } from "../hooks/robot-studio/useRobotStudioEntrypoint";
 import { useRobotStudioLibraries } from "../hooks/robot-studio/useRobotStudioLibraries";
+import { useRobotStudioLibraryCheckout } from "../hooks/robot-studio/useRobotStudioLibraryCheckout";
+import { useRobotStudioWorkspaceAssets } from "../hooks/robot-studio/useRobotStudioWorkspaceAssets";
 
 
 // ============================================================
@@ -55,6 +61,7 @@ import { useRobotStudioLibraries } from "../hooks/robot-studio/useRobotStudioLib
 
 import RobotStudioTerminal from
     "../components/robot-studio/RobotStudioTerminal";
+import ProjectEntrypointControl from "../components/robot-studio/ProjectEntrypointControl";
 import DevelopmentLibraryImportModal from
     "../components/robot-studio/libraries/DevelopmentLibraryImportModal";
 import LibraryActionsModal from "../components/robot-studio/libraries/LibraryActionsModal";
@@ -209,6 +216,61 @@ function RobotStudio() {
 
 
     // ========================================================
+    // ENTRYPOINT DO PROJETO
+    // ========================================================
+
+    const projectEntrypoint = useRobotStudioEntrypoint({
+        projectId,
+        canWriteWorkspace,
+        workspace,
+        openFile,
+        closeTab,
+        setOutputLines,
+    });
+
+
+    // DUET_LIBRARY_CHECKOUT_V1:HOOK
+    // ========================================================
+    // LIBRARY CHECKOUT
+    // ========================================================
+    //
+    // O Checkout da Library é global por library_id, mas é
+    // adquirido e liberado somente dentro do projeto aberto.
+    // ========================================================
+
+    const libraryCheckout =
+        useRobotStudioLibraryCheckout({
+            projectId,
+            enabled:
+                permissionsLoaded &&
+                canViewLibraries,
+            canWriteWorkspace,
+            dirtyFiles,
+            setOutputLines,
+        });
+
+
+    // ========================================================
+    // WORKSPACE ASSETS / BINÁRIOS
+    // ========================================================
+    //
+    // Upload e download de arquivos não textuais ficam isolados
+    // do Monaco e do fluxo de salvar arquivo UTF-8.
+    // ========================================================
+
+    const workspaceAssets =
+        useRobotStudioWorkspaceAssets({
+            projectId,
+            canWritePath:
+                libraryCheckout.canWritePath,
+            setWorkspace,
+            setExpandedFolders,
+            setOutputLines,
+            carregarCheckout,
+        });
+
+
+    // ========================================================
     // CHECKIN
     // ========================================================
     //
@@ -222,6 +284,15 @@ function RobotStudio() {
             setOutputLines((current) => [
                 ...current,
                 "[DUET] CHECKIN BLOQUEADO: salve as alterações antes de liberar o projeto.",
+            ]);
+
+            return;
+        }
+
+        if (libraryCheckout.hasOwnedCheckouts) {
+            setOutputLines((current) => [
+                ...current,
+                "[DUET] CHECKIN BLOQUEADO: faça Check-in das bibliotecas em edição antes de liberar o projeto.",
             ]);
 
             return;
@@ -315,6 +386,23 @@ function RobotStudio() {
         )?.projectName ||
         `Projeto ${projectId || ""}`;
 
+    const canWriteActiveFile =
+        activeFile?.type === "file"
+            ? libraryCheckout.canWritePath(activeFile.id)
+            : false;
+
+    const canWriteSelectedFolder =
+        selectedFolderId
+            ? libraryCheckout.canWritePath(selectedFolderId)
+            : canWriteWorkspace;
+
+    const activeReadOnlyMessage =
+        libraryCheckout.readOnlyMessageForPath(
+            activeFile?.id,
+            workspaceReadOnlyMessage
+        );
+
+
     const renderNode = (
         node: StudioNode,
         level = 0
@@ -359,6 +447,36 @@ function RobotStudio() {
                     ? "Bibliotecas"
                     : node.name;
 
+            const libraryNamespace =
+                isLibraryNamespaceRoot
+                    ? node.id.replace(/^_libraries\//, "")
+                    : null;
+
+            const libraryCheckoutState =
+                libraryNamespace
+                    ? libraryCheckout.getStateForNamespace(
+                        libraryNamespace
+                    )
+                    : null;
+
+            const canWriteNode =
+                libraryCheckout.canWritePath(node.id);
+
+            // Check-in do próprio lock continua disponível mesmo se o
+            // Checkout do projeto tiver sido removido administrativamente.
+            const canToggleLibraryCheckout =
+                libraryCheckout.actionLibraryId === null &&
+                Boolean(
+                    libraryCheckoutState &&
+                    (
+                        libraryCheckoutState.owns_checkout ||
+                        (
+                            canWriteWorkspace &&
+                            !libraryCheckoutState.checked_out
+                        )
+                    )
+                );
+
 
             return (
                 <div key={node.id}>
@@ -366,6 +484,10 @@ function RobotStudio() {
                     <div
                         style={{
                             ...styles.treeItemRow,
+                            height:
+                                isLibraryNamespaceRoot
+                                    ? 38
+                                    : 28,
 
                             background:
                                 selected
@@ -418,9 +540,44 @@ function RobotStudio() {
                             )}
 
 
-                            <span style={styles.treeLabel}>
-                                {displayName}
-                            </span>
+                            {isLibraryNamespaceRoot ? (
+                                <span style={styles.libraryIdentity}>
+                                    <span style={styles.libraryName}>
+                                        {displayName}
+                                    </span>
+
+                                    <span
+                                        style={{
+                                            ...styles.libraryState,
+                                            color:
+                                                libraryCheckoutState?.owns_checkout
+                                                    ? "var(--studio-accent-hover)"
+                                                    : libraryCheckoutState?.checked_out
+                                                        ? "var(--studio-warning)"
+                                                        : "var(--studio-text-muted)",
+                                        }}
+                                        title={
+                                            libraryCheckoutState?.checked_out
+                                                ? libraryCheckoutState.owns_checkout
+                                                    ? "Library em edição por você"
+                                                    : `Library em edição por ${libraryCheckoutState.checkout?.user_name || "outro usuário"}`
+                                                : "Library em modo somente leitura até adquirir Checkout"
+                                        }
+                                    >
+                                        {libraryCheckout.loading && !libraryCheckoutState
+                                            ? "Consultando..."
+                                            : libraryCheckoutState?.owns_checkout
+                                                ? "Em edição por você"
+                                                : libraryCheckoutState?.checked_out
+                                                    ? `Em edição por ${libraryCheckoutState.checkout?.user_name || "outro usuário"}`
+                                                    : "Somente leitura"}
+                                    </span>
+                                </span>
+                            ) : (
+                                <span style={styles.treeLabel}>
+                                    {displayName}
+                                </span>
+                            )}
 
                         </button>
 
@@ -448,15 +605,15 @@ function RobotStudio() {
                                                 node.id
                                             )
                                         }
-                                        disabled={!canWriteWorkspace}
+                                        disabled={!canWriteNode}
                                         style={{
                                             ...styles.treeActionButton,
                                             opacity:
-                                                canWriteWorkspace
+                                                canWriteNode
                                                     ? 1
                                                     : 0.35,
                                             cursor:
-                                                canWriteWorkspace
+                                                canWriteNode
                                                     ? "pointer"
                                                     : "not-allowed",
                                         }}
@@ -487,15 +644,15 @@ function RobotStudio() {
                                                 node.id
                                             )
                                         }
-                                        disabled={!canWriteWorkspace}
+                                        disabled={!canWriteNode}
                                         style={{
                                             ...styles.treeActionButton,
                                             opacity:
-                                                canWriteWorkspace
+                                                canWriteNode
                                                     ? 1
                                                     : 0.35,
                                             cursor:
-                                                canWriteWorkspace
+                                                canWriteNode
                                                     ? "pointer"
                                                     : "not-allowed",
                                         }}
@@ -509,6 +666,131 @@ function RobotStudio() {
                                     </button>
                                 )}
                                 
+
+                                {/* ---------------------------------
+                                    BIBLIOTECAS: UPLOAD DE ARQUIVO
+                                   --------------------------------- */}
+                                {isInsideLibrary && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            workspaceAssets.requestUpload(
+                                                node.id
+                                            )
+                                        }
+                                        disabled={
+                                            !canWriteNode ||
+                                            workspaceAssets.uploadingFolderPath === node.id
+                                        }
+                                        style={{
+                                            ...styles.treeActionButton,
+                                            opacity:
+                                                canWriteNode &&
+                                                workspaceAssets.uploadingFolderPath !== node.id
+                                                    ? 1
+                                                    : 0.35,
+                                            cursor:
+                                                canWriteNode &&
+                                                workspaceAssets.uploadingFolderPath !== node.id
+                                                    ? "pointer"
+                                                    : "not-allowed",
+                                        }}
+                                        title={
+                                            canWriteNode
+                                                ? "Enviar arquivo para esta pasta"
+                                                : "Faça Checkout da Library para enviar arquivos"
+                                        }
+                                        aria-label={`Enviar arquivo para ${node.name}`}
+                                    >
+                                        <Upload
+                                            size={13}
+                                            strokeWidth={1.8}
+                                        />
+                                    </button>
+                                )}
+
+
+                                {/* ---------------------------------
+                                    BIBLIOTECAS: DOWNLOAD DA PASTA
+                                   --------------------------------- */}
+                                {isInsideLibrary && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            void workspaceAssets.downloadNode(
+                                                node
+                                            )
+                                        }
+                                        disabled={
+                                            workspaceAssets.downloadingPath === node.id
+                                        }
+                                        style={{
+                                            ...styles.treeActionButton,
+                                            opacity:
+                                                workspaceAssets.downloadingPath === node.id
+                                                    ? 0.5
+                                                    : 1,
+                                            cursor:
+                                                workspaceAssets.downloadingPath === node.id
+                                                    ? "wait"
+                                                    : "pointer",
+                                        }}
+                                        title="Baixar pasta como ZIP"
+                                        aria-label={`Baixar ${node.name}`}
+                                    >
+                                        <Download
+                                            size={13}
+                                            strokeWidth={1.8}
+                                        />
+                                    </button>
+                                )}
+
+
+                                {isLibraryNamespaceRoot && libraryCheckoutState && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (libraryCheckoutState.owns_checkout) {
+                                                void libraryCheckout.performCheckin(
+                                                    libraryCheckoutState.library_id
+                                                );
+                                            } else {
+                                                void libraryCheckout.performCheckout(
+                                                    libraryCheckoutState.library_id
+                                                );
+                                            }
+                                        }}
+                                        disabled={!canToggleLibraryCheckout}
+                                        style={{
+                                            ...styles.treeActionButton,
+                                            opacity:
+                                                canToggleLibraryCheckout
+                                                    ? 1
+                                                    : 0.35,
+                                            cursor:
+                                                canToggleLibraryCheckout
+                                                    ? "pointer"
+                                                    : "not-allowed",
+                                        }}
+                                        title={
+                                            libraryCheckoutState.owns_checkout
+                                                ? "Fazer Check-in da biblioteca"
+                                                : libraryCheckoutState.checked_out
+                                                    ? `Em edição por ${libraryCheckoutState.checkout?.user_name || "outro usuário"}`
+                                                    : "Fazer Checkout da biblioteca"
+                                        }
+                                        aria-label={
+                                            libraryCheckoutState.owns_checkout
+                                                ? `Check-in de ${node.name}`
+                                                : `Checkout de ${node.name}`
+                                        }
+                                    >
+                                        <LockKeyhole
+                                            size={13}
+                                            strokeWidth={1.8}
+                                        />
+                                    </button>
+                                )}
 
                                 {/* ---------------------------------
                                     REMOVER LIBRARY DO PROJETO
@@ -573,15 +855,15 @@ function RobotStudio() {
                                                     node
                                                 )
                                             }
-                                            disabled={!canWriteWorkspace}
+                                            disabled={!canWriteNode}
                                             style={{
                                                 ...styles.treeActionButton,
                                                 opacity:
-                                                    canWriteWorkspace
+                                                    canWriteNode
                                                         ? 1
                                                         : 0.35,
                                                 cursor:
-                                                    canWriteWorkspace
+                                                    canWriteNode
                                                         ? "pointer"
                                                         : "not-allowed",
                                             }}
@@ -601,15 +883,15 @@ function RobotStudio() {
                                                     node
                                                 )
                                             }
-                                            disabled={!canWriteWorkspace}
+                                            disabled={!canWriteNode}
                                             style={{
                                                 ...styles.treeActionButton,
                                                 opacity:
-                                                    canWriteWorkspace
+                                                    canWriteNode
                                                         ? 1
                                                         : 0.35,
                                                 cursor:
-                                                    canWriteWorkspace
+                                                    canWriteNode
                                                         ? "pointer"
                                                         : "not-allowed",
                                             }}
@@ -655,6 +937,14 @@ function RobotStudio() {
         const active =
             activeFileId ===
             node.id;
+
+        const canWriteNode =
+            libraryCheckout.canWritePath(node.id);
+
+        const isLibraryFile =
+            node.id.startsWith(
+                "_libraries/"
+            );
 
 
         return (
@@ -708,9 +998,42 @@ function RobotStudio() {
                     AÇÕES DO ARQUIVO
                 ============================================= */}
 
-                {node.id !== "main.py" && (
+                {(
 
                     <div style={styles.treeItemActions}>
+
+                        {isLibraryFile && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    void workspaceAssets.downloadNode(
+                                        node
+                                    )
+                                }
+                                disabled={
+                                    workspaceAssets.downloadingPath === node.id
+                                }
+                                style={{
+                                    ...styles.treeActionButton,
+                                    opacity:
+                                        workspaceAssets.downloadingPath === node.id
+                                            ? 0.5
+                                            : 1,
+                                    cursor:
+                                        workspaceAssets.downloadingPath === node.id
+                                            ? "wait"
+                                            : "pointer",
+                                }}
+                                title="Baixar arquivo"
+                                aria-label={`Baixar ${node.name}`}
+                            >
+                                <Download
+                                    size={13}
+                                    strokeWidth={1.8}
+                                />
+                            </button>
+                        )}
+
 
                         <button
                             type="button"
@@ -719,18 +1042,18 @@ function RobotStudio() {
                                     node
                                 )
                             }
-                            disabled={!canWriteWorkspace}
+                            disabled={!canWriteNode}
 
                             style={{
                                 ...styles.treeActionButton,
 
                                 opacity:
-                                    canWriteWorkspace
+                                    canWriteNode
                                         ? 1
                                         : 0.35,
 
                                 cursor:
-                                    canWriteWorkspace
+                                    canWriteNode
                                         ? "pointer"
                                         : "not-allowed",
                             }}
@@ -751,18 +1074,18 @@ function RobotStudio() {
                                     node
                                 )
                             }
-                            disabled={!canWriteWorkspace}
+                            disabled={!canWriteNode}
 
                             style={{
                                 ...styles.treeActionButton,
 
                                 opacity:
-                                    canWriteWorkspace
+                                    canWriteNode
                                         ? 1
                                         : 0.35,
 
                                 cursor:
-                                    canWriteWorkspace
+                                    canWriteNode
                                         ? "pointer"
                                         : "not-allowed",
                             }}
@@ -832,6 +1155,12 @@ function RobotStudio() {
 
     return (
         <div className="robot-studio route-transition" style={styles.page}>
+            <input
+                ref={workspaceAssets.fileInputRef}
+                type="file"
+                hidden
+                onChange={workspaceAssets.handleUploadSelected}
+            />
             {/* =================================================
                 TOP BAR
             ================================================= */}
@@ -859,6 +1188,16 @@ function RobotStudio() {
                 </div>
 
                 <div className="robot-studio__topbar-right" style={styles.topbarRight}>
+
+                    <ProjectEntrypointControl
+                        state={projectEntrypoint.state}
+                        pythonFiles={projectEntrypoint.pythonFiles}
+                        loading={projectEntrypoint.loading}
+                        saving={projectEntrypoint.saving}
+                        canWrite={canWriteWorkspace}
+                        onChange={projectEntrypoint.changeEntrypoint}
+                    />
+
 
                     {/* Mostra o estado atual do Checkout. */}
                     <span style={styles.checkoutState}>
@@ -997,20 +1336,20 @@ function RobotStudio() {
                         type="button"
                         onClick={saveWorkspace}
                         disabled={
-                            !canWriteWorkspace ||
+                            !canWriteActiveFile ||
                             !dirty ||
                             !activeFile
                         }
                         style={{
                             ...styles.primaryButton,
                             opacity:
-                                !canWriteWorkspace ||
+                                !canWriteActiveFile ||
                                 !dirty ||
                                 !activeFile
                                     ? 0.5
                                     : 1,
                             cursor:
-                                !canWriteWorkspace ||
+                                !canWriteActiveFile ||
                                 !dirty ||
                                 !activeFile
                                     ? "not-allowed"
@@ -1096,16 +1435,16 @@ function RobotStudio() {
                                 onClick={createFile}
 
                                 // Sem Checkout, não permite criar.
-                                disabled={!canWriteWorkspace}
+                                disabled={!canWriteSelectedFolder}
 
                                 style={{
                                     ...styles.smallIconButton,
                                     opacity:
-                                        canWriteWorkspace
+                                        canWriteSelectedFolder
                                             ? 1
                                             : 0.4,
                                     cursor:
-                                        canWriteWorkspace
+                                        canWriteSelectedFolder
                                             ? "pointer"
                                             : "not-allowed",
                                 }}
@@ -1126,16 +1465,16 @@ function RobotStudio() {
                                 onClick={createFolder}
 
                                 // Sem Checkout, não permite criar.
-                                disabled={!canWriteWorkspace}
+                                disabled={!canWriteSelectedFolder}
 
                                 style={{
                                     ...styles.smallIconButton,
                                     opacity:
-                                        canWriteWorkspace
+                                        canWriteSelectedFolder
                                             ? 1
                                             : 0.4,
                                     cursor:
-                                        canWriteWorkspace
+                                        canWriteSelectedFolder
                                             ? "pointer"
                                             : "not-allowed",
                                 }}
@@ -1261,10 +1600,10 @@ function RobotStudio() {
                                     ariaLabel: "Editor de código",
                                     // O código somente pode ser alterado
                                     // com Development:edit + Checkout próprio.
-                                    readOnly: !canWriteWorkspace,
+                                    readOnly: !canWriteActiveFile,
 
                                     readOnlyMessage: {
-                                        value: workspaceReadOnlyMessage,
+                                        value: activeReadOnlyMessage,
                                     },
                                     fontSize: 14,
                                     fontFamily:
@@ -1358,7 +1697,17 @@ function RobotStudio() {
                     {projectId && (
                         <RobotStudioTerminal
                             projectId={Number(projectId)}
-                            enabled={canWriteWorkspace}
+                            enabled={
+                                canWriteWorkspace &&
+                                libraryCheckout.allLibrariesOwnedForTerminal
+                            }
+                            disabledMessage={
+                                !canWriteWorkspace
+                                    ? "Faça Checkout do projeto para utilizar o terminal."
+                                    : !libraryCheckout.overviewLoaded
+                                        ? "Consultando Checkout das bibliotecas..."
+                                        : "Faça Checkout de todas as bibliotecas do projeto para utilizar o terminal."
+                            }
                         />
                     )}
 
@@ -1685,9 +2034,9 @@ const styles: RobotStudioStyles = {
     },
 
     sidebar: {
-        width: 260,
-        minWidth: 220,
-        maxWidth: 340,
+        width: 340,
+        minWidth: 300,
+        maxWidth: 380,
         minHeight: 0,
         display: "flex",
         flexDirection: "column",
@@ -1826,9 +2175,40 @@ const styles: RobotStudioStyles = {
     },
 
     treeLabel: {
+        minWidth: 0,
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
+    },
+
+    libraryIdentity: {
+        minWidth: 0,
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap: 1,
+        overflow: "hidden",
+    },
+
+    libraryName: {
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        color: "var(--studio-text)",
+        fontSize: 12.5,
+        fontWeight: 600,
+        lineHeight: 1.05,
+    },
+
+    libraryState: {
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        fontSize: 9.5,
+        lineHeight: 1.05,
     },
 
     fileIcon: {

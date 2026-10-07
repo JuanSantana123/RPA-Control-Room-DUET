@@ -48,6 +48,7 @@ import {
     LayoutGrid,
     Plus,
     Trash2,
+    Upload,
 } from "lucide-react";
 import FeedbackBanner from "../../ui/FeedbackBanner";
 import { Button } from "../../ui/Button";
@@ -167,6 +168,10 @@ interface DevelopmentProjectToolbarProps {
 
     onCreateProject:
         () => void;
+
+
+    onImportProject:
+        () => void;
 }
 
 
@@ -197,6 +202,7 @@ function DevelopmentProjectToolbar({
     onOpenTrash,
     onBackFromTrash,
     onCreateProject,
+    onImportProject,
 }: DevelopmentProjectToolbarProps) {
 
     // ========================================================
@@ -391,6 +397,27 @@ function DevelopmentProjectToolbar({
                                 )}
 
                             </div>
+
+
+                            {/* =================================
+                                IMPORTAR PROJETO
+                            ================================= */}
+
+                            {canCreateDevelopment && (
+                                <Button
+                                    disabled={creationOpen}
+                                    onClick={
+                                        onImportProject
+                                    }
+                                >
+                                    <Upload
+                                        size={15}
+                                        strokeWidth={1.9}
+                                    />
+
+                                    Importar projeto
+                                </Button>
+                            )}
 
 
                             {/* =================================

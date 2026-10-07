@@ -47,6 +47,12 @@ from development.checkout_service import (
     exigir_checkout_workspace,
 )
 
+
+# DUET_LIBRARY_CHECKOUT_V1:IMPORT
+from libraries.checkout_service import (
+    exigir_checkout_biblioteca_para_caminho,
+)
+
 from development.repository import (
     garantir_workspace,
     resolver_caminho_workspace,
@@ -273,6 +279,15 @@ def salvar_arquivo_workspace_service(
         db=db,
     )
 
+    # DUET_LIBRARY_CHECKOUT_V1:PATH_GUARD:salvar_arquivo_workspace_service
+    # Paths de Library exigem um segundo lock global da própria Library.
+    exigir_checkout_biblioteca_para_caminho(
+        db=db,
+        project_id=project_id,
+        user_id=usuario.id,
+        path=request.path,
+    )
+
     # ========================================================
     # ARQUIVO
     # ========================================================
@@ -463,6 +478,15 @@ def criar_arquivo_workspace_service(
         db=db,
     )
 
+    # DUET_LIBRARY_CHECKOUT_V1:PATH_GUARD:criar_arquivo_workspace_service
+    # Paths de Library exigem um segundo lock global da própria Library.
+    exigir_checkout_biblioteca_para_caminho(
+        db=db,
+        project_id=project_id,
+        user_id=usuario.id,
+        path=request.path,
+    )
+
     workspace_path = garantir_workspace(
         project_id
     )
@@ -572,6 +596,15 @@ def criar_pasta_workspace_service(
         project_id=project_id,
         user_id=usuario.id,
         db=db,
+    )
+
+    # DUET_LIBRARY_CHECKOUT_V1:PATH_GUARD:criar_pasta_workspace_service
+    # Paths de Library exigem um segundo lock global da própria Library.
+    exigir_checkout_biblioteca_para_caminho(
+        db=db,
+        project_id=project_id,
+        user_id=usuario.id,
+        path=request.path,
     )
 
     workspace_path = garantir_workspace(
@@ -687,6 +720,15 @@ def renomear_item_workspace_service(
         db=db,
     )
 
+    # DUET_LIBRARY_CHECKOUT_V1:PATH_GUARD:renomear_item_workspace_service
+    # Paths de Library exigem um segundo lock global da própria Library.
+    exigir_checkout_biblioteca_para_caminho(
+        db=db,
+        project_id=project_id,
+        user_id=usuario.id,
+        path=request.path,
+    )
+
     workspace_path = garantir_workspace(
         project_id
     )
@@ -742,23 +784,6 @@ def renomear_item_workspace_service(
         .as_posix()
     )
 
-    # ========================================================
-    # PROTEGE MAIN.PY
-    # ========================================================
-    #
-    # main.py é o entrypoint utilizado pela arquitetura atual
-    # de execução dos Robots.
-    # ========================================================
-
-    if caminho_relativo_atual == "main.py":
-
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "O arquivo main.py é o ponto de entrada "
-                "do robô e não pode ser renomeado."
-            ),
-        )
 
     # ========================================================
     # NOVO NOME
@@ -960,6 +985,15 @@ def excluir_item_workspace_service(
         db=db,
     )
 
+    # DUET_LIBRARY_CHECKOUT_V1:PATH_GUARD:excluir_item_workspace_service
+    # Paths de Library exigem um segundo lock global da própria Library.
+    exigir_checkout_biblioteca_para_caminho(
+        db=db,
+        project_id=project_id,
+        user_id=usuario.id,
+        path=path,
+    )
+
     workspace_path = garantir_workspace(
         project_id
     )
@@ -1015,19 +1049,6 @@ def excluir_item_workspace_service(
         .as_posix()
     )
 
-    # ========================================================
-    # PROTEGE MAIN.PY
-    # ========================================================
-
-    if caminho_relativo == "main.py":
-
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "O arquivo main.py é o ponto de entrada "
-                "do robô e não pode ser excluído."
-            ),
-        )
 
     tipo_item = (
         "folder"

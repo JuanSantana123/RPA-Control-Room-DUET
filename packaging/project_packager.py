@@ -30,6 +30,7 @@
 # Este módulo será reutilizado futuramente pelo Publish/Release.
 # ============================================================
 
+import json
 import hashlib
 from development.workspace_core import (
     DRAFT_DIRECTORY,
@@ -146,6 +147,9 @@ IGNORED_FILES = {
     ".DS_Store",
 }
 
+# Manifesto técnico usado somente em builds de execução de Development.
+RUNTIME_MANIFEST = "duet-runtime.json"
+
 
 # ============================================================
 # RESULTADO DO BUILD
@@ -221,16 +225,6 @@ def copiar_workspace_para_staging(
             f"Workspace não encontrado: {workspace_path}"
         )
 
-    main_py = (
-        workspace_path /
-        "main.py"
-    )
-
-    if not main_py.is_file():
-
-        raise RuntimeError(
-            "O workspace não possui main.py na raiz."
-        )
 
     for root, dirs, files in os.walk(
         workspace_path
@@ -288,6 +282,36 @@ def copiar_workspace_para_staging(
                 destination_file
             )
 
+
+
+# ============================================================
+# MANIFESTO DE EXECUÇÃO DO DEVELOPMENT
+# ============================================================
+
+def gravar_runtime_manifest(
+    staging_path: Path,
+    entrypoint_path: str,
+) -> None:
+    """Grava no build o entrypoint congelado desta execução."""
+
+    manifest_path = staging_path / RUNTIME_MANIFEST
+
+    if manifest_path.exists():
+        raise RuntimeError(
+            f"{RUNTIME_MANIFEST} é reservado ao runtime do DUET."
+        )
+
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "entrypoint_path": entrypoint_path,
+            },
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
 
 # ============================================================
 # RESOLVER ARTEFATO DA BIBLIOTECA
@@ -768,6 +792,15 @@ def build_project_package(
         )
     )
 
+    # O entrypoint é configuração do AutomationProject; main.py é apenas o padrão.
+    from development.entrypoint_service import (
+        exigir_entrypoint_valido_projeto,
+    )
+
+    entrypoint_path = exigir_entrypoint_valido_projeto(
+        project
+    )
+
     dependencies = carregar_dependencias_projeto(
         db,
         project.id
@@ -819,6 +852,12 @@ def build_project_package(
         copiar_workspace_para_staging(
             workspace_path,
             staging_path
+        )
+
+        # Congela o entrypoint junto ao artefato enviado ao Agent.
+        gravar_runtime_manifest(
+            staging_path,
+            entrypoint_path,
         )
 
         # ----------------------------------------------------

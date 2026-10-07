@@ -48,10 +48,19 @@ from models import (
     AutomationTemplateVersion,
 )
 
+from automation_templates.template_library_dependencies import (
+    copiar_dependencias_template_version,
+    registrar_composicao_template_version,
+    resolver_selecoes_template_libraries,
+)
+
 from development.repository import (
     validar_workspace_fisico,
 )
 
+from automation_templates.publication_observability import (
+    registrar_falha_publicacao_template,
+)
 
 # ============================================================
 # LOGGER
@@ -877,6 +886,7 @@ async def criar_template_service(
     name: str,
     description: str | None,
     file: UploadFile,
+    libraries: list[dict] | None = None,
     db: Session,
     usuario,
 ) -> dict:
@@ -933,6 +943,24 @@ async def criar_template_service(
     template_directory = None
 
     try:
+
+        # --------------------------------------------------------
+        # COMPOSIÇÃO INICIAL DE LIBRARIES
+        # --------------------------------------------------------
+        #
+        # Na criação do Template, ausência do campo e [] possuem o
+        # mesmo significado: a v1 nasce sem Libraries.
+        #
+        # Quando houver seleção, validamos todas as LibraryVersions
+        # antes de persistir o snapshot da versão.
+        # --------------------------------------------------------
+
+        resolved_libraries = (
+            resolver_selecoes_template_libraries(
+                db,
+                libraries or [],
+            )
+        )
 
         template = AutomationTemplate(
             name=normalized_name,
@@ -1005,6 +1033,25 @@ async def criar_template_service(
         )
 
         db.flush()
+
+        # --------------------------------------------------------
+        # SNAPSHOT ATÔMICO DAS LIBRARIES DA v1
+        # --------------------------------------------------------
+        #
+        # As dependências são gravadas antes do mesmo commit que
+        # confirma Template + TemplateVersion. Assim não existe uma
+        # v1 parcialmente criada sem a composição solicitada.
+        # --------------------------------------------------------
+
+        registrar_composicao_template_version(
+            db=db,
+            template_version_id=
+                version.id,
+            resolved_libraries=
+                resolved_libraries,
+            created_by=
+                usuario.id,
+        )
 
         template.current_version_id = (
             version.id
@@ -1137,6 +1184,7 @@ async def publicar_nova_versao_template_service(
     *,
     template_id: int,
     file: UploadFile,
+    libraries: list[dict] | None = None,
     db: Session,
     usuario,
 ) -> dict:
@@ -1165,6 +1213,31 @@ async def publicar_nova_versao_template_service(
             somente_ativo=True,
             lock=True,
         )
+
+        # Guardamos a origem antes de trocar current_version_id.
+        source_template_version_id = (
+            template.current_version_id
+        )
+
+        # --------------------------------------------------------
+        # COMPOSIÇÃO SOLICITADA
+        # --------------------------------------------------------
+        #
+        # None  -> frontend não enviou o campo; herda a composição
+        #          da versão atual para manter compatibilidade.
+        # []    -> usuário removeu todas as Libraries.
+        # [...] -> usa exatamente as versões selecionadas.
+        # --------------------------------------------------------
+
+        resolved_libraries = None
+
+        if libraries is not None:
+            resolved_libraries = (
+                resolver_selecoes_template_libraries(
+                    db,
+                    libraries,
+                )
+            )
 
         max_version = (
             db.query(
@@ -1238,6 +1311,39 @@ async def publicar_nova_versao_template_service(
         )
 
         db.flush()
+
+        # --------------------------------------------------------
+        # SNAPSHOT ATÔMICO DAS LIBRARIES
+        # --------------------------------------------------------
+        #
+        # Campo ausente mantém o comportamento histórico e herda a
+        # composição da versão atual. Campo presente substitui a
+        # composição integralmente, inclusive quando vier como [].
+        # --------------------------------------------------------
+
+        if libraries is None:
+
+            if source_template_version_id is not None:
+                copiar_dependencias_template_version(
+                    db=db,
+                    source_template_version_id=
+                        source_template_version_id,
+                    target_template_version_id=
+                        version.id,
+                    created_by=
+                        usuario.id,
+                )
+
+        else:
+            registrar_composicao_template_version(
+                db=db,
+                template_version_id=
+                    version.id,
+                resolved_libraries=
+                    resolved_libraries or [],
+                created_by=
+                    usuario.id,
+            )
 
         # A versão recém-publicada passa a ser a atual.
         template.current_version_id = (
@@ -1340,26 +1446,14 @@ async def publicar_nova_versao_template_service(
                 ignore_errors=True,
             )
 
-        logger.exception(
-            "Falha ao publicar versão do Template",
-            extra={
-                "event":
-                    "automation_template_version_publish_failed",
-                "template_id":
-                    template_id,
-                "user_id":
-                    getattr(
-                        usuario,
-                        "id",
-                        None,
-                    ),
-                "status":
-                    "error",
-                "error_type":
-                    type(error).__name__,
-                "error_message":
-                    str(error),
-            },
+        registrar_falha_publicacao_template(
+            template_id=template_id,
+            user_id=getattr(
+                usuario,
+                "id",
+                None,
+            ),
+            error=error,
         )
 
         raise HTTPException(

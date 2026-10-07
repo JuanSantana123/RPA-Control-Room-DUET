@@ -39,10 +39,11 @@
 
 import logging
 import shutil
-import logging
 from fastapi import HTTPException
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
+from collections.abc import Callable
+from pathlib import Path
 
 from models import (
     AutomationProject,
@@ -69,10 +70,19 @@ from development.repository import (
     validar_workspace_fisico,
 )
 
+from development.project_storage_observability import (
+    registrar_falha_limpeza_workspace_rollback_criacao,
+)
+
 from automation_templates.service import (
     instanciar_template_no_workspace,
     obter_template_version_or_404,
 )
+
+from automation_templates.project_libraries_service import (
+    aplicar_bibliotecas_template_ao_projeto,
+)
+
 # ============================================================
 # LOGGER
 # ============================================================
@@ -170,6 +180,10 @@ def criar_projeto_service(
     db: Session,
     usuario,
     template_version_id: int | None = None,
+    workspace_initializer: Callable[
+        [AutomationProject],
+        Path,
+    ] | None = None,
 ) -> dict:
     """
     Cria um novo AutomationProject.
@@ -242,18 +256,35 @@ def criar_projeto_service(
             ),
         )
 
-    # Robot publicado e Template representam duas origens
-    # diferentes. Um projeto novo não pode receber ambas.
-    if (
-        base_robot_id is not None
-        and template_version_id is not None
-    ):
+    # ========================================================
+    # ORIGEM ÚNICA DO WORKSPACE
+    # ========================================================
+    #
+    # Um projeto pode nascer de apenas uma origem:
+    #
+    # - Robot publicado;
+    # - Template versionado;
+    # - inicializador interno de Workspace, utilizado por fluxos
+    #   controlados como a importação de projeto via ZIP.
+    #
+    # workspace_initializer não faz parte do contrato HTTP.
+    # É uma estratégia interna entre services.
+    # ========================================================
+
+    origens_informadas = sum(
+        (
+            base_robot_id is not None,
+            template_version_id is not None,
+            workspace_initializer is not None,
+        )
+    )
+
+    if origens_informadas > 1:
 
         raise HTTPException(
             status_code=400,
             detail=(
-                "Informe somente uma origem para o projeto: "
-                "Robot publicado ou Template."
+                "Informe somente uma origem para o projeto."
             ),
         )
 
@@ -587,6 +618,53 @@ def criar_projeto_service(
                 )
             )
 
+            # ------------------------------------------------
+            # LIBRARIES FIXADAS PELO TEMPLATE
+            # ------------------------------------------------
+            #
+            # A versão do Template possui um snapshot imutável
+            # das LibraryVersions utilizadas.
+            #
+            # A aplicação dessas dependências participa da MESMA
+            # transação de criação do AutomationProject:
+            #
+            # - não exige Checkout, pois o projeto ainda está sendo
+            #   criado;
+            # - não realiza commit próprio;
+            # - materializa _libraries antes do commit final;
+            # - qualquer falha remove o Workspace inteiro através
+            #   do rollback já existente neste service.
+            # ------------------------------------------------
+            aplicar_bibliotecas_template_ao_projeto(
+                db=db,
+                project_id=projeto.id,
+                template_version_id=
+                    template_version_base.id,
+                user_id=usuario.id,
+            )
+        elif workspace_initializer is not None:
+
+            # ----------------------------------------------------
+            # WORKSPACE FORNECIDO POR FLUXO INTERNO
+            # ----------------------------------------------------
+            #
+            # Utilizado, por exemplo, pela importação de projeto.
+            #
+            # O inicializador participa da mesma transação da criação:
+            # qualquer exceção volta para o tratamento de rollback
+            # central deste service.
+            # ----------------------------------------------------
+
+            restored_workspace = workspace_initializer(
+                projeto
+            )
+
+            if restored_workspace is None:
+                raise RuntimeError(
+                    "O inicializador do Workspace não retornou "
+                    "o caminho materializado."
+                )
+
         # ====================================================
         # VALIDA WORKSPACE CRIADO/RESTAURADO
         # ====================================================
@@ -679,24 +757,13 @@ def criar_projeto_service(
                     workspace_rollback
                 )
 
-            except Exception:
+            except Exception as cleanup_error:
 
-                logger.exception(
-                    "Falha ao limpar Workspace após "
-                    "rollback da criação do projeto",
-                    extra={
-                        "event":
-                            "automation_project_create_rollback_workspace_failed",
-
-                        "project_id":
-                            projeto.id,
-
-                        "user_id":
-                            usuario.id,
-
-                        "status":
-                            "error",
-                    },
+                registrar_falha_limpeza_workspace_rollback_criacao(
+                    project_id=projeto.id,
+                    project_name=nome,
+                    user_id=usuario.id,
+                    error=cleanup_error,
                 )
 
         raise
@@ -727,24 +794,13 @@ def criar_projeto_service(
                     workspace_rollback
                 )
 
-            except Exception:
+            except Exception as cleanup_error:
 
-                logger.exception(
-                    "Falha ao limpar Workspace após "
-                    "rollback da criação do projeto",
-                    extra={
-                        "event":
-                            "automation_project_create_rollback_workspace_failed",
-
-                        "project_id":
-                            projeto.id,
-
-                        "user_id":
-                            usuario.id,
-
-                        "status":
-                            "error",
-                    },
+                registrar_falha_limpeza_workspace_rollback_criacao(
+                    project_id=projeto.id,
+                    project_name=nome,
+                    user_id=usuario.id,
+                    error=cleanup_error,
                 )
 
         logger.exception(

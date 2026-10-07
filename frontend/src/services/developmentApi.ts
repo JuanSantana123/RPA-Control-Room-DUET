@@ -39,6 +39,8 @@ import type {
     OriginRobotFolder,
     PublishDevelopmentProjectPayload,
     ReleasePreview,
+    TemplateLibrarySelection,
+    TemplateVersionLibrariesResponse,
 } from "../types/development";
 
 
@@ -156,6 +158,10 @@ export const createAutomationTemplate =
             name: string;
             description: string | null;
             file: File;
+
+            // undefined preserva compatibilidade com clientes antigos.
+            // [] significa explicitamente "sem Libraries".
+            libraries?: TemplateLibrarySelection[];
         }
     ): Promise<AutomationTemplate> => {
 
@@ -175,6 +181,14 @@ export const createAutomationTemplate =
                 payload.description
             );
         }
+
+        if (payload.libraries !== undefined) {
+            formData.append(
+                "libraries",
+                JSON.stringify(payload.libraries)
+            );
+        }
+
 
         formData.append(
             "file",
@@ -196,11 +210,21 @@ export const createAutomationTemplate =
 export const publishAutomationTemplateVersion =
     async (
         templateId: number,
-        file: File
+        file: File,
+        libraries?: TemplateLibrarySelection[]
     ): Promise<AutomationTemplate> => {
 
         const formData =
             new FormData();
+
+        // Campo ausente = backend herda a composição atual.
+        // [] explícito = nova versão sem Libraries.
+        if (libraries !== undefined) {
+            formData.append(
+                "libraries",
+                JSON.stringify(libraries)
+            );
+        }
 
         formData.append(
             "file",
@@ -273,6 +297,44 @@ export const downloadAutomationTemplateVersion =
 
 
         return response.data;
+    };
+
+
+// ============================================================
+// LIBRARIES DE UMA VERSÃO DE TEMPLATE
+// ============================================================
+
+export const getAutomationTemplateVersionLibraries =
+    async (
+        templateId: number,
+        versionId: number
+    ): Promise<TemplateVersionLibrariesResponse> => {
+
+        const response =
+            await api.get(
+                `/templates/${templateId}/versions/${versionId}/libraries`
+            );
+
+
+        return {
+            template_id:
+                response.data?.template_id ?? templateId,
+
+            template_version_id:
+                response.data?.template_version_id ?? versionId,
+
+            template_version:
+                response.data?.template_version ?? 0,
+
+            is_current:
+                Boolean(response.data?.is_current),
+
+            total:
+                Number(response.data?.total ?? 0),
+
+            libraries:
+                response.data?.libraries || [],
+        };
     };
 
 

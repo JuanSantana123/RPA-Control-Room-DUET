@@ -22,7 +22,7 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
     { to: "/schedules", label: "Agendamentos", permissions: ["Schedules:view"], icon: CalendarClock },
   ]},
   { label: "Administração", items: [
-    { to: "/templates", label: "Templates", permissions: ["Development:view"], icon: LayoutTemplate },
+    { to: "/templates", label: "Templates", permissions: ["Templates:view"], icon: LayoutTemplate },
     { to: "/vault", label: "Credenciais", permissions: ["Vault:view"], icon: KeyRound },
     { to: "/roles", label: "Perfis de acesso", permissions: ["Roles:view"], icon: ShieldCheck },
     { to: "/users", label: "Usuários", permissions: ["Users:view"], icon: Users },

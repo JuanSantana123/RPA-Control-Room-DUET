@@ -40,6 +40,10 @@ from schemas.agent_heartbeat import (
 )
 from core.timezone import local_now_naive
 
+from agents.observability import (
+    registrar_agent_online,
+    registrar_falha_heartbeat_agent,
+)
 
 # ============================================================
 # LOGGER
@@ -134,12 +138,9 @@ def processar_agent_heartbeat_service(
 
         if not agent:
 
-            logger.warning(
-                "Agent autenticado não encontrado durante processamento do heartbeat",
-                extra={
-                    "event": "agent_heartbeat_agent_not_found",
-                    "agent_id": request.agent_id,
-                },
+            registrar_falha_heartbeat_agent(
+                agent_id=request.agent_id,
+                reason="agent_not_found",
             )
 
             return {
@@ -147,7 +148,6 @@ def processar_agent_heartbeat_service(
                 "message": "Agent não encontrado.",
                 "agent_id": request.agent_id,
             }
-
 
         # ====================================================
         # AGENT JÁ CADASTRADO
@@ -175,15 +175,11 @@ def processar_agent_heartbeat_service(
 
         if agent.status == "offline":
 
-            logger.info(
-                "Agent voltou a ficar online",
-                extra={
-                    "event": "agent_back_online",
-                    "agent_id": agent.agent_id,
-                    "agent_name": request.name,
-                    "agent_host": request.host,
-                    "agent_port": request.port,
-                },
+            registrar_agent_online(
+                agent_id=agent.agent_id,
+                agent_name=request.name,
+                agent_host=request.host,
+                agent_port=request.port,
             )
 
 
@@ -320,14 +316,9 @@ def processar_agent_heartbeat_service(
         db.rollback()
 
 
-        logger.exception(
-            "Erro ao processar heartbeat do Agent",
-            extra={
-                "event": "agent_heartbeat_processing_failed",
-                "agent_id": request.agent_id,
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-            },
+        registrar_falha_heartbeat_agent(
+            error=error,
+            agent_id=request.agent_id,
         )
 
 

@@ -12,6 +12,10 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from development.repository import BASE_DIRECTORY
+from development.comment_attachment_storage import (
+    limpar_anexo_pendente_expirado_pos_commit,
+    limpar_anexo_pendente_excluido_pos_commit,
+)
 from models import AutomationProject, ProjectCommentAttachment
 
 
@@ -59,12 +63,35 @@ def _limpar_pendentes_expirados(project_id: int, user_id: int, db: Session) -> N
     if not stale:
         return
 
-    paths = [ATTACHMENT_REPOSITORY / attachment.storage_key for attachment in stale]
+    cleanup_targets = [
+        (
+            attachment.id,
+            attachment.storage_key,
+            ATTACHMENT_REPOSITORY / attachment.storage_key,
+        )
+        for attachment in stale
+    ]
+
     for attachment in stale:
-        db.delete(attachment)
+        db.delete(
+            attachment
+        )
+
     db.commit()
-    for path in paths:
-        path.unlink(missing_ok=True)
+
+    for (
+        attachment_id,
+        storage_key,
+        path,
+    ) in cleanup_targets:
+
+        limpar_anexo_pendente_expirado_pos_commit(
+            path=path,
+            project_id=project_id,
+            attachment_id=attachment_id,
+            storage_key=storage_key,
+            user_id=user_id,
+        )
 
 
 def _detectar_imagem(header: bytes) -> tuple[str, str] | None:
@@ -223,11 +250,31 @@ def excluir_anexo_pendente_service(
     if not anexo:
         raise HTTPException(status_code=404, detail="Anexo pendente não encontrado.")
 
-    path = ATTACHMENT_REPOSITORY / anexo.storage_key
-    db.delete(anexo)
+    storage_key = anexo.storage_key
+
+    path = (
+        ATTACHMENT_REPOSITORY /
+        storage_key
+    )
+
+    db.delete(
+        anexo
+    )
+
     db.commit()
-    path.unlink(missing_ok=True)
-    return {"status": "success", "message": "Imagem removida."}
+
+    limpar_anexo_pendente_excluido_pos_commit(
+        path=path,
+        project_id=project_id,
+        attachment_id=attachment_id,
+        storage_key=storage_key,
+        user_id=usuario.id,
+    )
+
+    return {
+        "status": "success",
+        "message": "Imagem removida.",
+    }
 
 
 def obter_anexo_comentario_service(

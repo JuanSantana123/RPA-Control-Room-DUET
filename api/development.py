@@ -33,6 +33,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from sqlalchemy.orm import Session
 
@@ -64,6 +65,9 @@ from schemas.development import (
     WorkspaceItemRename,
     DevelopmentLibraryCreate,
 )
+from schemas.development_project_import import (
+    DevelopmentProjectImportConfirmRequest,
+)
 
 
 # ============================================================
@@ -84,6 +88,12 @@ from development.projects_service import (
     listar_projetos_service,
     criar_projeto_service,
     consultar_projeto_service,
+)
+# ============================================================
+
+from development.project_import.service import (
+    analisar_importacao_projeto_service,
+    confirmar_importacao_projeto_service,
 )
 
 
@@ -126,6 +136,13 @@ from development.checkout_service import (
     realizar_checkout_projeto_service,
     realizar_checkin_projeto_service,
     force_release_checkout_projeto_service,
+)
+
+
+# DUET_PROJECT_CHECKOUT_V22_20261002:CHECKOUT_OVERVIEW_API
+from development.checkout_history_service import (
+    listar_estados_checkout_service,
+    listar_historico_checkout_service,
 )
 
 
@@ -181,6 +198,11 @@ from development.workspace_service import (
     excluir_item_workspace_service,
 )
 
+from development.workspace_asset_service import (
+    enviar_asset_workspace_service,
+    preparar_download_asset_workspace_service,
+)
+
 
 # ============================================================
 # RELEASE SERVICE
@@ -214,8 +236,13 @@ from database import SessionLocal
 
 from development.terminal_service import (
     preparar_terminal_development,
+    validar_checkout_terminal_development,
 )
 
+from development.terminal_observability import (
+    registrar_falha_websocket_terminal,
+    registrar_terminal_encerrado_por_perda_checkout,
+)
 import asyncio
 import json
 # ============================================================
@@ -386,6 +413,59 @@ def criar_projeto(
     """Cria um AutomationProject."""
 
     return criar_projeto_service(
+        request=request,
+        db=db,
+        usuario=usuario,
+    )
+
+
+# ============================================================
+# PROJECT IMPORT
+# ============================================================
+#
+# IMPORTANTE:
+# Estas rotas permanecem antes de /projects/{project_id}.
+# Caso contrário, o segmento estático "import" poderia ser
+# interpretado como project_id pelo roteamento dinâmico.
+# ============================================================
+
+@router.post(
+    "/projects/import/analyze",
+)
+async def analisar_importacao_projeto(
+    file: UploadFile = File(...),
+    usuario=Depends(
+        require_permission(
+            "Development",
+            "create",
+        )
+    ),
+):
+    """Analisa um pacote antes da criação do AutomationProject."""
+
+    return await analisar_importacao_projeto_service(
+        file=file,
+        usuario=usuario,
+    )
+
+
+@router.post(
+    "/projects/import/confirm",
+    status_code=status.HTTP_201_CREATED,
+)
+def confirmar_importacao_projeto(
+    request: DevelopmentProjectImportConfirmRequest,
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission(
+            "Development",
+            "create",
+        )
+    ),
+):
+    """Cria o AutomationProject somente após EntryPoint válido."""
+
+    return confirmar_importacao_projeto_service(
         request=request,
         db=db,
         usuario=usuario,
@@ -621,6 +701,42 @@ def publicar_projeto_workflow(
         request=request,
         db=db,
         usuario=usuario,
+    )
+
+
+# ============================================================
+# DUET_PROJECT_CHECKOUT_V22_20261002:CHECKOUT_OVERVIEW_API
+# CHECKOUT - VISIBILIDADE E RASTREABILIDADE
+# ============================================================
+
+@router.get(
+    "/checkout/projects/states"
+)
+def listar_estados_checkout_projetos(
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission("Development", "view")
+    ),
+):
+    return listar_estados_checkout_service(
+        db=db,
+        usuario=usuario,
+    )
+
+
+@router.get(
+    "/checkout/projects/{project_id}/history"
+)
+def listar_historico_checkout_projeto(
+    project_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission("Development", "view")
+    ),
+):
+    return listar_historico_checkout_service(
+        project_id=project_id,
+        db=db,
     )
 
 
@@ -1046,6 +1162,77 @@ def abrir_arquivo_workspace(
     )
 
 
+# ============================================================
+# WORKSPACE - ASSETS DE LIBRARY
+# ============================================================
+
+@router.post(
+    "/projects/{project_id}/workspace/assets",
+    status_code=status.HTTP_201_CREATED,
+)
+async def enviar_asset_workspace(
+    project_id: int,
+    target_path: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission(
+            "Development",
+            "edit",
+        )
+    ),
+):
+    """Envia arquivo para uma pasta de Library do Workspace."""
+
+    return await enviar_asset_workspace_service(
+        project_id=project_id,
+        target_path=target_path,
+        file=file,
+        db=db,
+        usuario=usuario,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/workspace/assets"
+)
+def baixar_asset_workspace(
+    project_id: int,
+    path: str,
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission(
+            "Development",
+            "view",
+        )
+    ),
+):
+    """Baixa arquivo ou pasta de Library; pastas são entregues em ZIP."""
+
+    download = (
+        preparar_download_asset_workspace_service(
+            project_id=project_id,
+            path=path,
+            db=db,
+        )
+    )
+
+    background = (
+        BackgroundTask(
+            download.cleanup
+        )
+        if download.temporary
+        else None
+    )
+
+    return FileResponse(
+        path=str(download.path),
+        filename=download.filename,
+        media_type=download.media_type,
+        background=background,
+    )
+
+
 @router.put(
     "/projects/{project_id}/workspace/file"
 )
@@ -1208,8 +1395,11 @@ async def terminal_development_websocket(
     """
 
     db = None
+    usuario = None
     terminal = None
     output_task = None
+    checkout_guard_task = None
+
 
     try:
 
@@ -1362,11 +1552,94 @@ async def terminal_development_websocket(
         # 7. INICIAR CMD.EXE
         # ====================================================
 
-        await terminal.start()
+        try:
+
+            await terminal.start()
+
+        except Exception:
+
+            # start() possui observabilidade própria.
+            # Aqui a camada WebSocket apenas encerra a conexão.
+            try:
+
+                await websocket.close(
+                    code=1011,
+                    reason="Não foi possível iniciar o terminal.",
+                )
+
+            except Exception:
+                pass
+
+            return
 
 
         # ====================================================
-        # 8. ENVIO DE OUTPUT
+        # 8. GUARDA CONTÍNUA DO CHECKOUT
+        # ====================================================
+        #
+        # O Checkout pode ser encerrado em outra aba, outro navegador
+        # ou por Force Release administrativo enquanto o cmd.exe está
+        # aberto. Portanto, a autorização não pode ser validada apenas
+        # no handshake do WebSocket.
+        #
+        # Quando o lock deixa de pertencer ao usuário:
+        # - o terminal é encerrado;
+        # - o WebSocket é fechado;
+        # - nenhum processo já aberto continua alterando o Workspace.
+        # ====================================================
+
+        async def monitorar_checkout():
+
+            while terminal.running:
+
+                await asyncio.sleep(2)
+
+                guard_db = SessionLocal()
+
+                try:
+
+                    validar_checkout_terminal_development(
+                        project_id=project_id,
+                        user_id=usuario.id,
+                        db=guard_db,
+                    )
+
+                except HTTPException:
+
+                    registrar_terminal_encerrado_por_perda_checkout(
+                        project_id=project_id,
+                        user_id=usuario.id,
+                    )
+
+                    await terminal.close()
+
+                    try:
+
+                        await websocket.close(
+                            code=1008,
+                            reason=(
+                                "Checkout do projeto foi liberado. "
+                                "Terminal encerrado."
+                            ),
+                        )
+
+                    except Exception:
+                        pass
+
+                    return
+
+                finally:
+
+                    guard_db.close()
+
+
+        checkout_guard_task = asyncio.create_task(
+            monitorar_checkout()
+        )
+
+
+        # ====================================================
+        # 9. ENVIO DE OUTPUT
         # ====================================================
 
         async def enviar_output():
@@ -1410,7 +1683,7 @@ async def terminal_development_websocket(
 
 
         # ====================================================
-        # 9. INPUT DO USUÁRIO
+        # 10. INPUT DO USUÁRIO
         # ====================================================
         #
         # Mantemos a conexão viva enquanto o navegador estiver
@@ -1544,21 +1817,21 @@ async def terminal_development_websocket(
     # ERRO INESPERADO
     # ========================================================
 
-    except Exception:
+    except Exception as error:
 
-        logger.exception(
-            "Erro no terminal WebSocket do Development",
-            extra={
-                "event":
-                    "development_terminal_websocket_error",
-
-                "project_id":
-                    project_id,
-
-                "status":
-                    "error",
-            },
-        )
+        registrar_falha_websocket_terminal(
+                project_id=project_id,
+                user_id=(
+                    getattr(
+                        usuario,
+                        "id",
+                        None,
+                    )
+                    if usuario is not None
+                    else None
+                ),
+                error=error,
+            )
 
         try:
 
@@ -1576,6 +1849,25 @@ async def terminal_development_websocket(
     # ========================================================
 
     finally:
+
+        # Encerra o monitor de Checkout da sessão.
+        if (
+            checkout_guard_task is not None
+            and not checkout_guard_task.done()
+        ):
+
+            checkout_guard_task.cancel()
+
+            try:
+
+                await checkout_guard_task
+
+            except asyncio.CancelledError:
+                pass
+
+            except Exception:
+                pass
+
 
         # Cancela a tarefa responsável pela transmissão do
         # stdout caso ela ainda esteja aguardando dados.

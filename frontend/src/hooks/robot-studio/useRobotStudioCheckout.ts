@@ -165,7 +165,8 @@ export function useRobotStudioCheckout({
 
     const carregarCheckout = useCallback(
         async (
-            registrarOutput = false
+            registrarOutput = false,
+            mostrarLoading = true
         ) => {
 
             if (
@@ -179,9 +180,11 @@ export function useRobotStudioCheckout({
 
             try {
 
-                setLoadingCheckout(
-                    true
-                );
+                if (mostrarLoading) {
+                    setLoadingCheckout(
+                        true
+                    );
+                }
 
 
                 const response =
@@ -290,9 +293,11 @@ export function useRobotStudioCheckout({
 
             } finally {
 
-                setLoadingCheckout(
-                    false
-                );
+                if (mostrarLoading) {
+                    setLoadingCheckout(
+                        false
+                    );
+                }
             }
         },
         [canViewDevelopment, permissionsLoaded, projectId]
@@ -319,6 +324,46 @@ export function useRobotStudioCheckout({
         );
 
         return () => window.clearTimeout(initialLoad);
+
+    }, [
+        projectId,
+        permissionsLoaded,
+        canViewDevelopment,
+        carregarCheckout,
+    ]);
+
+
+    // ========================================================
+    // SINCRONIZAÇÃO DO LOCK
+    // ========================================================
+    //
+    // Outro usuário ou um administrador pode alterar o Checkout
+    // enquanto este Studio permanece aberto. Atualizamos o estado
+    // silenciosamente para que o modo leitura/escrita acompanhe o
+    // lock oficial sem exigir refresh da página.
+    // ========================================================
+
+    useEffect(() => {
+
+        if (
+            !projectId ||
+            !permissionsLoaded ||
+            !canViewDevelopment
+        ) {
+            return;
+        }
+
+        const intervalId = window.setInterval(
+            () => void carregarCheckout(
+                false,
+                false
+            ),
+            5000
+        );
+
+        return () => window.clearInterval(
+            intervalId
+        );
 
     }, [
         projectId,

@@ -36,6 +36,7 @@ import RobotsOverview from "../components/robots/RobotsOverview";
 import RobotsToolbar, { type RobotSort, type RobotView } from "../components/robots/RobotsToolbar";
 import RobotVersionsDialog from "../components/robots/RobotVersionsDialog";
 import RobotExportDialog from "../components/robots/RobotExportDialog";
+import RobotImportDialog from "../components/robots/RobotImportDialog";
 import FeedbackBanner from "../components/ui/FeedbackBanner";
 import { Button } from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
@@ -328,26 +329,6 @@ function Robots({ embedded = false }: RobotsProps) {
                 }}
             />
 
-            {/* ========================================================
-                INPUT OCULTO - IMPORTAÇÃO DE PACOTE DUET
-
-                Este input pertence exclusivamente ao botão superior
-                "Importar pacote".
-
-                Ele NÃO utiliza enviarRobo() e NÃO utiliza /robots/upload.
-            ======================================================== */}
-            <input
-                ref={robotImport.inputRef}
-                type="file"
-                accept=".zip"
-                style={{
-                    display: "none",
-                }}
-                onChange={
-                    robotImport.handleFileChange
-                }
-            />
-
 
 
             {/* Cabeçalho principal da página. */}
@@ -359,7 +340,7 @@ function Robots({ embedded = false }: RobotsProps) {
                 availableAgentCount={executionAgents.length}
                 selectedLocation={selectedLocation}
             />
-            
+
 
             {/* ============================================================
                 MENSAGEM DE ERRO
@@ -684,6 +665,66 @@ function Robots({ embedded = false }: RobotsProps) {
                     onToggleLibraries={robotVersions.toggleLibraries}
                 />
             )}
+
+
+
+            {/* ============================================================
+                    IMPORTAÇÃO DE ROBOT PUBLICADO
+                ============================================================ */}
+
+                <RobotImportDialog
+                    open={
+                        robotImport.dialogOpen
+                    }
+
+                    targetLocation={
+                        selectedLocation
+                    }
+
+                    selectedFile={
+                        robotImport.selectedFile
+                    }
+
+                    analysis={
+                        robotImport.analysis
+                    }
+
+                    entrypointPath={
+                        robotImport.entrypointPath
+                    }
+
+                    analyzing={
+                        robotImport.analyzing
+                    }
+
+                    importing={
+                        robotImport.importing
+                    }
+
+                    error={
+                        robotImport.importError
+                    }
+
+                    onFileChange={
+                        robotImport.changeFile
+                    }
+
+                    onEntrypointChange={
+                        robotImport.setEntrypointPath
+                    }
+
+                    onAnalyze={
+                        robotImport.analyze
+                    }
+
+                    onImport={
+                        robotImport.confirm
+                    }
+
+                    onClose={
+                        robotImport.close
+                    }
+                />
 
             {robotExport.isOpen && (
                 <RobotExportDialog

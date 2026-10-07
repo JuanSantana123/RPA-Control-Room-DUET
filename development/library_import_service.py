@@ -62,6 +62,10 @@ from development.workspace_core import (
     draft_workspace_value,
 )
 
+from development.library_import_storage import (
+    limpar_working_copy_importada_apos_rollback,
+)
+
 from libraries.repository import (
     MAX_LIBRARY_ZIP_SIZE,
     TEMP_REPOSITORY,
@@ -659,6 +663,9 @@ async def importar_biblioteca_projeto_service(
 
     target_materialized = False
 
+    resolved_library_id: int | None = None
+    resolved_import_name = import_name
+
     try:
 
         # ====================================================
@@ -687,6 +694,7 @@ async def importar_biblioteca_projeto_service(
         namespace = validar_import_name(
             import_name
         )
+        resolved_import_name = namespace
 
         descricao = _normalizar_descricao(
             description
@@ -763,6 +771,7 @@ async def importar_biblioteca_projeto_service(
             db=db,
             usuario=usuario,
         )
+        resolved_library_id = library.id
 
         _validar_library_nao_adicionada(
             project_id=project_id,
@@ -985,16 +994,14 @@ async def importar_biblioteca_projeto_service(
 
         db.rollback()
 
-        if (
-            target_materialized
-            and target is not None
-            and target.exists()
-        ):
-
-            shutil.rmtree(
-                target,
-                ignore_errors=True,
-            )
+        limpar_working_copy_importada_apos_rollback(
+            target_materialized=target_materialized,
+            target=target,
+            project_id=project_id,
+            library_id=resolved_library_id,
+            import_name=resolved_import_name,
+            user_id=usuario.id,
+        )
 
         raise
 
@@ -1006,16 +1013,14 @@ async def importar_biblioteca_projeto_service(
 
         db.rollback()
 
-        if (
-            target_materialized
-            and target is not None
-            and target.exists()
-        ):
-
-            shutil.rmtree(
-                target,
-                ignore_errors=True,
-            )
+        limpar_working_copy_importada_apos_rollback(
+            target_materialized=target_materialized,
+            target=target,
+            project_id=project_id,
+            library_id=resolved_library_id,
+            import_name=resolved_import_name,
+            user_id=usuario.id,
+        )
 
         raise HTTPException(
             status_code=409,
@@ -1034,16 +1039,14 @@ async def importar_biblioteca_projeto_service(
 
         db.rollback()
 
-        if (
-            target_materialized
-            and target is not None
-            and target.exists()
-        ):
-
-            shutil.rmtree(
-                target,
-                ignore_errors=True,
-            )
+        limpar_working_copy_importada_apos_rollback(
+            target_materialized=target_materialized,
+            target=target,
+            project_id=project_id,
+            library_id=resolved_library_id,
+            import_name=resolved_import_name,
+            user_id=usuario.id,
+        )
 
         logger.exception(
             "Falha ao importar biblioteca para Development",

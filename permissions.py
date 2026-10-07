@@ -243,6 +243,40 @@ PERMISSOES_INICIAIS = [
     ("Libraries", "publish"),
     ("Libraries", "delete"),
     ("Libraries", "use"),
+
+    # ========================================================
+    # TEMPLATES
+    # ========================================================
+    #
+    # Templates versionados utilizados como base para novos
+    # AutomationProjects.
+    #
+    # view:
+    #     Visualizar Templates, versões e histórico.
+    #
+    # create:
+    #     Criar um novo Template com sua versão inicial.
+    #
+    # edit:
+    #     Alterar nome, descrição e status ativo/inativo.
+    #
+    # publish:
+    #     Publicar uma nova versão imutável do Template.
+    #
+    # set_current:
+    #     Definir explicitamente uma versão histórica como atual.
+    #
+    # download:
+    #     Baixar o ZIP de uma versão publicada.
+    # ========================================================
+
+    ("Templates", "view"),
+    ("Templates", "create"),
+    ("Templates", "edit"),
+    ("Templates", "publish"),
+    ("Templates", "set_current"),
+    ("Templates", "download"),
+
     # ========================================================
     # API SWAGGER
     # ========================================================

@@ -686,7 +686,151 @@ class AutomationTemplateVersion(Base):
         index=True
     )
 
+# ============================================================
+# BIBLIOTECAS DAS VERSÕES DE TEMPLATE
+# ============================================================
 
+class TemplateVersionLibraryDependency(Base):
+    """
+    Snapshot imutável das bibliotecas utilizadas por uma versão
+    específica de AutomationTemplate.
+
+    Exemplo:
+
+        Template Padrão DUET
+            v3
+                logging_core -> 2.0.0
+                excel_utils  -> 4.1.0
+
+            v4
+                logging_core -> 3.0.0
+                excel_utils  -> 4.1.0
+
+    IMPORTANTE
+    ----------
+    A dependência pertence à VERSÃO do Template e não ao Template
+    de forma global.
+
+    Dessa forma:
+
+    - alterar as bibliotecas de um Template não modifica versões
+      anteriores;
+    - AutomationTemplateVersion permanece imutável;
+    - LibraryVersion permanece imutável;
+    - projetos criados anteriormente não recebem atualizações;
+    - uma nova composição de bibliotecas exige uma nova versão
+      do Template.
+
+    Esta tabela registra somente versões PUBLICADAS das Libraries.
+    """
+
+    __tablename__ = "template_version_library_dependencies"
+
+    __table_args__ = (
+        # Uma mesma versão de Template só pode utilizar uma versão
+        # publicada de cada Library.
+        #
+        # Impede, por exemplo:
+        #
+        #     Template v3
+        #         logging_core 2.0.0
+        #         logging_core 3.0.0
+        #
+        UniqueConstraint(
+            "template_version_id",
+            "library_id",
+            name="uq_tplver_libdep_library",
+        ),
+    )
+
+    # ========================================================
+    # IDENTIFICADOR
+    # ========================================================
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    # ========================================================
+    # VERSÃO DO TEMPLATE
+    # ========================================================
+
+    # Snapshot específico do Template.
+    #
+    # ON DELETE CASCADE:
+    #     se uma AutomationTemplateVersion for removida
+    #     fisicamente, suas dependências deixam de possuir
+    #     significado e são removidas junto.
+    template_version_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_template_versions.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    # ========================================================
+    # BIBLIOTECA
+    # ========================================================
+
+    # Identidade estável da Library.
+    #
+    # Mantemos library_id explicitamente para:
+    #
+    # - impedir duas versões da mesma Library;
+    # - facilitar consultas;
+    # - validar consistência da composição.
+    library_id = Column(
+        Integer,
+        ForeignKey("libraries.id"),
+        nullable=False,
+        index=True,
+    )
+
+    # ========================================================
+    # REFERÊNCIA LEGADA DE VERSÃO
+    # ========================================================
+    #
+    # Templates atuais NÃO fixam uma LibraryVersion.
+    #
+    # O Template registra somente quais Libraries fazem parte
+    # de sua composição através de library_id.
+    #
+    # Quando um novo AutomationProject é criado, a versão
+    # vigente em Produção é resolvida naquele instante através
+    # de Library.production_version_id.
+    #
+    # Este campo existe apenas para preservar histórico de
+    # vínculos criados antes dessa regra de domínio.
+    # Novos registros devem mantê-lo como NULL.
+    legacy_library_version_id = Column(
+        Integer,
+        ForeignKey("library_versions.id"),
+        nullable=True,
+    )
+
+    # ========================================================
+    # AUDITORIA
+    # ========================================================
+
+    # Usuário que registrou esta dependência durante a
+    # publicação/criação da versão do Template.
+    created_by = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
 # ============================================================
 # PROJETOS DE AUTOMAÇÃO - DESENVOLVIMENTO
 # ============================================================
@@ -751,6 +895,15 @@ class AutomationProject(Base):
     description = Column(
         Text,
         nullable=True
+    )
+    # Arquivo Python utilizado como ponto de entrada oficial.
+    # Projetos legados e novos começam com main.py por compatibilidade,
+    # mas o desenvolvedor pode selecionar qualquer .py do Workspace.
+    entrypoint_path = Column(
+        String(1000),
+        nullable=False,
+        default="main.py",
+        server_default="main.py",
     )
 
     # Pasta de Desenvolvimento onde o projeto está localizado.
@@ -1284,7 +1437,278 @@ class ProjectCheckout(Base):
     )
 
 
+# ============================================================
+# HISTÓRICO DE CHECKOUT DOS PROJETOS
+# ============================================================
+#
+# ProjectCheckout representa apenas o lock atual.
+# Esta tabela é append-only e mantém rastreabilidade funcional
+# mesmo depois de Check-in / Force Release.
+# ============================================================
 
+class ProjectCheckoutHistory(Base):
+    """Evento imutável do ciclo de Checkout de um AutomationProject."""
+
+    __tablename__ = "project_checkout_history"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    # Nullable + SET NULL preserva a auditoria mesmo se o projeto
+    # for excluído permanentemente no futuro.
+    project_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_projects.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    project_name = Column(
+        String(255),
+        nullable=False,
+    )
+
+    event_type = Column(
+        String(32),
+        nullable=False,
+        index=True,
+    )
+
+    actor_user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    actor_user_name = Column(
+        String(255),
+        nullable=False,
+    )
+
+    checkout_owner_user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    checkout_owner_user_name = Column(
+        String(255),
+        nullable=False,
+    )
+
+    checkout_started_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+    occurred_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True,
+    )
+
+# ============================================================
+# SESSÕES DE DESENVOLVIMENTO POR IDE EXTERNA
+# ============================================================
+
+class DeveloperIdeSession(Base):
+    """
+    Representa uma sessão temporária criada quando um usuário
+    abre um AutomationProject em uma IDE externa.
+
+    Exemplos de IDE:
+        - Visual Studio Code
+        - PyCharm
+        - Cursor
+        - qualquer outra IDE selecionada pelo desenvolvedor
+
+    IMPORTANTE:
+
+    O DUET não armazena o token real da sessão.
+
+    São armazenados apenas hashes SHA-256 dos códigos utilizados
+    pelo Developer Bridge.
+    """
+
+    __tablename__ = "developer_ide_sessions"
+
+
+    # ========================================================
+    # IDENTIFICADOR
+    # ========================================================
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+
+    # ========================================================
+    # PROJETO
+    # ========================================================
+    #
+    # Projeto de Desenvolvimento ao qual esta sessão pertence.
+    #
+    # Cada sessão de IDE fica vinculada a UM AutomationProject.
+    # ========================================================
+
+    project_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_projects.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+
+    # ========================================================
+    # USUÁRIO
+    # ========================================================
+    #
+    # Usuário do DUET que iniciou a edição externa.
+    # ========================================================
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+
+    # ========================================================
+    # CÓDIGO TEMPORÁRIO DE ABERTURA
+    # ========================================================
+    #
+    # Quando o usuário clica em "Abrir em IDE", o Control Room
+    # gera um código temporário.
+    #
+    # O código real NÃO é armazenado no banco.
+    #
+    # Guardamos apenas o SHA-256.
+    # ========================================================
+
+    launch_code_hash = Column(
+        String(64),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+
+    # ========================================================
+    # TOKEN DO DEVELOPER BRIDGE
+    # ========================================================
+    #
+    # Depois que o aplicativo local recebe o launch_code,
+    # ele troca esse código por um token de sessão.
+    #
+    # Novamente:
+    # o token verdadeiro não fica salvo no banco.
+    # ========================================================
+
+    access_token_hash = Column(
+        String(64),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
+
+    # ========================================================
+    # EXPIRAÇÃO DO CÓDIGO DE ABERTURA
+    # ========================================================
+
+    launch_expires_at = Column(
+        DateTime,
+        nullable=False,
+        index=True,
+    )
+
+
+    # ========================================================
+    # DATA DO RESGATE
+    # ========================================================
+    #
+    # Preenchido quando o Developer Bridge utiliza o launch_code.
+    #
+    # Isso também impede reutilizar o mesmo código duas vezes.
+    # ========================================================
+
+    redeemed_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+
+    # ========================================================
+    # EXPIRAÇÃO DA SESSÃO
+    # ========================================================
+
+    expires_at = Column(
+        DateTime,
+        nullable=True,
+        index=True,
+    )
+
+
+    # ========================================================
+    # REVOGAÇÃO
+    # ========================================================
+    #
+    # True:
+    #     a sessão não pode mais ser utilizada.
+    #
+    # False:
+    #     a sessão continua potencialmente válida.
+    # ========================================================
+
+    revoked = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+    )
+
+
+    # ========================================================
+    # AUDITORIA
+    # ========================================================
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True,
+    )
+
+
+    # Última utilização conhecida da sessão.
+    last_seen_at = Column(
+        DateTime,
+        nullable=True,
+    )
 
 
 # ============================================================
@@ -2024,7 +2448,131 @@ class ProjectLibraryDraft(Base):
         onupdate=datetime.utcnow
     )
 
+# DUET_LIBRARY_CHECKOUT_V1:MODELS
+# ============================================================
+# LIBRARY CHECKOUT
+# ============================================================
+#
+# Lock global da identidade da Library.
+# Um único library_id pode estar em edição por vez, mesmo quando
+# existirem ProjectLibraryDrafts em projetos diferentes.
+# ============================================================
 
+class LibraryCheckout(Base):
+    """Checkout global de uma Library no contexto de um projeto."""
+
+    __tablename__ = "library_checkouts"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "library_id",
+            name="uq_library_checkouts_library",
+        ),
+    )
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    library_id = Column(
+        Integer,
+        ForeignKey(
+            "libraries.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    project_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_projects.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    checked_out_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+
+class LibraryCheckoutHistory(Base):
+    """Auditoria imutável de Checkout e Check-in de Library."""
+
+    __tablename__ = "library_checkout_history"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    library_id = Column(
+        Integer,
+        ForeignKey(
+            "libraries.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    project_id = Column(
+        Integer,
+        ForeignKey(
+            "automation_projects.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    action = Column(
+        String,
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True,
+    )
 class RobotVersionLibraryDependency(Base):
     """
     Snapshot IMUTÁVEL das bibliotecas utilizadas por uma versão

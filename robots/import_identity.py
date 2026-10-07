@@ -183,6 +183,7 @@ def is_same_as_current_version(
     robot: Robot,
     imported_contents: dict[str, bytes],
     imported_dependencies: list[dict],
+    imported_entrypoint_path: str = "main.py",
 ) -> bool:
     """
     Retorna True somente quando a importação é funcionalmente igual
@@ -234,6 +235,8 @@ def is_same_as_current_version(
         current_package_path
     )
 
+    current_manifest = None
+
     # Manifesto ausente é tolerado para compatibilidade com snapshots
     # legados. Se existir, porém, precisa representar exatamente a
     # RobotVersion vigente.
@@ -262,6 +265,18 @@ def is_same_as_current_version(
                     "ao Robot vigente."
                 ),
             )
+
+    current_entrypoint_path = str(
+        (current_manifest or {}).get("entrypoint_path")
+        or "main.py"
+    ).replace("\\", "/").strip()
+
+    normalized_imported_entrypoint = str(
+        imported_entrypoint_path or "main.py"
+    ).replace("\\", "/").strip()
+
+    if normalized_imported_entrypoint != current_entrypoint_path:
+        return False
 
     imported_fingerprint = (
         calculate_content_fingerprint(

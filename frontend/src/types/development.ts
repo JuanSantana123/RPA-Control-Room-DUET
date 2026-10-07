@@ -278,6 +278,54 @@ export interface AutomationTemplate {
 
 
 // ============================================================
+// LIBRARIES FIXADAS EM UMA VERSÃO DE TEMPLATE
+// ============================================================
+//
+// A composição pertence à AutomationTemplateVersion, não ao
+// Template de forma mutável. Cada vínculo aponta para uma
+// LibraryVersion exata e imutável.
+// ============================================================
+
+export interface TemplateLibrarySelection {
+    library_id: number;
+    library_version_id: number;
+}
+
+
+export interface TemplateVersionLibraryDependency {
+    dependency_id: number;
+    template_version_id: number;
+
+    library_id: number;
+    name: string;
+    import_name: string;
+    description: string | null;
+
+    library_version_id: number;
+    version: string;
+
+    production_version_id: number | null;
+    is_production: boolean;
+
+    library_is_active: boolean;
+    version_is_active: boolean;
+
+    created_by: number;
+    created_at: string | null;
+}
+
+
+export interface TemplateVersionLibrariesResponse {
+    template_id: number;
+    template_version_id: number;
+    template_version: number;
+    is_current: boolean;
+    total: number;
+    libraries: TemplateVersionLibraryDependency[];
+}
+
+
+// ============================================================
 // OPÇÕES DA CRIAÇÃO DO PROJETO
 // ============================================================
 

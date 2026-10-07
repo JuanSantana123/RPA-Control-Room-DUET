@@ -11,6 +11,8 @@
 # ============================================================
 
 from sqlalchemy.orm import Session
+# Emissão centralizada de eventos estruturados de auditoria.
+from core.event_logger import log_event
 
 from models import (
     User,

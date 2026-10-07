@@ -14,6 +14,7 @@
 // ============================================================
 
 import {
+    useEffect,
     useMemo,
     useState,
 } from "react";
@@ -35,6 +36,10 @@ import {
 } from "../components/ui/Button";
 
 import {
+    TemplateLibrariesSelector,
+} from "../components/templates/TemplateLibrariesSelector";
+
+import {
     useAuth,
 } from "../context/useAuth";
 
@@ -42,8 +47,13 @@ import {
     useTemplatesAdmin,
 } from "../hooks/templates/useTemplatesAdmin";
 
+import {
+    useTemplateVersionLibraries,
+} from "../hooks/templates/useTemplateVersionLibraries";
+
 import type {
     AutomationTemplate,
+    TemplateLibrarySelection,
 } from "../types/development";
 
 import "../styles/templates.css";
@@ -56,10 +66,12 @@ import "../styles/templates.css";
 function Templates() {
     const { can } = useAuth();
 
-    // O backend desta V1 reutiliza as permissões de Development.
-    // Portanto a interface aplica exatamente o mesmo contrato.
-    const canCreate = can("Development:create");
-    const canEdit = can("Development:edit");
+    // Permissões específicas da administração de Templates.
+    const canCreate = can("Templates:create");
+    const canEdit = can("Templates:edit");
+    const canPublish = can("Templates:publish");
+    const canSetCurrent = can("Templates:set_current");
+    const canDownload = can("Templates:download");
 
     const {
         templates,
@@ -75,6 +87,13 @@ function Templates() {
         setCurrentVersion,
         downloadVersion,
     } = useTemplatesAdmin();
+
+    const {
+        librariesByVersionId,
+        errorsByVersionId,
+        isLoading: isLoadingVersionLibraries,
+        loadVersionLibraries,
+    } = useTemplateVersionLibraries();
 
 
     // ========================================================
@@ -95,6 +114,12 @@ function Templates() {
 
     const [createFileKey, setCreateFileKey] =
         useState(0);
+
+    const [createLibraries, setCreateLibraries] =
+        useState<TemplateLibrarySelection[]>([]);
+
+    const [createLibrariesValid, setCreateLibrariesValid] =
+        useState(true);
 
 
     // ========================================================
@@ -121,6 +146,18 @@ function Templates() {
 
     const [versionFileKey, setVersionFileKey] =
         useState(0);
+
+    const [versionLibraries, setVersionLibraries] =
+        useState<TemplateLibrarySelection[]>([]);
+
+    const [versionLibrariesValid, setVersionLibrariesValid] =
+        useState(true);
+
+    const [preparingVersionTemplateId, setPreparingVersionTemplateId] =
+        useState<number | null>(null);
+
+    const [versionPreparationError, setVersionPreparationError] =
+        useState("");
 
 
     // ========================================================
@@ -151,6 +188,38 @@ function Templates() {
 
 
     // ========================================================
+    // HISTÓRICO - LIBRARIES SOB DEMANDA
+    // ========================================================
+
+    useEffect(() => {
+        if (expandedTemplateId === null) {
+            return;
+        }
+
+        const template =
+            templates.find(
+                (item) =>
+                    item.id === expandedTemplateId
+            );
+
+        if (!template) {
+            return;
+        }
+
+        for (const version of template.versions) {
+            void loadVersionLibraries(
+                template.id,
+                version.id,
+            );
+        }
+    }, [
+        expandedTemplateId,
+        loadVersionLibraries,
+        templates,
+    ]);
+
+
+    // ========================================================
     // AÇÕES DE FORMULÁRIO
     // ========================================================
 
@@ -163,6 +232,8 @@ function Templates() {
         setCreateName("");
         setCreateDescription("");
         setCreateFile(null);
+        setCreateLibraries([]);
+        setCreateLibrariesValid(true);
         setCreateFileKey((value) => value + 1);
     };
 
@@ -171,6 +242,7 @@ function Templates() {
         if (
             !createName.trim() ||
             !createFile ||
+            !createLibrariesValid ||
             busyAction === "create"
         ) {
             return;
@@ -181,6 +253,7 @@ function Templates() {
                 createName,
                 createDescription,
                 createFile,
+                createLibraries,
             );
 
         if (created) {
@@ -193,8 +266,11 @@ function Templates() {
         template: AutomationTemplate,
     ) => {
         clearFeedback();
+        setVersionPreparationError("");
         setVersionTemplateId(null);
         setVersionFile(null);
+        setVersionLibraries([]);
+        setVersionLibrariesValid(true);
 
         setEditingTemplateId(template.id);
         setEditName(template.name);
@@ -231,21 +307,85 @@ function Templates() {
     };
 
 
-    const startNewVersion = (
-        templateId: number,
+    const startNewVersion = async (
+        template: AutomationTemplate,
     ) => {
+        if (preparingVersionTemplateId !== null) {
+            return;
+        }
+
         clearFeedback();
+        setVersionPreparationError("");
         cancelEdit();
 
-        setVersionTemplateId(templateId);
-        setVersionFile(null);
-        setVersionFileKey((value) => value + 1);
+        const currentVersion =
+            template.versions.find(
+                (version) =>
+                    version.id === template.current_version_id
+            ) ||
+            template.versions.find(
+                (version) => version.is_current
+            ) ||
+            null;
+
+        if (!currentVersion) {
+            setVersionPreparationError(
+                "O Template não possui uma versão atual para servir como base da nova publicação."
+            );
+            return;
+        }
+
+        setPreparingVersionTemplateId(
+            template.id
+        );
+
+        try {
+            const dependencies =
+                await loadVersionLibraries(
+                    template.id,
+                    currentVersion.id,
+                );
+
+            if (dependencies === null) {
+                setVersionPreparationError(
+                    errorsByVersionId[currentVersion.id] ||
+                    "Não foi possível carregar as Libraries da versão atual do Template."
+                );
+                return;
+            }
+
+            setVersionLibraries(
+                dependencies.map((dependency) => ({
+                    library_id:
+                        dependency.library_id,
+                    library_version_id:
+                        dependency.library_version_id,
+                }))
+            );
+
+            // Sem dependências a composição já é válida. Quando há
+            // dependências o seletor confirma se as identidades/versões
+            // continuam ativas antes de habilitar a publicação.
+            setVersionLibrariesValid(
+                dependencies.length === 0
+            );
+
+            setVersionTemplateId(template.id);
+            setVersionFile(null);
+            setVersionFileKey((value) => value + 1);
+
+        } finally {
+            setPreparingVersionTemplateId(null);
+        }
     };
 
 
     const cancelNewVersion = () => {
         setVersionTemplateId(null);
         setVersionFile(null);
+        setVersionLibraries([]);
+        setVersionLibrariesValid(true);
+        setVersionPreparationError("");
         setVersionFileKey((value) => value + 1);
     };
 
@@ -253,7 +393,10 @@ function Templates() {
     const handlePublishVersion = async (
         templateId: number,
     ) => {
-        if (!versionFile) {
+        if (
+            !versionFile ||
+            !versionLibrariesValid
+        ) {
             return;
         }
 
@@ -261,6 +404,7 @@ function Templates() {
             await publishVersion(
                 templateId,
                 versionFile,
+                versionLibraries,
             );
 
         if (published) {
@@ -295,6 +439,7 @@ function Templates() {
                         type="button"
                         onClick={() => {
                             clearFeedback();
+                            setVersionPreparationError("");
                             setShowCreate(true);
                         }}
                     >
@@ -309,10 +454,12 @@ function Templates() {
                 FEEDBACK
                 ================================================== */}
 
-            {error && (
+            {(error || versionPreparationError) && (
                 <div className="templates-feedback templates-feedback--error" role="alert">
                     <strong>Não foi possível concluir a operação.</strong>
-                    <span>{error}</span>
+                    <span>
+                        {error || versionPreparationError}
+                    </span>
                 </div>
             )}
 
@@ -395,6 +542,15 @@ function Templates() {
                         </label>
                     </div>
 
+                    <TemplateLibrariesSelector
+                        value={createLibraries}
+                        onChange={setCreateLibraries}
+                        onValidationChange={setCreateLibrariesValid}
+                        disabled={busyAction === "create"}
+                        title="Libraries da primeira versão"
+                        description="Opcional. Ao selecionar uma Library, a versão vigente em Produção é usada por padrão e fica fixada no snapshot v1."
+                    />
+
                     <div className="templates-editor-actions">
                         <Button
                             variant="secondary"
@@ -413,6 +569,7 @@ function Templates() {
                             disabled={
                                 !createName.trim() ||
                                 !createFile ||
+                                !createLibrariesValid ||
                                 busyAction === "create"
                             }
                             onClick={() => void handleCreate()}
@@ -573,55 +730,68 @@ function Templates() {
                                         </Button>
 
                                         {canEdit && (
-                                            <>
-                                                <Button
-                                                    variant="secondary"
-                                                    type="button"
-                                                    disabled={busyAction !== null}
-                                                    onClick={() =>
-                                                        startEdit(template)
-                                                    }
-                                                >
-                                                    <Pencil size={15} aria-hidden="true" />
-                                                    Editar
-                                                </Button>
+                                            <Button
+                                                variant="secondary"
+                                                type="button"
+                                                disabled={busyAction !== null}
+                                                onClick={() =>
+                                                    startEdit(template)
+                                                }
+                                            >
+                                                <Pencil size={15} aria-hidden="true" />
+                                                Editar
+                                            </Button>
+                                        )}
 
-                                                <Button
-                                                    variant="secondary"
-                                                    type="button"
-                                                    disabled={busyAction !== null}
-                                                    onClick={() =>
-                                                        startNewVersion(template.id)
-                                                    }
-                                                >
-                                                    <Upload size={15} aria-hidden="true" />
-                                                    Nova versão
-                                                </Button>
+                                        {canPublish && (
+                                            <Button
+                                                variant="secondary"
+                                                type="button"
+                                                busy={
+                                                    preparingVersionTemplateId ===
+                                                    template.id
+                                                }
+                                                loadingLabel="Preparando"
+                                                disabled={
+                                                    busyAction !== null ||
+                                                    (
+                                                        preparingVersionTemplateId !== null &&
+                                                        preparingVersionTemplateId !== template.id
+                                                    )
+                                                }
+                                                onClick={() =>
+                                                    void startNewVersion(template)
+                                                }
+                                            >
+                                                <Upload size={15} aria-hidden="true" />
+                                                Nova versão
+                                            </Button>
+                                        )}
 
-                                                <Button
-                                                    variant="secondary"
-                                                    type="button"
-                                                    busy={
-                                                        busyAction ===
+                                        {canEdit && (
+                                            <Button
+                                                variant="secondary"
+                                                type="button"
+                                                busy={
+                                                    busyAction ===
+                                                    `active:${template.id}`
+                                                }
+                                                disabled={
+                                                    busyAction !== null &&
+                                                    busyAction !==
                                                         `active:${template.id}`
-                                                    }
-                                                    disabled={
-                                                        busyAction !== null &&
-                                                        busyAction !==
-                                                            `active:${template.id}`
-                                                    }
-                                                    onClick={() =>
-                                                        void setTemplateActive(
-                                                            template.id,
-                                                            !template.is_active,
-                                                        )
-                                                    }
-                                                >
-                                                    {template.is_active
-                                                        ? "Desativar"
-                                                        : "Reativar"}
-                                                </Button>
-                                            </>
+                                                }
+                                                onClick={() =>
+                                                    void setTemplateActive(
+                                                        template.id,
+                                                        !template.is_active,
+                                                    )
+                                                }
+                                            >
+                                                {template.is_active
+                                                    ? "Desativar"
+                                                    : "Reativar"}
+                                            </Button>
                                         )}
                                     </div>
 
@@ -704,7 +874,7 @@ function Templates() {
                                         NOVA VERSÃO
                                         ========================================== */}
 
-                                    {publishing && canEdit && (
+                                    {publishing && canPublish && (
                                         <div className="template-inline-editor">
                                             <div className="template-version-upload-copy">
                                                 <strong>
@@ -733,6 +903,18 @@ function Templates() {
                                                 />
                                             </label>
 
+                                            <TemplateLibrariesSelector
+                                                value={versionLibraries}
+                                                onChange={setVersionLibraries}
+                                                onValidationChange={setVersionLibrariesValid}
+                                                disabled={
+                                                    busyAction ===
+                                                    `publish:${template.id}`
+                                                }
+                                                title="Libraries desta nova versão"
+                                                description="A composição começa igual à versão Atual. Você pode adicionar, remover ou trocar versões antes de publicar; tudo será salvo no mesmo snapshot imutável."
+                                            />
+
                                             <div className="templates-editor-actions">
                                                 <Button
                                                     variant="secondary"
@@ -754,7 +936,10 @@ function Templates() {
                                                         `publish:${template.id}`
                                                     }
                                                     loadingLabel="Publicando"
-                                                    disabled={!versionFile}
+                                                    disabled={
+                                                        !versionFile ||
+                                                        !versionLibrariesValid
+                                                    }
                                                     onClick={() =>
                                                         void handlePublishVersion(
                                                             template.id
@@ -792,22 +977,53 @@ function Templates() {
                                                         }`}
                                                         key={version.id}
                                                     >
-                                                        <div className="template-version-row__identity">
-                                                            <span className="template-version-number">
-                                                                v{version.version}
-                                                            </span>
+                                                        <div className="template-version-row__content">
+                                                            <div className="template-version-row__identity">
+                                                                <span className="template-version-number">
+                                                                    v{version.version}
+                                                                </span>
 
-                                                            <div>
-                                                                <strong>
-                                                                    {version.filename}
-                                                                </strong>
-                                                                <small>
-                                                                    {version.published_at
-                                                                        ? new Date(
-                                                                            version.published_at
-                                                                        ).toLocaleString("pt-BR")
-                                                                        : "Data não disponível"}
-                                                                </small>
+                                                                <div>
+                                                                    <strong>
+                                                                        {version.filename}
+                                                                    </strong>
+                                                                    <small>
+                                                                        {version.published_at
+                                                                            ? new Date(
+                                                                                version.published_at
+                                                                            ).toLocaleString("pt-BR")
+                                                                            : "Data não disponível"}
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="template-version-libraries">
+                                                                {isLoadingVersionLibraries(version.id) ? (
+                                                                    <span className="template-version-libraries__state">
+                                                                        Carregando Libraries...
+                                                                    </span>
+                                                                ) : errorsByVersionId[version.id] ? (
+                                                                    <span className="template-version-libraries__state template-version-libraries__state--error">
+                                                                        {errorsByVersionId[version.id]}
+                                                                    </span>
+                                                                ) : (librariesByVersionId[version.id] || []).length === 0 ? (
+                                                                    <span className="template-version-libraries__state">
+                                                                        Nenhuma Library
+                                                                    </span>
+                                                                ) : (
+                                                                    <div className="template-version-libraries__chips">
+                                                                        {(librariesByVersionId[version.id] || []).map((dependency) => (
+                                                                            <span
+                                                                                className="template-version-library-chip"
+                                                                                key={dependency.dependency_id}
+                                                                                title={`${dependency.import_name} · versão ${dependency.version}`}
+                                                                            >
+                                                                                <strong>{dependency.name}</strong>
+                                                                                <span>{dependency.version}</span>
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -817,31 +1033,32 @@ function Templates() {
                                                                     Atual
                                                                 </span>
                                                             )}
-
-                                                            <Button
-                                                                variant="secondary"
-                                                                type="button"
-                                                                busy={
-                                                                    busyAction ===
-                                                                    `download:${template.id}:${version.id}`
-                                                                }
-                                                                disabled={
-                                                                    busyAction !== null &&
-                                                                    busyAction !==
+                                                            {canDownload && (
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    type="button"
+                                                                    busy={
+                                                                        busyAction ===
                                                                         `download:${template.id}:${version.id}`
-                                                                }
-                                                                onClick={() =>
-                                                                    void downloadVersion(
-                                                                        template,
-                                                                        version,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Download size={14} aria-hidden="true" />
-                                                                Baixar
-                                                            </Button>
+                                                                    }
+                                                                    disabled={
+                                                                        busyAction !== null &&
+                                                                        busyAction !==
+                                                                            `download:${template.id}:${version.id}`
+                                                                    }
+                                                                    onClick={() =>
+                                                                        void downloadVersion(
+                                                                            template,
+                                                                            version,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Download size={14} aria-hidden="true" />
+                                                                    Baixar
+                                                                </Button>
+                                                            )}
 
-                                                            {canEdit && !version.is_current && (
+                                                            {canSetCurrent && !version.is_current && (
                                                                 <Button
                                                                     variant="secondary"
                                                                     type="button"

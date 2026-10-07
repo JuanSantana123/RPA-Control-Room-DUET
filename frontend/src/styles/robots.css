@@ -1345,6 +1345,66 @@
     font-size: 12px;
 }
 
+/* ============================================================
+   DEVELOPMENT - AÇÕES DO AUTOMATION PROJECT
+   ============================================================ */
+
+/*
+ * Os cards de Development possuem três ações:
+ *
+ * 1. Abrir no Studio;
+ * 2. Abrir em IDE;
+ * 3. Executar.
+ *
+ * Mantemos uma classe específica para não alterar os cards
+ * reutilizados pela área de Robôs.
+ */
+.development-project-actions {
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+}
+
+
+/*
+ * O Studio continua sendo a ação principal do projeto.
+ *
+ * Por isso ocupa a largura completa da primeira linha.
+ */
+.development-project-actions > .primary-button {
+    grid-column:
+        1 / -1;
+}
+
+
+/*
+ * Evita que textos maiores provoquem overflow nos botões
+ * secundários em cards de menor largura.
+ */
+.development-project-actions > button {
+    min-width: 0;
+}
+
+
+/*
+ * Em telas muito estreitas, as três ações passam a ser
+ * empilhadas verticalmente.
+ */
+@media (max-width: 650px) {
+
+    .development-project-actions {
+        grid-template-columns:
+            1fr;
+    }
+
+
+    .development-project-actions > .primary-button {
+        grid-column:
+            auto;
+    }
+}
 /* Botão executar */
 .robot-card-actions .ui-button--secondary {
     background: var(--color-surface);

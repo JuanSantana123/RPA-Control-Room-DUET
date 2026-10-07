@@ -76,7 +76,9 @@ from models import (
     VaultFolder,
 )
 from vault.crypto import descriptografar
-
+from vault.observability import (
+    registrar_falha_descriptografia_vault,
+)
 
 # ============================================================
 # LOGGER
@@ -496,12 +498,29 @@ def resolver_credencial_agent_service(
 
             if campo.is_secret:
 
-                valor = descriptografar(
-                    campo.value,
-                    associated_data=(
-                        f"vault_field:{credencial.id}"
-                    ),
-                )
+                try:
+
+                    valor = descriptografar(
+                        campo.value,
+                        associated_data=(
+                            f"vault_field:{credencial.id}"
+                        ),
+                    )
+
+                except Exception as error:
+
+                    registrar_falha_descriptografia_vault(
+                        error=error,
+                        credential_id=credencial.id,
+                        credential_name=credencial.name,
+                        resource_type="vault_credential",
+                        execution_id=execution_id,
+                        agent_id=agent.agent_id,
+                        user_id=usuario.id,
+                        username=usuario.username,
+                    )
+
+                    raise
 
 
             # ------------------------------------------------

@@ -213,7 +213,10 @@ def normalizar_membro_zip(
     if nome.startswith("/"):
 
         raise ArtifactSecurityError(
-            "ZIP contém caminho absoluto."
+            (
+                "Foi encontrado um caminho absoluto não permitido "
+                f'dentro do ZIP: "{nome}".'
+            )
         )
 
     caminho = PurePosixPath(
@@ -229,7 +232,10 @@ def normalizar_membro_zip(
     if ".." in caminho.parts:
 
         raise ArtifactSecurityError(
-            "ZIP contém tentativa de path traversal."
+            (
+                "Foi encontrado um caminho inválido dentro do ZIP: "
+                f'"{nome}".'
+            )
         )
 
     for componente in caminho.parts:

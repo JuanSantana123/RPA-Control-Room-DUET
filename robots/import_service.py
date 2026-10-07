@@ -50,7 +50,10 @@ from releases.service import (
 from robots.import_identity import (
     is_same_as_current_version,
 )
-
+from robots.import_package import (
+    read_import_source_manifest,
+    resolve_import_entrypoint,
+)
 
 # ============================================================
 # RESOLVER DEPENDÊNCIAS DO PACOTE NO AMBIENTE LOCAL
@@ -248,6 +251,7 @@ def _resolve_import_dependencies(
 async def import_robot_package_service(
     file: UploadFile,
     folder_id: int | None,
+    entrypoint_path: str | None,
     usuario,
 ):
     """
@@ -368,49 +372,36 @@ async def import_robot_package_service(
             )
 
         # ====================================================
-        # 6. ENTRYPOINT
+        # 6. MANIFESTO DE ORIGEM
         # ====================================================
 
-        if "main.py" not in contents:
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "O pacote precisa conter main.py na raiz."
-                ),
+        source_manifest = (
+            read_import_source_manifest(
+                contents,
+                consume=True,
             )
+        )
 
         # ====================================================
-        # 7. MANIFESTO DE ORIGEM
+        # 7. ENTRYPOINT
+        # ====================================================
+        #
+        # Pacote DUET:
+        #     preserva o EntryPoint do Release.
+        #
+        # ZIP Python comum:
+        #     exige o EntryPoint escolhido pelo usuário.
+        #
+        # main.py NÃO é mais obrigatório.
         # ====================================================
 
-        source_manifest = None
-
-        if MANIFEST in contents:
-
-            try:
-                source_manifest = json.loads(
-                    contents.pop(MANIFEST)
-                )
-
-            except Exception as error:
-                raise HTTPException(
-                    status_code=409,
-                    detail=(
-                        "O duet-release.json do pacote é inválido."
-                    ),
-                ) from error
-
-            if (
-                source_manifest.get("schema_version")
-                != 1
-            ):
-                raise HTTPException(
-                    status_code=409,
-                    detail=(
-                        "A versão do manifesto do pacote "
-                        "não é suportada."
-                    ),
-                )
+        entrypoint_path = (
+            resolve_import_entrypoint(
+                contents=contents,
+                source_manifest=source_manifest,
+                requested_entrypoint=entrypoint_path,
+            )
+        )
 
         # ====================================================
         # 8. DEPENDÊNCIAS
@@ -454,6 +445,7 @@ async def import_robot_package_service(
                 robot,
                 contents,
                 dependencies,
+                imported_entrypoint_path=entrypoint_path,
             ):
                 response = {
                     "status":
@@ -540,6 +532,9 @@ async def import_robot_package_service(
             # Não existe AutomationProject de origem local.
             "project_id":
                 None,
+
+            "entrypoint_path":
+                entrypoint_path,
 
             "published_by":
                 usuario.id,

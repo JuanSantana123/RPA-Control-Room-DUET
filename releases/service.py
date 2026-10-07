@@ -296,6 +296,8 @@ def collect_snapshot(db, project):
     with tempfile.TemporaryDirectory(dir=packager.BUILD_TEMP_REPOSITORY) as tmp:
         result = packager.build_project_package(db, project.id, Path(tmp) / 'snapshot.zip')
         contents = read_package(result.package_path)
+        # O runtime manifest pertence apenas ao build de Development.
+        contents.pop(packager.RUNTIME_MANIFEST, None)
     if MANIFEST in contents:
         raise HTTPException(409, f"{MANIFEST} é reservado ao Release; remova esse arquivo do workspace.")
     return result.dependencies, contents
@@ -317,6 +319,7 @@ def snapshot_token(project, robot, dependencies, contents):
     """Liga a confirmação aos bytes, dependências e versão atual de PRD."""
     data = {'project': project.id, 'name': project.name,
             'stage': project.current_stage_id,
+            'entrypoint': getattr(project, 'entrypoint_path', None) or 'main.py',
             'robot': [robot.id, robot.version, robot.file_hash, robot.folder_id] if robot else None,
             'dependencies': dependencies,
             'files': [(n, hashlib.sha256(b).hexdigest()) for n,b in sorted(contents.items())]}
@@ -735,6 +738,7 @@ def prepare_release(db, project, request, user_id, created_paths):
         'robot_id': robot.id,
         'robot_version': next_version,
         'project_id': project.id,
+        'entrypoint_path': getattr(project, 'entrypoint_path', None) or 'main.py',
         'published_by': user_id,
         'published_at': release_published_at.isoformat(),
         'dependencies': dependencies,
@@ -1084,15 +1088,17 @@ def restore_project_from_robot(db, project, robot, user_id):
     # ENTRYPOINT DO ROBOT
     # ============================================================
 
-    if 'main.py' not in contents:
+    entrypoint_path = str(
+        (manifest or {}).get('entrypoint_path') or 'main.py'
+    ).replace(chr(92), '/').strip()
 
+    if entrypoint_path not in contents:
         raise HTTPException(
             409,
-            (
-                "O pacote precisa conter main.py na raiz "
-                "para abrir no Studio."
-            )
+            f'O pacote não contém o entrypoint configurado: {entrypoint_path}.'
         )
+
+    project.entrypoint_path = entrypoint_path
 
 
     # ============================================================

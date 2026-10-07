@@ -50,6 +50,12 @@ from development.repository import (
     remover_workspace_controlado,
     validar_workspace_fisico,
 )
+
+from development.project_storage_observability import (
+    registrar_falha_restauracao_workspace_exclusao_permanente,
+    registrar_falha_limpeza_workspace_exclusao_permanente,
+    registrar_falha_limpeza_anexos_projeto_excluido,
+)
 from development.comment_attachments_service import remover_repositorio_anexos_projeto
 
 from development.serializers import (
@@ -744,26 +750,18 @@ def excluir_projeto_permanentemente_service(
                     workspace_path
                 )
 
-            except Exception:
+            except Exception as restore_error:
 
-                logger.exception(
-                    (
-                        "Falha ao restaurar workspace após "
-                        "erro na exclusão permanente"
+                registrar_falha_restauracao_workspace_exclusao_permanente(
+                    project_id=project_id,
+                    user_id=usuario.id,
+                    workspace_path=str(
+                        workspace_path
                     ),
-                    extra={
-                        "event":
-                            "automation_project_permanent_delete_rollback_workspace_failed",
-
-                        "project_id":
-                            project_id,
-
-                        "user_id":
-                            usuario.id,
-
-                        "status":
-                            "error",
-                    },
+                    staged_workspace_path=str(
+                        staged_workspace_path
+                    ),
+                    error=restore_error,
                 )
 
         logger.exception(
@@ -839,39 +837,13 @@ def excluir_projeto_permanentemente_service(
                 "cleanup_failed"
             )
 
-            logger.exception(
-                (
-                    "Registro do projeto foi removido, "
-                    "mas houve falha ao limpar o workspace"
+            registrar_falha_limpeza_workspace_exclusao_permanente(
+                project_id=project_id,
+                user_id=usuario.id,
+                staged_workspace_path=str(
+                    staged_workspace_path
                 ),
-                extra={
-                    "event":
-                        "automation_project_workspace_cleanup_failed",
-
-                    "user_id":
-                        usuario.id,
-
-                    "project_id":
-                        project_id,
-
-                    "workspace_path":
-                        str(
-                            staged_workspace_path
-                        ),
-
-                    "status":
-                        "error",
-
-                    "error_type":
-                        type(
-                            cleanup_error
-                        ).__name__,
-
-                    "error_message":
-                        str(
-                            cleanup_error
-                        ),
-                },
+                error=cleanup_error,
             )
 
     attachment_cleanup = "not_found"
@@ -880,15 +852,10 @@ def excluir_projeto_permanentemente_service(
         attachment_cleanup = "deleted"
     except Exception as cleanup_error:
         attachment_cleanup = "cleanup_failed"
-        logger.exception(
-            "Projeto removido, mas houve falha ao limpar anexos de comentários",
-            extra={
-                "event": "automation_project_comment_attachments_cleanup_failed",
-                "user_id": usuario.id,
-                "project_id": project_id,
-                "status": "error",
-                "error_type": type(cleanup_error).__name__,
-            },
+        registrar_falha_limpeza_anexos_projeto_excluido(
+            project_id=project_id,
+            user_id=usuario.id,
+            error=cleanup_error,
         )
 
     # ========================================================

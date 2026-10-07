@@ -33,7 +33,9 @@ from sqlalchemy.orm import Session
 
 from models import VaultCredential, VaultField
 from vault.crypto import descriptografar
-
+from vault.observability import (
+    registrar_falha_descriptografia_vault,
+)
 
 # ============================================================
 # CONSTANTES DO DOMÍNIO
@@ -288,7 +290,24 @@ def resolver_credencial_windows_device(
 
     except Exception as error:
 
-        # Nunca propagamos ciphertext ou conteúdo secreto.
+        # --------------------------------------------------------
+        # OBSERVABILIDADE - FALHA DE DESCRIPTOGRAFIA
+        # --------------------------------------------------------
+        #
+        # Não registramos password, ciphertext ou Master Key.
+        # O runtime conhece somente a credencial neste ponto,
+        # portanto não adicionamos dependências de Execution/Agent
+        # apenas para enriquecer o log.
+        # --------------------------------------------------------
+
+        registrar_falha_descriptografia_vault(
+            error=error,
+            credential_id=credential.id,
+            credential_name=credential.name,
+            resource_type="device_credential",
+        )
+
+        # Mantém o comportamento atual do domínio.
         raise DeviceExecutionCredentialError(
             "Não foi possível descriptografar a senha da "
             "credencial Windows."

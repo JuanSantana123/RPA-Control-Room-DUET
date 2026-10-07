@@ -65,6 +65,9 @@ from development.repository import (
     garantir_workspace,
     montar_arvore_workspace,
 )
+from development.library_storage_observability import (
+    registrar_falha_restauracao_working_copy_library,
+)
 
 from schemas.development import (
     DevelopmentLibraryCreate,
@@ -1216,22 +1219,14 @@ def excluir_biblioteca_projeto_service(
                     physical_target
                 )
 
-            except Exception:
-                logger.exception(
-                    "Falha ao restaurar Working Copy após rollback",
-                    extra={
-                        "event":
-                            "development_library_delete_restore_failed",
+            except Exception as restore_error:
 
-                        "project_id":
-                            project_id,
-
-                        "library_id":
-                            library_id,
-
-                        "status":
-                            "error",
-                    },
+                registrar_falha_restauracao_working_copy_library(
+                    project_id=project_id,
+                    library_id=library_id,
+                    import_name=library.import_name,
+                    user_id=usuario.id,
+                    error=restore_error,
                 )
 
         logger.exception(

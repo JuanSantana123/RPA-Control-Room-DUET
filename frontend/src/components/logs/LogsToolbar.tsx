@@ -3,22 +3,37 @@ import { Switch } from "../ui/Switch";
 import SearchField from "../ui/SearchField";
 
 export type LogLevelFilter = "all" | "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
-
+export type LogCategoryFilter =
+  | "all"
+  | "SYSTEM"
+  | "AUDIT"
+  | "SECURITY"
+  | "INTEGRATION";
 interface LogsToolbarProps {
   query: string;
   level: LogLevelFilter;
+  category: LogCategoryFilter;
+  component: string;
+  components: string[];
   autoRefresh: boolean;
   onQueryChange: (value: string) => void;
   onLevelChange: (value: LogLevelFilter) => void;
+  onCategoryChange: (value: LogCategoryFilter) => void;
+  onComponentChange: (value: string) => void;
   onAutoRefreshChange: (value: boolean) => void;
 }
 
 export default function LogsToolbar({
   query,
   level,
+  category,
+  component,
+  components,
   autoRefresh,
   onQueryChange,
   onLevelChange,
+  onCategoryChange,
+  onComponentChange,
   onAutoRefreshChange,
 }: LogsToolbarProps) {
   return (
@@ -27,7 +42,7 @@ export default function LogsToolbar({
         label="Pesquisar registros"
         value={query}
         onValueChange={onQueryChange}
-        placeholder="Mensagem, evento ou referência da requisição..."
+        placeholder="Mensagem, evento, usuário, recurso ou referência..."
         containerClassName="logs-toolbar__search"
       />
 
@@ -47,6 +62,68 @@ export default function LogsToolbar({
         </PremiumSelect>
       </div>
 
+      <div className="logs-toolbar__filter">
+        <label htmlFor="logs-category-filter">
+          Categoria
+        </label>
+
+        <PremiumSelect
+          id="logs-category-filter"
+          value={category}
+          onChange={(event) =>
+            onCategoryChange(
+              event.target.value as LogCategoryFilter
+            )
+          }
+        >
+          <option value="all">
+            Todas as categorias
+          </option>
+
+          <option value="SYSTEM">
+            Sistema
+          </option>
+
+          <option value="AUDIT">
+            Auditoria
+          </option>
+
+          <option value="SECURITY">
+            Segurança
+          </option>
+
+          <option value="INTEGRATION">
+            Integrações
+          </option>
+        </PremiumSelect>
+      </div>
+
+      <div className="logs-toolbar__filter">
+        <label htmlFor="logs-component-filter">
+          Componente
+        </label>
+
+        <PremiumSelect
+          id="logs-component-filter"
+          value={component}
+          onChange={(event) =>
+            onComponentChange(event.target.value)
+          }
+        >
+          <option value="all">
+            Todos os componentes
+          </option>
+
+          {components.map((item) => (
+            <option
+              key={item}
+              value={item}
+            >
+              {item}
+            </option>
+          ))}
+        </PremiumSelect>
+      </div>
       <Switch
         compact
         checked={autoRefresh}

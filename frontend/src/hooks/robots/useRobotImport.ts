@@ -3,25 +3,32 @@
 // ============================================================
 //
 // Responsabilidade:
-// - abrir exclusivamente o seletor de pacote para Importação;
+// - abrir o fluxo de Importação;
 // - guardar a pasta de destino;
-// - enviar o ZIP para /robots/import;
-// - informar sucesso/erro à página;
-// - solicitar atualização da localização após a importação.
+// - analisar o ZIP;
+// - exigir/resolver o EntryPoint;
+// - confirmar a publicação;
+// - atualizar a localização após sucesso.
 //
 // IMPORTANTE:
-// Este hook NÃO reutiliza o fluxo de upload tradicional.
+// - analisar NÃO cria Robot;
+// - ZIP comum NÃO recebe EntryPoint automaticamente;
+// - pacote DUET preserva o EntryPoint do Release;
+// - este hook NÃO reutiliza /robots/upload.
 // ============================================================
 
 import {
-    type ChangeEvent,
     useCallback,
-    useRef,
     useState,
 } from "react";
 
 import {
+    analyzeRobotPackage,
     importRobotPackage,
+} from "../../services/robotPackagesApi";
+
+import type {
+    RobotImportAnalysis,
 } from "../../services/robotPackagesApi";
 
 import {
@@ -34,6 +41,7 @@ import {
 // ============================================================
 
 interface UseRobotImportOptions {
+
     setError: (
         message: string,
     ) => void;
@@ -58,147 +66,431 @@ export function useRobotImport({
     onImported,
 }: UseRobotImportOptions) {
 
-    // Input exclusivo da operação "Importar pacote".
-    const inputRef =
-        useRef<HTMLInputElement>(null);
+    // ========================================================
+    // MODAL
+    // ========================================================
 
-    // Guarda a localização escolhida antes da abertura
-    // do seletor do Windows.
-    //
-    // null é um valor VÁLIDO e significa:
-    //
-    //     Raiz de Robôs
-    const targetFolderIdRef =
-        useRef<number | null>(null);
+    const [
+        dialogOpen,
+        setDialogOpen,
+    ] = useState(false);
 
-    // Precisamos diferenciar:
-    //
-    // null = raiz válida
-    //
-    // de:
-    //
-    // nenhuma importação iniciada.
-    const hasImportTargetRef =
-        useRef(false);
+
+    // ========================================================
+    // DESTINO
+    // ========================================================
+
+    const [
+        targetFolderId,
+        setTargetFolderId,
+    ] = useState<number | null>(
+        null,
+    );
+
+
+    // ========================================================
+    // PACOTE
+    // ========================================================
+
+    const [
+        selectedFile,
+        setSelectedFile,
+    ] = useState<File | null>(
+        null,
+    );
+
+
+    // ========================================================
+    // RESULTADO DA ANÁLISE
+    // ========================================================
+
+    const [
+        analysis,
+        setAnalysis,
+    ] = useState<RobotImportAnalysis | null>(
+        null,
+    );
+
+
+    // ========================================================
+    // ENTRYPOINT
+    // ========================================================
+
+    const [
+        entrypointPath,
+        setEntrypointPath,
+    ] = useState("");
+
+
+    // ========================================================
+    // ESTADOS OPERACIONAIS
+    // ========================================================
+
+    const [
+        analyzing,
+        setAnalyzing,
+    ] = useState(false);
 
     const [
         importing,
         setImporting,
     ] = useState(false);
 
+    const [
+        importError,
+        setImportError,
+    ] = useState("");
 
-    // ========================================================
-    // ABRIR SELETOR
-    // ========================================================
 
-    const open = useCallback((
-        folderId: number | null,
-    ) => {
-
-        if (importing) {
-            return;
-        }
-
-        targetFolderIdRef.current =
-            folderId;
-
-        hasImportTargetRef.current =
-            true;
-
-        inputRef.current?.click();
-
-    }, [
-        importing,
-    ]);
+    const busy =
+        analyzing ||
+        importing;
 
 
     // ========================================================
-    // PROCESSAR ARQUIVO SELECIONADO
+    // RESET DO PACOTE
     // ========================================================
 
-    const handleFileChange = useCallback(async (
-        event: ChangeEvent<HTMLInputElement>,
-    ) => {
+    const resetPackageState =
+        useCallback(() => {
 
-        const input =
-            event.currentTarget;
-
-        const file =
-            input.files?.[0];
-
-        // Permite selecionar novamente exatamente o mesmo ZIP.
-        input.value = "";
-
-        if (!file) {
-            hasImportTargetRef.current =
-                false;
-
-            return;
-        }
-
-        if (!hasImportTargetRef.current) {
-            return;
-        }
-
-        const folderId =
-            targetFolderIdRef.current;
-
-        // A seleção já foi consumida.
-        hasImportTargetRef.current =
-            false;
-
-        setImporting(true);
-
-        setError("");
-        setSuccess("");
-
-        try {
-
-            const result =
-                await importRobotPackage(
-                    file,
-                    folderId,
-                );
-
-            setSuccess(
-                result.message ||
-                `Pacote "${file.name}" importado com sucesso.`,
+            setSelectedFile(
+                null,
             );
 
-            // Atualiza exatamente a localização onde o pacote
-            // foi importado.
-            await onImported(
+            setAnalysis(
+                null,
+            );
+
+            setEntrypointPath(
+                "",
+            );
+
+            setImportError(
+                "",
+            );
+
+        }, []);
+
+
+    // ========================================================
+    // ABRIR
+    // ========================================================
+
+    const open =
+        useCallback((
+            folderId: number | null,
+        ) => {
+
+            if (busy) {
+                return;
+            }
+
+            resetPackageState();
+
+            setTargetFolderId(
                 folderId,
             );
 
-        } catch (requestError) {
+            // Remove mensagens antigas da página.
+            setError("");
+            setSuccess("");
 
-            setError(
-                obterMensagemErro(
-                    requestError,
-                    (
-                        `Não foi possível importar o pacote ` +
-                        `"${file.name}".`
-                    ),
-                ),
+            setDialogOpen(
+                true,
             );
 
-        } finally {
+        }, [
+            busy,
+            resetPackageState,
+            setError,
+            setSuccess,
+        ]);
 
-            setImporting(false);
-        }
 
-    }, [
-        onImported,
-        setError,
-        setSuccess,
-    ]);
+    // ========================================================
+    // FECHAR
+    // ========================================================
 
+    const close =
+        useCallback(() => {
+
+            if (busy) {
+                return;
+            }
+
+            setDialogOpen(
+                false,
+            );
+
+            setTargetFolderId(
+                null,
+            );
+
+            resetPackageState();
+
+        }, [
+            busy,
+            resetPackageState,
+        ]);
+
+
+    // ========================================================
+    // TROCAR ARQUIVO
+    // ========================================================
+
+    const changeFile =
+        useCallback((
+            file: File | null,
+        ) => {
+
+            if (busy) {
+                return;
+            }
+
+            setSelectedFile(
+                file,
+            );
+
+            // Qualquer troca de ZIP invalida a análise anterior.
+            setAnalysis(
+                null,
+            );
+
+            setEntrypointPath(
+                "",
+            );
+
+            setImportError(
+                "",
+            );
+
+        }, [
+            busy,
+        ]);
+
+
+    // ========================================================
+    // ANALISAR
+    // ========================================================
+
+    const analyze =
+        useCallback(async () => {
+
+            if (
+                !selectedFile ||
+                busy
+            ) {
+                return;
+            }
+
+            try {
+
+                setAnalyzing(
+                    true,
+                );
+
+                setImportError(
+                    "",
+                );
+
+                const result =
+                    await analyzeRobotPackage(
+                        selectedFile,
+                    );
+
+                setAnalysis(
+                    result,
+                );
+
+                // ------------------------------------------------
+                // PACOTE DUET
+                // ------------------------------------------------
+                //
+                // Se o Release já possui EntryPoint, ele faz parte
+                // daquela RobotVersion e não deve ser alterado.
+                // ------------------------------------------------
+
+                if (
+                    result.entrypoint_locked &&
+                    result.configured_entrypoint
+                ) {
+
+                    setEntrypointPath(
+                        result.configured_entrypoint,
+                    );
+
+                    return;
+                }
+
+                // ------------------------------------------------
+                // ZIP PYTHON COMUM
+                // ------------------------------------------------
+                //
+                // Mesmo que exista uma sugestão como main.py,
+                // exigimos escolha explícita do usuário.
+                // ------------------------------------------------
+
+                setEntrypointPath(
+                    "",
+                );
+
+            } catch (requestError) {
+
+                console.error(
+                    "Erro ao analisar pacote de Robot:",
+                    requestError,
+                );
+
+                setAnalysis(
+                    null,
+                );
+
+                setEntrypointPath(
+                    "",
+                );
+
+                setImportError(
+                    obterMensagemErro(
+                        requestError,
+                        (
+                            `Não foi possível analisar o pacote ` +
+                            `"${selectedFile.name}".`
+                        ),
+                    ),
+                );
+
+            } finally {
+
+                setAnalyzing(
+                    false,
+                );
+            }
+
+        }, [
+            busy,
+            selectedFile,
+        ]);
+
+
+    // ========================================================
+    // CONFIRMAR IMPORTAÇÃO
+    // ========================================================
+
+    const confirm =
+        useCallback(async () => {
+
+            if (
+                !selectedFile ||
+                !analysis ||
+                !entrypointPath ||
+                busy
+            ) {
+                return;
+            }
+
+            // Precisamos preservar o destino mesmo que o estado
+            // seja limpo depois do sucesso.
+            const destinationFolderId =
+                targetFolderId;
+
+            try {
+
+                setImporting(
+                    true,
+                );
+
+                setImportError(
+                    "",
+                );
+
+                const result =
+                    await importRobotPackage(
+                        selectedFile,
+                        destinationFolderId,
+                        entrypointPath,
+                    );
+
+                setSuccess(
+                    result.message ||
+                    `Pacote "${selectedFile.name}" importado com sucesso.`,
+                );
+
+                // Fecha antes de atualizar a grade.
+                setDialogOpen(
+                    false,
+                );
+
+                resetPackageState();
+
+                setTargetFolderId(
+                    null,
+                );
+
+                await onImported(
+                    destinationFolderId,
+                );
+
+            } catch (requestError) {
+
+                console.error(
+                    "Erro ao importar pacote de Robot:",
+                    requestError,
+                );
+
+                setImportError(
+                    obterMensagemErro(
+                        requestError,
+                        (
+                            `Não foi possível importar o pacote ` +
+                            `"${selectedFile.name}".`
+                        ),
+                    ),
+                );
+
+            } finally {
+
+                setImporting(
+                    false,
+                );
+            }
+
+        }, [
+            analysis,
+            busy,
+            entrypointPath,
+            onImported,
+            resetPackageState,
+            selectedFile,
+            setSuccess,
+            targetFolderId,
+        ]);
+
+
+    // ========================================================
+    // RETORNO
+    // ========================================================
 
     return {
-        inputRef,
+        dialogOpen,
+
+        targetFolderId,
+
+        selectedFile,
+        analysis,
+        entrypointPath,
+
+        analyzing,
         importing,
+        importError,
+
         open,
-        handleFileChange,
+        close,
+
+        changeFile,
+        setEntrypointPath,
+
+        analyze,
+        confirm,
     };
 }

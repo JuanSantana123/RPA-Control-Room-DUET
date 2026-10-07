@@ -29,6 +29,10 @@ from development.bootstrap import (
 # ============================================================
 
 from core.logging_config import logger
+from core.database_observability import (
+    registrar_banco_inicializado,
+    registrar_falha_inicializacao_banco,
+)
 from core.http_middleware import RequestContextMiddleware
 from core.runtime_config import background_workers_habilitados
 # Importa os modelos SQLAlchemy antes da criação das tabelas.
@@ -64,12 +68,38 @@ from api.agent_heartbeat import router as agent_heartbeat_router
 from api.agent_executions import router as agent_executions_router
 from api.executions import router as executions_router
 from api.robots import router as robots_router
+
 # Importa o router responsável pela área
 # de Desenvolvimento do DUET CORE.
 from api.development import router as development_router
+# Router da configuração de entrypoint dos AutomationProjects.
+from api.development_entrypoint import router as development_entrypoint_router
+
+# ============================================================
+# IDE EXTERNA
+# ============================================================
+#
+# Router responsável exclusivamente pela comunicação entre
+# o Control Room e o DUET Developer Bridge.
+#
+# Este router permite:
+# - emitir código temporário de abertura;
+# - autenticar o Developer Bridge;
+# - sincronizar o Workspace utilizado pela IDE externa.
+#
+# Ele permanece separado de api/development.py para evitar
+# concentrar mais uma responsabilidade naquele módulo.
+# ============================================================
+from api.developer_ide import (
+    router as developer_ide_router,
+)
+
 # Importa o router responsável pelo módulo de
 # Bibliotecas reutilizáveis do DUET CORE.
 from api.libraries import router as libraries_router
+# DUET_LIBRARY_CHECKOUT_V1:ROUTER
+# Checkout global das Libraries realizado dentro do Robot Studio.
+from api.library_checkout import router as library_checkout_router
 # Importa o router responsável pelo catálogo versionado de Templates.
 from api.templates import router as templates_router
 from api.dashboard import router as dashboard_router
@@ -163,12 +193,22 @@ app.include_router(agent_executions_router)
 # Registra todas as APIs relacionadas às execuções.
 app.include_router(executions_router)
 # Registra todas as APIs relacionadas aos robôs.
+# Registra todas as APIs relacionadas aos robôs.
 app.include_router(robots_router)
+
 # Registra as APIs responsáveis pelos projetos
 # e pastas da área de Desenvolvimento.
 app.include_router(development_router)
+# Registra a configuração de arquivo de entrada dos projetos.
+app.include_router(development_entrypoint_router)
+
+# Registra as APIs utilizadas pelo DUET Developer Bridge
+# para integração com IDEs externas.
+app.include_router(developer_ide_router)
+
 # Registra as APIs responsáveis pelas bibliotecas reutilizáveis.
 app.include_router(libraries_router)
+app.include_router(library_checkout_router)
 # Registra as APIs responsáveis pelos Templates de automação.
 app.include_router(templates_router)
 # Registra todas as APIs relacionadas ao dashboard.
@@ -300,30 +340,30 @@ logger.info(
 # ============================================================
 # BANCO DE DADOS
 # ============================================================
+
 try:
 
     criar_banco()
 
-    logger.info(
-        "Banco de dados inicializado",
-        extra={
-            "event": "database_initialized",
-            "status": "success"
-        }
-    )
+    # Registra apenas no log técnico que PostgreSQL + Alembic
+    # foram inicializados corretamente.
+    registrar_banco_inicializado()
 
 except Exception as error:
 
-    logger.exception(
-        "Falha ao inicializar banco de dados",
-        extra={
-            "event": "database_initialization_failed",
-            "status": "error",
-            "error_type": type(error).__name__,
-            "error_message": str(error)
-        }
+    # Classifica a origem da falha:
+    #
+    #     database.connection.failed
+    #         PostgreSQL indisponível / comunicação falhou.
+    #
+    #     database.migration.failed
+    #         bootstrap, schema ou Alembic falharam.
+    registrar_falha_inicializacao_banco(
+        error
     )
 
+    # O Control Room não deve continuar subindo com banco
+    # indisponível ou schema inconsistente.
     raise
 
 

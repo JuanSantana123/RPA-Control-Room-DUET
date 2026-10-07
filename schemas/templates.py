@@ -67,3 +67,38 @@ class TemplateProjectCreate(BaseModel):
         ...,
         ge=1,
     )
+
+# ============================================================
+# BIBLIOTECAS DE TEMPLATE
+# ============================================================
+
+class TemplateLibraryVersionSelection(BaseModel):
+    """
+    Seleciona uma versão publicada e exata de uma Library para
+    compor uma nova versão imutável do Template.
+    """
+
+    library_id: int = Field(
+        ...,
+        ge=1,
+    )
+
+    library_version_id: int = Field(
+        ...,
+        ge=1,
+    )
+
+
+class TemplateLibrariesUpdate(BaseModel):
+    """
+    Define a composição COMPLETA de Libraries da próxima versão
+    do Template.
+
+    Enviar uma lista vazia remove todas as Libraries da composição
+    da nova versão, preservando as versões históricas anteriores.
+    """
+
+    libraries: list[TemplateLibraryVersionSelection] = Field(
+        default_factory=list,
+        max_length=100,
+    )

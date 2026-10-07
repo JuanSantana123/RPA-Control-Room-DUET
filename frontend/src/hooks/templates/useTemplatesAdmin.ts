@@ -40,6 +40,7 @@ import {
 import type {
     AutomationTemplate,
     AutomationTemplateVersion,
+    TemplateLibrarySelection,
 } from "../../types/development";
 
 
@@ -61,11 +62,13 @@ interface UseTemplatesAdminResult {
         name: string,
         description: string,
         file: File,
+        libraries: TemplateLibrarySelection[],
     ) => Promise<boolean>;
 
     publishVersion: (
         templateId: number,
         file: File,
+        libraries: TemplateLibrarySelection[],
     ) => Promise<boolean>;
 
     saveMetadata: (
@@ -196,6 +199,7 @@ export function useTemplatesAdmin(): UseTemplatesAdminResult {
         name: string,
         description: string,
         file: File,
+        libraries: TemplateLibrarySelection[],
     ): Promise<boolean> => {
         try {
             clearFeedback();
@@ -207,6 +211,10 @@ export function useTemplatesAdmin(): UseTemplatesAdminResult {
                     description:
                         description.trim() || null,
                     file,
+
+                    // A criação sempre envia a composição explícita.
+                    // [] representa corretamente um Template sem Libraries.
+                    libraries,
                 });
 
             setTemplates((current) =>
@@ -248,6 +256,7 @@ export function useTemplatesAdmin(): UseTemplatesAdminResult {
     const publishVersion = async (
         templateId: number,
         file: File,
+        libraries: TemplateLibrarySelection[],
     ): Promise<boolean> => {
         try {
             clearFeedback();
@@ -257,6 +266,11 @@ export function useTemplatesAdmin(): UseTemplatesAdminResult {
                 await publishAutomationTemplateVersion(
                     templateId,
                     file,
+
+                    // A tela carrega a composição da versão atual antes
+                    // de permitir a publicação. Assim o usuário publica
+                    // código + Libraries na mesma AutomationTemplateVersion.
+                    libraries,
                 );
 
             replaceTemplate(updated);
