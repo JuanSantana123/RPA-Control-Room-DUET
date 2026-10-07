@@ -44,7 +44,10 @@ import {
 } from "../hooks/logs/useLogsData";
 import { useMemo, useState } from "react";
 import { TriangleAlert } from "lucide-react";
-import LogsToolbar, { type LogLevelFilter } from "../components/logs/LogsToolbar";
+import LogsToolbar, {
+    type LogCategoryFilter,
+    type LogLevelFilter,
+} from "../components/logs/LogsToolbar";
 
 
 // ============================================================
@@ -54,9 +57,18 @@ import LogsToolbar, { type LogLevelFilter } from "../components/logs/LogsToolbar
 function Logs() {
 
     const [query, setQuery] = useState("");
-    const [level, setLevel] = useState<LogLevelFilter>("all");
-    const [autoRefresh, setAutoRefresh] = useState(true);
 
+    const [level, setLevel] =
+        useState<LogLevelFilter>("all");
+
+    const [category, setCategory] =
+        useState<LogCategoryFilter>("all");
+
+    const [component, setComponent] =
+        useState("all");
+
+    const [autoRefresh, setAutoRefresh] =
+        useState(true);
     // ========================================================
     // DADOS
     // ========================================================
@@ -72,18 +84,94 @@ function Logs() {
         carregarLogs,
     } = useLogsData(autoRefresh);
 
+
+    const availableComponents = useMemo(() => {
+        return Array.from(
+            new Set(
+                logs
+                    .map((log) => log.component)
+                    .filter(
+                        (value): value is string =>
+                            typeof value === "string" &&
+                            value.trim().length > 0
+                    )
+            )
+        ).sort((a, b) =>
+            a.localeCompare(
+                b,
+                "pt-BR",
+                {
+                    sensitivity: "base",
+                }
+            )
+        );
+    }, [logs]);
     const filteredLogs = useMemo(() => {
-        const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+        const normalizedQuery =
+            query
+                .trim()
+                .toLocaleLowerCase("pt-BR");
 
         return logs.filter((log) => {
-            if (level !== "all" && log.level.toUpperCase() !== level) return false;
-            if (!normalizedQuery) return true;
+            if (
+                level !== "all" &&
+                log.level.toUpperCase() !== level
+            ) {
+                return false;
+            }
 
-            return [log.message, log.event, log.request_id, log.service, log.level]
-                .filter((value): value is string => typeof value === "string")
-                .some((value) => value.toLocaleLowerCase("pt-BR").includes(normalizedQuery));
+            if (
+                category !== "all" &&
+                log.category?.toUpperCase() !== category
+            ) {
+                return false;
+            }
+
+            if (
+                component !== "all" &&
+                log.component !== component
+            ) {
+                return false;
+            }
+
+            if (!normalizedQuery) {
+                return true;
+            }
+
+            return [
+                log.message,
+                log.event,
+                log.category,
+                log.component,
+                log.status,
+                log.actor_username,
+                log.action,
+                log.resource_type,
+                log.resource_id?.toString(),
+                log.resource_name,
+                log.request_id,
+                log.service,
+                log.level,
+                log.error_type,
+                log.error_message,
+            ]
+                .filter(
+                    (value): value is string =>
+                        typeof value === "string"
+                )
+                .some((value) =>
+                    value
+                        .toLocaleLowerCase("pt-BR")
+                        .includes(normalizedQuery)
+                );
         });
-    }, [level, logs, query]);
+    }, [
+        category,
+        component,
+        level,
+        logs,
+        query,
+    ]);
 
 
     // ========================================================
@@ -127,6 +215,12 @@ function Logs() {
             )}
 
             <LogsToolbar
+                category={category}
+                component={component}
+                components={availableComponents}
+
+                onCategoryChange={setCategory}
+                onComponentChange={setComponent}
                 query={query}
                 level={level}
                 autoRefresh={autoRefresh}
@@ -150,7 +244,12 @@ function Logs() {
                 error={
                     error
                 }
-                filtered={Boolean(query.trim()) || level !== "all"}
+                filtered={
+                    Boolean(query.trim()) ||
+                    level !== "all" ||
+                    category !== "all" ||
+                    component !== "all"
+                }
                 total={total}
                 truncated={truncated}
             />

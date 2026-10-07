@@ -25,7 +25,6 @@
 # Assim apenas um Worker vence o claim.
 # ============================================================
 
-import logging
 import threading
 
 import requests
@@ -56,10 +55,15 @@ from agents.token_security import (
 )
 from core.queue_policy import PRIORITY_RANK
 
-
-logger = logging.getLogger(
-    "control_room"
+from executions.queue_observability import (
+    registrar_falha_dispatch_execucao,
+    registrar_falha_reconciliacao_execucao,
+    registrar_falha_worker_fila,
+    registrar_timeout_parada_worker_fila,
+    registrar_inicio_worker_fila,
+    registrar_parada_worker_fila,
 )
+
 
 
 QUEUE_POLL_SECONDS = 5
@@ -355,23 +359,8 @@ def _processar_execucao_queued(
             timeout=5,
         )
 
-    except Exception as error:
+    except Exception:
 
-        logger.warning(
-            "Agent indisponível durante processamento da fila",
-            extra={
-                "event":
-                    "queue_agent_unreachable",
-                "execution_id":
-                    execution_id,
-                "agent_id":
-                    agent_id,
-                "status":
-                    "waiting",
-                "error_type":
-                    type(error).__name__,
-            }
-        )
 
         return {
             "status": "waiting",
@@ -429,16 +418,6 @@ def _processar_execucao_queued(
         )
     )
 
-    logger.info(
-        "Worker tentando claim da execução queued",
-        extra={
-            "event":
-                "queued_execution_claim_attempt",
-            **contexto_log,
-            "status":
-                "queued",
-        }
-    )
 
     try:
 
@@ -455,19 +434,9 @@ def _processar_execucao_queued(
 
     except Exception as error:
 
-        logger.exception(
-            "Exceção durante dispatch da Queue",
-            extra={
-                "event":
-                    "queued_execution_dispatch_exception",
-                **contexto_log,
-                "status":
-                    "error",
-                "error_type":
-                    type(error).__name__,
-                "error_message":
-                    str(error),
-            }
+        registrar_falha_dispatch_execucao(
+            contexto_log=contexto_log,
+            error=error,
         )
 
         # Só altera se continuar running.
@@ -533,17 +502,6 @@ def _processar_execucao_queued(
         "agent_busy"
     ):
 
-        logger.info(
-            "Agent reservado por outra execução",
-            extra={
-                "event":
-                    "queued_execution_agent_busy",
-                **contexto_log,
-                "status":
-                    "waiting",
-            }
-        )
-
         return {
             "status": "waiting",
             "reason": "agent_reserved",
@@ -557,17 +515,6 @@ def _processar_execucao_queued(
     if resultado.get(
         "claim_lost"
     ):
-
-        logger.info(
-            "Claim da Queue vencido por outro Worker",
-            extra={
-                "event":
-                    "queued_execution_claim_lost",
-                **contexto_log,
-                "status":
-                    "claim_lost",
-            }
-        )
 
         return {
             "status": "claim_lost"
@@ -628,16 +575,6 @@ def _processar_execucao_queued(
             "message": resultado.get("message"),
         }
 
-    logger.info(
-        "Execution retirada da fila",
-        extra={
-            "event":
-                "queued_execution_dispatched",
-            **contexto_log,
-            "status":
-                "running",
-        }
-    )
 
     return {
         "status": "dispatched",
@@ -694,17 +631,9 @@ def reconciliar_execucoes_running():
 
         except Exception as error:
 
-            # Uma falha de reconciliação não pode derrubar
-            # o Worker da Queue.
-            logger.exception(
-                "Falha ao reconciliar Execution running",
-                extra={
-                    "event": (
-                        "execution_reconciliation_failed"
-                    ),
-                    "execution_id": execution_id,
-                    "error_type": type(error).__name__,
-                }
+            registrar_falha_reconciliacao_execucao(
+                execution_id=execution_id,
+                error=error,
             )
 
 # ============================================================
@@ -784,15 +713,7 @@ def processar_ciclo_fila():
 
 def worker_fila_execucoes():
 
-    logger.info(
-        "Worker da fila iniciado",
-        extra={
-            "event":
-                "execution_queue_worker_started",
-            "status":
-                "running",
-        }
-    )
+    registrar_inicio_worker_fila()
 
     while not queue_stop_event.is_set():
 
@@ -802,26 +723,13 @@ def worker_fila_execucoes():
 
         except Exception as error:
 
-            logger.exception(
-                "Erro inesperado no Worker da fila",
-                extra={
-                    "event":
-                        "execution_queue_worker_error",
-                    "status":
-                        "error",
-                    "error_type":
-                        type(error).__name__,
-                    "error_message":
-                        str(error),
-                }
+            registrar_falha_worker_fila(
+                error=error,
             )
 
         queue_stop_event.wait(QUEUE_POLL_SECONDS)
 
-    logger.info(
-        "Worker da fila finalizado",
-        extra={"event": "execution_queue_worker_stopped", "status": "stopped"},
-    )
+    registrar_parada_worker_fila()
 
 
 # ============================================================
@@ -878,10 +786,9 @@ def parar_worker_fila(timeout_seconds=10):
     current_thread.join(timeout=timeout_seconds)
 
     if current_thread.is_alive():
-        logger.warning(
-            "Worker da fila não finalizou dentro do prazo",
-            extra={"event": "execution_queue_stop_timeout", "status": "warning"},
-        )
+
+        registrar_timeout_parada_worker_fila()
+
         return
 
     with thread_fila_lock:

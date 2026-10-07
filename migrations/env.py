@@ -11,7 +11,16 @@ import models  # noqa: F401 - registra todos os modelos no metadata
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # O Alembic pode reconfigurar o logging durante migrations,
+    # porém não deve desabilitar os loggers já criados pelo DUET.
+    #
+    # Sem disable_existing_loggers=False, o logger
+    # "control_room" é marcado como disabled=True durante
+    # o bootstrap do banco.
+    fileConfig(
+        config.config_file_name,
+        disable_existing_loggers=False,
+    )
 
 database_url = os.getenv("DATABASE_URL")
 if not database_url:

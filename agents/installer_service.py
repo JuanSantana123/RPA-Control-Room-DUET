@@ -23,8 +23,10 @@ import os
 import shutil
 import subprocess
 import tempfile
+import uuid
 
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 from sqlalchemy.orm import Session
 
 from agents.repository import buscar_agent_por_id
@@ -34,6 +36,44 @@ from agents.bootstrap_service import CONTROL_ROOM_URL
 from agents.token_security import descriptografar_agent_token
 
 logger = logging.getLogger("control_room")
+
+
+# ============================================================
+# LIMPEZA SEGURA DE INSTALADOR TEMPORÁRIO
+# ============================================================
+#
+# Cada requisição de download passa a gerar um arquivo físico
+# exclusivo. Isso evita que duas requisições simultâneas tentem
+# sobrescrever o mesmo .exe enquanto uma delas ainda está sendo
+# transmitida ao navegador.
+#
+# O arquivo é removido somente DEPOIS que o FileResponse termina
+# de enviá-lo ao cliente.
+# ============================================================
+
+def _remover_instalador_apos_download(
+    installer_path: str,
+) -> None:
+    """
+    Remove o instalador físico gerado para uma única requisição.
+
+    A falha de limpeza não pode quebrar uma resposta que já foi
+    entregue ao usuário, por isso ela é apenas registrada em log.
+    """
+
+    try:
+        if os.path.isfile(installer_path):
+            os.remove(installer_path)
+
+    except Exception as cleanup_error:
+        logger.warning(
+            "Não foi possível remover instalador temporário após download",
+            extra={
+                "event": "agent_installer_cleanup_failed",
+                "installer_path": installer_path,
+                "error_message": str(cleanup_error),
+            },
+        )
 
 
 # ============================================================
@@ -119,32 +159,57 @@ AGENT_CREDENTIAL_PROVIDER_ROLLBACK_PATH = os.path.join(
     "rollback_duet_credential_provider.ps1",
 )
 # ============================================================
-# RUNTIME PYTHON DO DUET
+# TOOLING PYTHON DO DUET
 # ============================================================
 #
-# O Agent não depende do Python instalado na máquina de destino.
+# O DUET NÃO distribui, instala, atualiza ou gerencia Python.
+# Python é um pré-requisito externo da máquina de destino e pode
+# estar instalado para a máquina ou somente para um usuário.
 #
-# O Control Room mantém uma cópia do runtime Python utilizado
-# pelos Robots e o inclui em cada instalador gerado.
+# O uv.exe acompanha o Agent somente para:
+# - criar environments isoladas dos Robots;
+# - instalar dependências de requirements.txt;
+# - reutilizar o cache local de pacotes.
 #
-# Estrutura esperada no Control Room:
-#
-#     agent\
-#         runtime\
-#             python\
-#                 python.exe
-#
-# Durante a instalação essa estrutura será copiada para:
-#
-#     C:\RPA-Agent\runtime\python
-#
+# O EnvironmentInstaller usa o uv com proteção para não baixar
+# nem gerenciar runtimes Python.
 # ============================================================
 
-AGENT_RUNTIME_PATH = os.path.join(
+AGENT_UV_PATH = os.path.join(
     BASE_DIR,
     "agent",
-    "runtime",
-    "python",
+    "tools",
+    "uv.exe",
+)
+
+# ============================================================
+# SDK OFICIAL DO DUET RPA
+# ============================================================
+#
+# O SDK é disponibilizado automaticamente para todos os Robots
+# executados pelo DUET Agent.
+#
+# O desenvolvedor pode utilizar:
+#
+#     from rpa import vault
+#
+# sem adicionar a SDK ao requirements.txt.
+#
+# A cópia publicada da SDK utilizada pelo instalador fica em:
+#
+#     RPA-Control-Room\agent\sdk\rpa
+#
+# Durante a instalação ela será copiada para:
+#
+#     C:\RPA-Agent\sdk\rpa
+#
+# O Agent adiciona C:\RPA-Agent\sdk ao PYTHONPATH do Robot.
+# ============================================================
+
+AGENT_SDK_DIRECTORY = os.path.join(
+    BASE_DIR,
+    "agent",
+    "sdk",
 )
 
 def gerar_instalador_agent_service(
@@ -333,34 +398,23 @@ def gerar_instalador_agent_service(
                 }
 
         # --------------------------------------------------------
-        # 2.2. VERIFICA O RUNTIME PYTHON DO DUET
+        # 2.2. VERIFICA O UV.EXE DO DUET
         # --------------------------------------------------------
         #
-        # O instalador precisa transportar o Python utilizado
-        # para executar os Robots.
-        #
-        # Validamos especificamente python.exe para impedir que
-        # seja gerado um instalador com runtime ausente ou
-        # incompleto.
+        # O DUET não transporta Python. Entretanto, o instalador
+        # precisa transportar o uv.exe usado para criar environments
+        # isoladas dos Robots que possuem requirements.txt.
         # --------------------------------------------------------
 
-        python_runtime_exe = os.path.join(
-            AGENT_RUNTIME_PATH,
-            "python.exe",
-        )
-
-        if not os.path.isfile(python_runtime_exe):
+        if not os.path.isfile(AGENT_UV_PATH):
 
             logger.error(
-                "Runtime Python do DUET não encontrado",
+                "uv.exe do DUET não encontrado",
                 extra={
-                    "event": (
-                        "agent_installer_python_runtime_not_found"
-                    ),
+                    "event": "agent_installer_uv_not_found",
                     "agent_id": agent_id,
                     "error_message": (
-                        f"Arquivo não encontrado: "
-                        f"{python_runtime_exe}"
+                        f"Arquivo não encontrado: {AGENT_UV_PATH}"
                     ),
                 },
             )
@@ -368,9 +422,11 @@ def gerar_instalador_agent_service(
             return {
                 "status": "error",
                 "message": (
-                    "Runtime Python do DUET não encontrado."
+                    "Componente obrigatório uv.exe não encontrado."
                 ),
             }
+
+
         # --------------------------------------------------------
         # 3. LOCALIZA O INNO SETUP
         # --------------------------------------------------------
@@ -471,6 +527,14 @@ def gerar_instalador_agent_service(
             # apenas quando a autenticação Windows for necessária.
             "execution_username": agent.execution_username,
             "execution_domain": agent.execution_domain,
+
+            # Configuração do Python definida pelo usuário durante
+            # a instalação do Agent.
+            #
+            # Os placeholders abaixo são substituídos pelo próprio
+            # instalador Inno Setup após copiar o config.json.
+            "python_mode": "__DUET_PYTHON_MODE__",
+            "python_executable": "__DUET_PYTHON_EXECUTABLE__",
         }
 
         # --------------------------------------------------------
@@ -494,13 +558,28 @@ def gerar_instalador_agent_service(
         # 8. NOME DO INSTALADOR
         # --------------------------------------------------------
 
+        # Nome apresentado ao usuário no download.
+        #
+        # Este nome permanece estável e amigável.
         installer_filename = (
             f"RPA-Agent-{agent.agent_id}.exe"
         )
 
+        # Nome físico exclusivo desta compilação.
+        #
+        # NÃO reutilizamos mais RPA-Agent-{agent_id}.exe como arquivo
+        # físico de build. Duas requisições simultâneas poderiam fazer
+        # o ISCC sobrescrever o arquivo enquanto o FileResponse ainda
+        # o estivesse enviando, causando Content-Length inconsistente.
+        installer_build_id = uuid.uuid4().hex
+
+        installer_output_base = (
+            f"RPA-Agent-{agent.agent_id}-{installer_build_id}"
+        )
+
         installer_path = os.path.join(
             installers_directory,
-            installer_filename,
+            f"{installer_output_base}.exe",
         )
 
         # --------------------------------------------------------
@@ -533,7 +612,7 @@ def gerar_instalador_agent_service(
             PrivilegesRequired=admin
 
             OutputDir="{installers_directory}"
-            OutputBaseFilename="RPA-Agent-{agent.agent_id}"
+            OutputBaseFilename="{installer_output_base}"
 
             SolidCompression=yes
             WizardStyle=modern
@@ -574,33 +653,60 @@ def gerar_instalador_agent_service(
 
             Source: "{AGENT_CREDENTIAL_PROVIDER_ROLLBACK_PATH}"; DestDir: "{{app}}\\native\\credential_provider"; Flags: ignoreversion
 
+              ; ====================================================
+            ; SDK OFICIAL DO DUET RPA
+            ; ====================================================
+            ;
+            ; Disponibiliza a API Python nativa da plataforma para
+            ; todos os Robots executados pelo Agent.
+            ;
+            ; Exemplo:
+            ;
+            ;     from rpa import vault
+            ;
+            ; A SDK não faz parte do requirements.txt do Robot.
+            ; Ela é uma capacidade fornecida pela plataforma DUET.
+            ;
+            ; recursesubdirs:
+            ;     copia também todos os módulos e subdiretórios
+            ;     adicionados futuramente à SDK.
+            ;
+            ; createallsubdirs:
+            ;     preserva toda a estrutura interna da SDK.
+            ; ====================================================
+
+            Source: "{AGENT_SDK_DIRECTORY}\\*"; DestDir: "{{app}}\\sdk"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+            ; ====================================================
+            ; UV.EXE - TOOLING DO DUET
+            ; ====================================================
+            ;
+            ; Python NÃO é distribuído pelo DUET.
+            ; O uv.exe acompanha o Agent somente para criar/reutilizar
+            ; environments e instalar dependências dos Robots.
+            ; ====================================================
+            Source: "{AGENT_UV_PATH}"; DestDir: "{{app}}\\tools"; Flags: ignoreversion
 
 
-            ; ====================================================
-            ; RUNTIME PYTHON DO DUET
-            ; ====================================================
-            ;
-            ; Copia recursivamente o runtime Python distribuído
-            ; pelo DUET para a instalação do Agent.
-            ;
-            ; Resultado:
-            ;
-            ; C:\\RPA-Agent\\runtime\\python\\python.exe
-            ;
-            ; O Agent utiliza esse executável diretamente e não
-            ; depende de Python instalado ou configurado no PATH
-            ; da máquina.
-            ; ====================================================
-            Source: "{AGENT_RUNTIME_PATH}\\*"; DestDir: "{{app}}\\runtime\\python"; Flags: ignoreversion recursesubdirs createallsubdirs
             ; Instala a configuração exclusiva deste Agent.
             ; O arquivo contém agent_id, token, URL do Control Room,
             ; porta e diretório de execução dos RPAs.
-            Source: "{config_path}"; DestDir: "{{app}}"; Flags: ignoreversion
+            Source: "{config_path}"; DestDir: "{{app}}"; Flags: ignoreversion; AfterInstall: PersistPythonConfiguration
 
                         [Dirs]
             Name: "{{app}}\\logs"
             Name: "{{app}}\\temp"
             Name: "{{app}}\\rpas"
+
+            ; Estrutura de execução e isolamento dos Robots.
+            Name: "{{app}}\\work"
+            Name: "{{app}}\\tools"
+            ; SDK oficial do DUET disponibilizada para os Robots.
+            Name: "{{app}}\\sdk"
+            Name: "{{app}}\\environments"
+            Name: "{{app}}\\cache"
+            Name: "{{app}}\\cache\\uv"
+            Name: "{{app}}\\data"
 
             [Run]
 
@@ -670,6 +776,15 @@ def gerar_instalador_agent_service(
               DuetAgentServiceExistedBeforeInstall: Boolean;
               DuetCredentialProviderExistedBeforeInstall: Boolean;
 
+              // Página do instalador responsável pela escolha do
+              // runtime Python usado pelo DUET Agent.
+              PythonModePage: TInputOptionWizardPage;
+              PythonPathPage: TInputFileWizardPage;
+
+              // Caminho localizado no modo Automático.
+              // Ele será gravado no config.json para que o Service não
+              // dependa do PATH/HKCU do usuário após a instalação.
+              DetectedPythonPath: String;
 
             // ====================================================
             // CONSULTA O SERVICE CONTROL MANAGER
@@ -731,23 +846,856 @@ def gerar_instalador_agent_service(
                 );
             end;
 
+            // ====================================================
+            // PYTHON EXTERNO DA MÁQUINA / USUÁRIO
+            // ====================================================
+            //
+            // O DUET não instala, baixa ou atualiza Python.
+            //
+            // Durante a instalação o usuário pode escolher:
+            //
+            //   1. Automático:
+            //      o DUET procura uma instalação Python válida tanto
+            //      para a máquina quanto para usuários do Windows.
+            //
+            //   2. Personalizado:
+            //      o usuário aponta explicitamente para python.exe.
+            //
+            // No modo Automático o caminho REAL detectado é gravado no
+            // config.json. Assim o DUETAgentService, que roda como
+            // LocalSystem, não depende do PATH/HKCU do usuário.
+            // ====================================================
+
+            function IsWindowsAppsPython(
+              const PythonPath: String
+            ): Boolean;
+            var
+              NormalizedPath: String;
+            begin
+              NormalizedPath := LowerCase(PythonPath);
+              StringChangeEx(
+                NormalizedPath,
+                '/',
+                '\\',
+                True
+              );
+
+              Result :=
+                Pos('\\windowsapps\\', NormalizedPath) > 0;
+            end;
+
+
+            function ValidatePythonExecutable(
+              const PythonPath: String
+            ): Boolean;
+            var
+              ResultCode: Integer;
+            begin
+              Result := False;
+
+              if Trim(PythonPath) = '' then
+              begin
+                exit;
+              end;
+
+              // App Execution Alias / Microsoft Store não é utilizado
+              // como runtime base do Windows Service.
+              if IsWindowsAppsPython(PythonPath) then
+              begin
+                exit;
+              end;
+
+              if not FileExists(PythonPath) then
+              begin
+                exit;
+              end;
+
+              Result := Exec(
+                PythonPath,
+                '-c "import sys; raise SystemExit(0 if sys.version_info[0] == 3 else 1)"',
+                '',
+                SW_HIDE,
+                ewWaitUntilTerminated,
+                ResultCode
+              ) and (ResultCode = 0);
+            end;
+
+
+            function AcceptPythonCandidate(
+              const Candidate: String;
+              var PythonPath: String
+            ): Boolean;
+            begin
+              Result := ValidatePythonExecutable(
+                Candidate
+              );
+
+              if Result then
+              begin
+                PythonPath := Candidate;
+              end;
+            end;
+
+
+            function FindPythonInRegistryBase(
+              const RootKey: HKEY;
+              const BaseKey: String;
+              var PythonPath: String
+            ): Boolean;
+            var
+              Companies: TArrayOfString;
+              Tags: TArrayOfString;
+              CompanyIndex: Integer;
+              TagIndex: Integer;
+              CompanyKey: String;
+              InstallKey: String;
+              ExecutablePath: String;
+              InstallDirectory: String;
+            begin
+              Result := False;
+
+              if not RegGetSubkeyNames(
+                RootKey,
+                BaseKey,
+                Companies
+              ) then
+              begin
+                exit;
+              end;
+
+              for CompanyIndex := 0 to GetArrayLength(Companies) - 1 do
+              begin
+                CompanyKey :=
+                  BaseKey + '\\' + Companies[CompanyIndex];
+
+                if not RegGetSubkeyNames(
+                  RootKey,
+                  CompanyKey,
+                  Tags
+                ) then
+                begin
+                  continue;
+                end;
+
+                // Percorremos do último para o primeiro para favorecer
+                // tags mais novas na organização usual do PythonCore.
+                for TagIndex := GetArrayLength(Tags) - 1 downto 0 do
+                begin
+                  InstallKey :=
+                    CompanyKey + '\\' + Tags[TagIndex] + '\\InstallPath';
+
+                  ExecutablePath := '';
+
+                  if RegQueryStringValue(
+                    RootKey,
+                    InstallKey,
+                    'ExecutablePath',
+                    ExecutablePath
+                  ) then
+                  begin
+                    if AcceptPythonCandidate(
+                      ExecutablePath,
+                      PythonPath
+                    ) then
+                    begin
+                      Result := True;
+                      exit;
+                    end;
+                  end;
+
+                  InstallDirectory := '';
+
+                  if RegQueryStringValue(
+                    RootKey,
+                    InstallKey,
+                    '',
+                    InstallDirectory
+                  ) then
+                  begin
+                    ExecutablePath := PathCombine(
+                      InstallDirectory,
+                      'python.exe'
+                    );
+
+                    if AcceptPythonCandidate(
+                      ExecutablePath,
+                      PythonPath
+                    ) then
+                    begin
+                      Result := True;
+                      exit;
+                    end;
+                  end;
+                end;
+              end;
+            end;
+
+
+            function FindPythonInMachineRegistry(
+              var PythonPath: String
+            ): Boolean;
+            begin
+              Result := False;
+
+              // Instalações 64 bits registradas para a máquina.
+              if IsWin64 then
+              begin
+                if FindPythonInRegistryBase(
+                  HKEY_LOCAL_MACHINE_64,
+                  'SOFTWARE\\Python',
+                  PythonPath
+                ) then
+                begin
+                  Result := True;
+                  exit;
+                end;
+              end;
+
+              // Instalações 32 bits registradas para a máquina.
+              if FindPythonInRegistryBase(
+                HKEY_LOCAL_MACHINE_32,
+                'SOFTWARE\\Python',
+                PythonPath
+              ) then
+              begin
+                Result := True;
+                exit;
+              end;
+            end;
+
+
+            function FindPythonInLoadedUserRegistry(
+              var PythonPath: String
+            ): Boolean;
+            var
+              UserSids: TArrayOfString;
+              UserIndex: Integer;
+              UserBaseKey: String;
+            begin
+              Result := False;
+
+              // O instalador do Agent exige elevação para registrar o
+              // Windows Service. Por isso HKCU pode representar a conta
+              // administrativa usada no UAC, e não o usuário RPA.
+              //
+              // HKEY_USERS permite consultar os hives dos usuários que
+              // estão carregados no Windows, inclusive um usuário comum
+              // que instalou Python somente no próprio perfil.
+              if not RegGetSubkeyNames(
+                HKEY_USERS,
+                '',
+                UserSids
+              ) then
+              begin
+                exit;
+              end;
+
+              for UserIndex := 0 to GetArrayLength(UserSids) - 1 do
+              begin
+                if Pos(
+                  '_classes',
+                  LowerCase(UserSids[UserIndex])
+                ) > 0 then
+                begin
+                  continue;
+                end;
+
+                UserBaseKey :=
+                  UserSids[UserIndex] + '\\SOFTWARE\\Python';
+
+                if IsWin64 then
+                begin
+                  if FindPythonInRegistryBase(
+                    HKEY_USERS_64,
+                    UserBaseKey,
+                    PythonPath
+                  ) then
+                  begin
+                    Result := True;
+                    exit;
+                  end;
+                end;
+
+                if FindPythonInRegistryBase(
+                  HKEY_USERS_32,
+                  UserBaseKey,
+                  PythonPath
+                ) then
+                begin
+                  Result := True;
+                  exit;
+                end;
+              end;
+            end;
+
+
+            function FindPythonInKnownLocations(
+              var PythonPath: String
+            ): Boolean;
+            var
+              MinorVersion: Integer;
+              Candidate: String;
+              WindowsDrive: String;
+            begin
+              Result := False;
+
+              WindowsDrive := ExtractFileDrive(
+                ExpandConstant('{{win}}')
+              );
+
+              // Layouts de sistema conhecidos:
+              // C:\\Program Files\\Python312\\python.exe
+              // C:\\Python312\\python.exe
+              for MinorVersion := 20 downto 8 do
+              begin
+                if IsWin64 then
+                begin
+                  Candidate := PathCombine(
+                    ExpandConstant('{{commonpf64}}'),
+                    'Python3' + IntToStr(MinorVersion) + '\\python.exe'
+                  );
+
+                  if AcceptPythonCandidate(
+                    Candidate,
+                    PythonPath
+                  ) then
+                  begin
+                    Result := True;
+                    exit;
+                  end;
+                end;
+
+                Candidate := PathCombine(
+                  ExpandConstant('{{commonpf32}}'),
+                  'Python3' + IntToStr(MinorVersion) + '\\python.exe'
+                );
+
+                if AcceptPythonCandidate(
+                  Candidate,
+                  PythonPath
+                ) then
+                begin
+                  Result := True;
+                  exit;
+                end;
+
+                Candidate := PathCombine(
+                  WindowsDrive + '\\',
+                  'Python3' + IntToStr(MinorVersion) + '\\python.exe'
+                );
+
+                if AcceptPythonCandidate(
+                  Candidate,
+                  PythonPath
+                ) then
+                begin
+                  Result := True;
+                  exit;
+                end;
+              end;
+            end;
+
+
+            function ExpandProfileImagePath(
+              ProfilePath: String
+            ): String;
+            begin
+              // ProfileImagePath normalmente contém %SystemDrive%.
+              StringChangeEx(
+                ProfilePath,
+                '%SystemDrive%',
+                ExpandConstant('{{sd}}'),
+                False
+              );
+
+              Result := ProfilePath;
+            end;
+
+
+            function FindPythonInUserProfiles(
+              var PythonPath: String
+            ): Boolean;
+            var
+              ProfileSids: TArrayOfString;
+              ProfileIndex: Integer;
+              ProfileKey: String;
+              ProfilePath: String;
+              PythonRoot: String;
+              Candidate: String;
+              MinorVersion: Integer;
+            begin
+              Result := False;
+
+              // ProfileList funciona mesmo quando o usuário não possui
+              // privilégios administrativos. O Python oficial instalado
+              // somente para o usuário normalmente fica em:
+              //
+              // C:\\Users\\usuario\\AppData\\Local\\Programs\\Python\\Python312\\python.exe
+              if not RegGetSubkeyNames(
+                HKEY_LOCAL_MACHINE,
+                'SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList',
+                ProfileSids
+              ) then
+              begin
+                exit;
+              end;
+
+              for ProfileIndex := 0 to GetArrayLength(ProfileSids) - 1 do
+              begin
+                ProfileKey :=
+                  'SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\' +
+                  ProfileSids[ProfileIndex];
+
+                ProfilePath := '';
+
+                if not RegQueryStringValue(
+                  HKEY_LOCAL_MACHINE,
+                  ProfileKey,
+                  'ProfileImagePath',
+                  ProfilePath
+                ) then
+                begin
+                  continue;
+                end;
+
+                ProfilePath := ExpandProfileImagePath(
+                  ProfilePath
+                );
+
+                PythonRoot := PathCombine(
+                  ProfilePath,
+                  'AppData\\Local\\Programs\\Python'
+                );
+
+                for MinorVersion := 20 downto 8 do
+                begin
+                  Candidate := PathCombine(
+                    PythonRoot,
+                    'Python3' + IntToStr(MinorVersion) + '\\python.exe'
+                  );
+
+                  if AcceptPythonCandidate(
+                    Candidate,
+                    PythonPath
+                  ) then
+                  begin
+                    Result := True;
+                    exit;
+                  end;
+
+                  // Também cobre instalações 32 bits com sufixo -32.
+                  Candidate := PathCombine(
+                    PythonRoot,
+                    'Python3' + IntToStr(MinorVersion) + '-32\\python.exe'
+                  );
+
+                  if AcceptPythonCandidate(
+                    Candidate,
+                    PythonPath
+                  ) then
+                  begin
+                    Result := True;
+                    exit;
+                  end;
+                end;
+              end;
+            end;
+
+
+            function FindPythonInPath(
+              var PythonPath: String
+            ): Boolean;
+            var
+              ResultCode: Integer;
+              OutputFile: String;
+              Lines: TArrayOfString;
+              LineIndex: Integer;
+              Candidate: String;
+            begin
+              Result := False;
+
+              OutputFile := ExpandConstant(
+                '{{tmp}}\\duet_python_where.txt'
+              );
+
+              DeleteFile(
+                OutputFile
+              );
+
+              // `where` pode retornar mais de um python.exe. Cada linha é
+              // validada e aliases WindowsApps são descartados.
+              if not Exec(
+                ExpandConstant('{{cmd}}'),
+                '/C where.exe python > "' + OutputFile + '" 2>NUL',
+                '',
+                SW_HIDE,
+                ewWaitUntilTerminated,
+                ResultCode
+              ) then
+              begin
+                exit;
+              end;
+
+              if not LoadStringsFromFile(
+                OutputFile,
+                Lines
+              ) then
+              begin
+                exit;
+              end;
+
+              for LineIndex := 0 to GetArrayLength(Lines) - 1 do
+              begin
+                Candidate := Trim(
+                  Lines[LineIndex]
+                );
+
+                if AcceptPythonCandidate(
+                  Candidate,
+                  PythonPath
+                ) then
+                begin
+                  Result := True;
+                  DeleteFile(OutputFile);
+                  exit;
+                end;
+              end;
+
+              DeleteFile(
+                OutputFile
+              );
+            end;
+
+
+            function FindPythonAutomatically(
+              var PythonPath: String
+            ): Boolean;
+            begin
+              PythonPath := '';
+
+              // Instalações de máquina têm prioridade porque são as mais
+              // estáveis para um Windows Service.
+              if FindPythonInMachineRegistry(PythonPath) then
+              begin
+                Result := True;
+                exit;
+              end;
+
+              if FindPythonInKnownLocations(PythonPath) then
+              begin
+                Result := True;
+                exit;
+              end;
+
+              // Depois aceitamos instalações reais por usuário.
+              if FindPythonInLoadedUserRegistry(PythonPath) then
+              begin
+                Result := True;
+                exit;
+              end;
+
+              if FindPythonInUserProfiles(PythonPath) then
+              begin
+                Result := True;
+                exit;
+              end;
+
+              // Por último, qualquer instalação real disponível no PATH
+              // do processo do instalador.
+              if FindPythonInPath(PythonPath) then
+              begin
+                Result := True;
+                exit;
+              end;
+
+              Result := False;
+            end;
+
+
+            procedure InitializeWizard();
+            begin
+              PythonModePage := CreateInputOptionPage(
+                wpWelcome,
+                'Configuração do Python',
+                'Escolha como o DUET deve localizar o Python.',
+                'O DUET não instala Python. Selecione Detecção automática ' +
+                'ou informe uma instalação específica já existente na máquina.',
+                True,
+                False
+              );
+
+              PythonModePage.Add(
+                '&Detectar automaticamente (recomendado)'
+              );
+
+              PythonModePage.Add(
+                '&Usar uma instalação específica'
+              );
+
+              PythonModePage.SelectedValueIndex := 0;
+
+              PythonPathPage := CreateInputFilePage(
+                PythonModePage.ID,
+                'Python personalizado',
+                'Selecione o executável Python que o DUET deve utilizar.',
+                'Escolha o arquivo python.exe da instalação desejada.'
+              );
+
+              PythonPathPage.Add(
+                '&Executável do Python:',
+                'Executáveis (*.exe)|*.exe|Todos os arquivos (*.*)|*.*',
+                '.exe'
+              );
+            end;
+
+
+            function ShouldSkipPage(
+              PageID: Integer
+            ): Boolean;
+            begin
+              Result := False;
+
+              if Assigned(PythonPathPage) then
+              begin
+                if PageID = PythonPathPage.ID then
+                begin
+                  Result :=
+                    PythonModePage.SelectedValueIndex = 0;
+                end;
+              end;
+            end;
+
+
+            function NextButtonClick(
+              CurPageID: Integer
+            ): Boolean;
+            var
+              PythonPath: String;
+            begin
+              Result := True;
+
+              // Modo automático selecionado.
+              if CurPageID = PythonModePage.ID then
+              begin
+                if PythonModePage.SelectedValueIndex = 0 then
+                begin
+                  DetectedPythonPath := '';
+
+                  if not FindPythonAutomatically(
+                    DetectedPythonPath
+                  ) then
+                  begin
+                    MsgBox(
+                      'Nenhuma instalação Python 3 válida foi encontrada automaticamente.' + #13#10 + #13#10 +
+                      'O Python pode estar instalado para a máquina ou somente para um usuário.' + #13#10 +
+                      'Instale uma versão Python 3 real ou volte e selecione ' +
+                      '"Usar uma instalação específica".',
+                      mbError,
+                      MB_OK
+                    );
+
+                    Result := False;
+                    exit;
+                  end;
+
+                  Log(
+                    'DUET Python automático detectado: ' +
+                    DetectedPythonPath
+                  );
+                end;
+              end;
+
+              // Modo personalizado selecionado.
+              if CurPageID = PythonPathPage.ID then
+              begin
+                PythonPath := Trim(
+                  PythonPathPage.Values[0]
+                );
+
+                if PythonPath = '' then
+                begin
+                  MsgBox(
+                    'Selecione o arquivo python.exe que o DUET deve utilizar.',
+                    mbError,
+                    MB_OK
+                  );
+
+                  Result := False;
+                  exit;
+                end;
+
+                if IsWindowsAppsPython(PythonPath) then
+                begin
+                  MsgBox(
+                    'O caminho selecionado pertence ao WindowsApps/App Execution Alias.' + #13#10 + #13#10 +
+                    'Selecione o python.exe de uma instalação Python real.',
+                    mbError,
+                    MB_OK
+                  );
+
+                  Result := False;
+                  exit;
+                end;
+
+                if not ValidatePythonExecutable(PythonPath) then
+                begin
+                  MsgBox(
+                    'O executável selecionado não é uma instalação Python 3 válida:' + #13#10 + #13#10 +
+                    PythonPath,
+                    mbError,
+                    MB_OK
+                  );
+
+                  Result := False;
+                  exit;
+                end;
+              end;
+            end;
+
+
+            procedure PersistPythonConfiguration();
+            var
+              ConfigPath: String;
+              ConfigLines: TArrayOfString;
+              LineIndex: Integer;
+              PythonPath: String;
+            begin
+              ConfigPath := ExpandConstant(
+                '{{app}}\\config.json'
+              );
+
+              // LoadStringsFromFile reconhece UTF-8 com ou sem BOM.
+              if not LoadStringsFromFile(
+                ConfigPath,
+                ConfigLines
+              ) then
+              begin
+                RaiseException(
+                  'Não foi possível ler o config.json do DUET Agent.'
+                );
+              end;
+
+              if PythonModePage.SelectedValueIndex = 0 then
+              begin
+                PythonPath := Trim(
+                  DetectedPythonPath
+                );
+
+                // Defesa adicional caso o estado da página tenha sido
+                // alterado antes da cópia do config.json.
+                if PythonPath = '' then
+                begin
+                  if not FindPythonAutomatically(
+                    PythonPath
+                  ) then
+                  begin
+                    RaiseException(
+                      'Não foi possível localizar o Python automático durante a instalação.'
+                    );
+                  end;
+                end;
+
+                // O caminho detectado é salvo mesmo no modo auto.
+                // O Agent tentará este caminho primeiro e somente fará
+                // redetecção se ele deixar de existir ou ficar inválido.
+                StringChangeEx(
+                  PythonPath,
+                  '\\',
+                  '\\\\',
+                  True
+                );
+
+                StringChangeEx(
+                  PythonPath,
+                  '"',
+                  '\\"',
+                  True
+                );
+
+                for LineIndex := 0 to GetArrayLength(ConfigLines) - 1 do
+                begin
+                  StringChangeEx(
+                    ConfigLines[LineIndex],
+                    '"__DUET_PYTHON_MODE__"',
+                    '"auto"',
+                    True
+                  );
+
+                  StringChangeEx(
+                    ConfigLines[LineIndex],
+                    '"__DUET_PYTHON_EXECUTABLE__"',
+                    '"' + PythonPath + '"',
+                    True
+                  );
+                end;
+              end
+              else
+              begin
+                PythonPath := Trim(
+                  PythonPathPage.Values[0]
+                );
+
+                // Escapa barras e aspas para manter JSON válido.
+                StringChangeEx(
+                  PythonPath,
+                  '\\',
+                  '\\\\',
+                  True
+                );
+
+                StringChangeEx(
+                  PythonPath,
+                  '"',
+                  '\\"',
+                  True
+                );
+
+                for LineIndex := 0 to GetArrayLength(ConfigLines) - 1 do
+                begin
+                  StringChangeEx(
+                    ConfigLines[LineIndex],
+                    '"__DUET_PYTHON_MODE__"',
+                    '"custom"',
+                    True
+                  );
+
+                  StringChangeEx(
+                    ConfigLines[LineIndex],
+                    '"__DUET_PYTHON_EXECUTABLE__"',
+                    '"' + PythonPath + '"',
+                    True
+                  );
+                end;
+              end;
+
+              if not SaveStringsToUTF8FileWithoutBOM(
+                ConfigPath,
+                ConfigLines,
+                False
+              ) then
+              begin
+                RaiseException(
+                  'Não foi possível salvar a configuração Python do DUET Agent.'
+                );
+              end;
+            end;
+
+
             function InitializeSetup(): Boolean;
             begin
+              // O Python é validado nas páginas do instalador, depois
+              // que o usuário escolhe Automático ou Personalizado.
+
               // Guarda o estado original do Service.
               DuetAgentServiceExistedBeforeInstall :=
                 DuetAgentServiceExists();
 
               // Guarda o estado original do Credential Provider.
-              //
-              // Não consultamos novamente depois da instalação,
-              // pois o próprio processo de registro mudará esse
-              // estado.
               DuetCredentialProviderExistedBeforeInstall :=
                 DuetCredentialProviderExists();
 
               Result := True;
             end;
-
 
 
             // ====================================================
@@ -972,8 +1920,27 @@ def gerar_instalador_agent_service(
 
         if resultado.returncode != 0:
 
+            # O ISCC pode escrever mensagens úteis tanto em stdout
+            # quanto em stderr. Registramos os dois para que um erro
+            # de compilação nunca volte a aparecer apenas como uma
+            # mensagem genérica no log do Control Room.
+            compiler_output = "\n".join(
+                output
+                for output in (
+                    resultado.stdout.strip(),
+                    resultado.stderr.strip(),
+                )
+                if output
+            )
+
             logger.error(
-                "Falha ao compilar instalador do Agent",
+                (
+                    "Falha ao compilar instalador do Agent | "
+                    "agent_id=%s | returncode=%s | output=%s"
+                ),
+                agent_id,
+                resultado.returncode,
+                compiler_output or "(sem saída do ISCC)",
                 extra={
                     "event": (
                         "agent_installer_compilation_failed"
@@ -982,7 +1949,7 @@ def gerar_instalador_agent_service(
                     "reason": (
                         f"returncode={resultado.returncode}"
                     ),
-                    "error_message": resultado.stderr.strip(),
+                    "error_message": compiler_output,
                 },
             )
 
@@ -1044,6 +2011,14 @@ def gerar_instalador_agent_service(
             path=installer_path,
             media_type="application/octet-stream",
             filename=installer_filename,
+
+            # O arquivo físico possui nome exclusivo por requisição.
+            # Ele só é removido após o término da transmissão HTTP,
+            # impedindo que outro download altere seu Content-Length.
+            background=BackgroundTask(
+                _remover_instalador_apos_download,
+                installer_path,
+            ),
         )
 
     except Exception as error:

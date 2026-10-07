@@ -60,6 +60,16 @@ from libraries.snapshot_service import (
     resolver_artefato_versao_publicada,
 )
 
+from libraries.catalog_observability import (
+    registrar_library_producao_inconsistente,
+)
+
+
+# DUET_LIBRARY_CHECKOUT_V1:DEPENDENCY_GUARD
+from libraries.checkout_service import (
+    exigir_biblioteca_sem_checkout_neste_projeto,
+)
+
 from libraries.validators import (
     calcular_sha256,
     exigir_checkout_projeto,
@@ -247,16 +257,11 @@ def listar_bibliotecas_disponiveis_projeto_service(
         # Defesa contra dados históricos inconsistentes.
         if production_version is None:
 
-            logger.warning(
-                "Library publicada sem versão de Produção utilizável",
-                extra={
-                    "event":
-                        "library_catalog_invalid_production",
-                    "library_id":
-                        library.id,
-                    "production_version_id":
-                        library.production_version_id,
-                },
+            registrar_library_producao_inconsistente(
+                library_id=library.id,
+                production_version_id=(
+                    library.production_version_id
+                ),
             )
 
             continue
@@ -1115,6 +1120,15 @@ def trocar_versao_projeto_service(
         usuario.id,
     )
 
+
+    # Não alteramos a composição/versionamento local de uma
+    # Library enquanto seu draft neste projeto está em edição.
+    exigir_biblioteca_sem_checkout_neste_projeto(
+        db=db,
+        project_id=project_id,
+        library_id=library_id,
+    )
+
     dependency = (
         db.query(ProjectLibraryDependency)
         .filter(
@@ -1346,6 +1360,15 @@ def remover_dependencia_projeto_service(
         db,
         project_id,
         usuario.id,
+    )
+
+
+    # Não alteramos a composição/versionamento local de uma
+    # Library enquanto seu draft neste projeto está em edição.
+    exigir_biblioteca_sem_checkout_neste_projeto(
+        db=db,
+        project_id=project_id,
+        library_id=library_id,
     )
 
     dependency = (

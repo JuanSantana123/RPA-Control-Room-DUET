@@ -12,7 +12,7 @@
 # ============================================================
 
 from sqlalchemy.orm import Session
-
+import logging
 from models import (
     User,
     UserRole,
@@ -36,6 +36,8 @@ from auth.rbac_safety import (
     validar_admin_funcional_restante,
 )
 
+# Emissão centralizada de eventos estruturados de auditoria.
+from core.event_logger import log_event
 from schemas.auth import (
     UserCreate,
     UserStatusUpdate,
@@ -99,6 +101,19 @@ def alterar_status_usuario_service(
             "message": "Usuário não encontrado.",
         }
 
+    # --------------------------------------------------------
+    # ESTADO ANTERIOR PARA AUDITORIA
+    # --------------------------------------------------------
+    #
+    # O estado é capturado antes de qualquer modificação para
+    # permitir rastrear claramente a transição realizada.
+    # --------------------------------------------------------
+
+    status_anterior = (
+        "active"
+        if usuario_alvo.is_active == 1
+        else "inactive"
+    )
     # --------------------------------------------------------
     # PROTEÇÃO CONTRA LOCKOUT ADMINISTRATIVO
     # --------------------------------------------------------
@@ -175,6 +190,69 @@ def alterar_status_usuario_service(
 
     db.commit()
     db.refresh(usuario_alvo)
+
+    # --------------------------------------------------------
+    # AUDITORIA - ALTERAÇÃO DE STATUS
+    # --------------------------------------------------------
+    #
+    # O evento é emitido somente depois que a transação foi
+    # confirmada com sucesso no banco.
+    #
+    # Assim nunca exibimos em "Logs do sistema" uma alteração
+    # que tenha falhado ou sofrido rollback.
+    # --------------------------------------------------------
+
+    usuario_esta_ativo = (
+        usuario_alvo.is_active == 1
+    )
+
+    status_atual = (
+        "active"
+        if usuario_esta_ativo
+        else "inactive"
+    )
+
+    evento = (
+        "user.enabled"
+        if usuario_esta_ativo
+        else "user.disabled"
+    )
+
+    acao = (
+        "enable"
+        if usuario_esta_ativo
+        else "disable"
+    )
+
+    mensagem = (
+        "Usuário ativado"
+        if usuario_esta_ativo
+        else "Usuário desativado"
+    )
+
+    log_event(
+        mensagem,
+        event=evento,
+        category="AUDIT",
+        component="users",
+        status="success",
+
+        # Usuário que executou a ação administrativa.
+        actor_user_id=usuario_executor.id,
+        actor_username=usuario_executor.username,
+
+        action=acao,
+
+        # Usuário que sofreu a alteração.
+        resource_type="user",
+        resource_id=usuario_alvo.id,
+        resource_name=usuario_alvo.username,
+
+        status_before=status_anterior,
+        status_after=status_atual,
+
+        ui_visible=True,
+    )
 
     return {
         "status": "success",
@@ -306,6 +384,7 @@ def alterar_senha_usuario_service(
     user_id: int,
     request: UserPasswordUpdate,
     db: Session,
+    usuario_executor: User,
 ):
     """
     Altera a senha de um usuário.
@@ -344,6 +423,42 @@ def alterar_senha_usuario_service(
     )
 
     if not senha_valida:
+
+        # --------------------------------------------------------
+        # SEGURANÇA - ALTERAÇÃO DE SENHA REJEITADA
+        # --------------------------------------------------------
+        #
+        # A nova senha não passou pela política de segurança.
+        #
+        # Nenhuma alteração é persistida e nenhuma sessão é
+        # revogada neste cenário.
+        #
+        # IMPORTANTE:
+        #     A senha informada nunca é enviada para o log.
+        #     Registramos apenas o motivo produzido pela própria
+        #     política de segurança.
+        # --------------------------------------------------------
+
+        log_event(
+            f"Alteração de senha rejeitada: {mensagem_erro}",
+            event="user.password.change_rejected",
+            category="SECURITY",
+            component="users",
+            status="failed",
+
+            actor_user_id=usuario_executor.id,
+            actor_username=usuario_executor.username,
+
+            action="password_change",
+
+            resource_type="user",
+            resource_id=usuario_alvo.id,
+            resource_name=usuario_alvo.username,
+
+            ui_visible=True,
+            level=logging.WARNING,
+        )
+
         return {
             "status": "error",
             "message": mensagem_erro,
@@ -406,6 +521,37 @@ def alterar_senha_usuario_service(
     # --------------------------------------------------------
 
     db.commit()
+
+    # --------------------------------------------------------
+    # AUDITORIA - ALTERAÇÃO DE SENHA
+    # --------------------------------------------------------
+    #
+    # O evento somente é registrado depois que a nova senha e
+    # a revogação das sessões foram persistidas com sucesso.
+    #
+    # IMPORTANTE:
+    #     senha, hash, token ou qualquer outro segredo nunca
+    #     deve ser enviado para o log.
+    # --------------------------------------------------------
+
+    log_event(
+        "Senha do usuário alterada",
+        event="user.password.changed",
+        category="SECURITY",
+        component="users",
+        status="success",
+
+        actor_user_id=usuario_executor.id,
+        actor_username=usuario_executor.username,
+
+        action="password_change",
+
+        resource_type="user",
+        resource_id=usuario_alvo.id,
+        resource_name=usuario_alvo.username,
+
+        ui_visible=True,
+    )
 
     return {
         "status": "success",

@@ -37,7 +37,6 @@
 from pathlib import Path
 from datetime import datetime
 
-import logging
 import requests
 import uuid
 # Utilizado para adquirir um advisory lock transacional no PostgreSQL.
@@ -67,6 +66,30 @@ from executions.logging_context import (
     obter_contexto_execucao_log,
 )
 
+from executions.queue_observability import (
+    registrar_falha_criacao_fila_execucao,
+)
+
+from executions.deploy_observability import (
+    registrar_falha_comunicacao_deploy,
+    registrar_deploy_recusado,
+    registrar_json_invalido_deploy,
+)
+
+from executions.windows_session_observability import (
+    registrar_falha_preparacao_sessao_windows,
+    registrar_sessao_windows_indisponivel,
+)
+
+from executions.start_observability import (
+    registrar_timeout_inicio_execucao,
+    registrar_falha_comunicacao_inicio_execucao,
+    registrar_comando_execucao_recusado,
+    registrar_json_invalido_inicio_execucao,
+    registrar_execucao_iniciada_sem_pid,
+    registrar_falha_inicio_execucao,
+)
+
 # Recupera a credencial original do Agent somente em memória
 # durante as chamadas Control Room -> Agent.
 from agents.token_security import descriptografar_agent_token
@@ -87,10 +110,23 @@ from agents.token_security import descriptografar_agent_token
 from executions.windows_session_service import (
     garantir_sessao_windows_agent,
 )
-# Logger compartilhado com o restante do Control Room.
-logger = logging.getLogger("control_room")
 
+from executions.preflight_observability import (
+    registrar_falha_build_pacote_desenvolvimento,
+    registrar_artefato_execucao_nao_encontrado,
+    registrar_falha_health_agent,
+    registrar_erro_http_health_agent,
+    registrar_json_invalido_health_agent,
+    registrar_agent_nao_online_execucao,
+    registrar_falha_consulta_status_agent,
+    registrar_erro_http_status_agent,
+    registrar_json_invalido_status_agent,
+)
 
+from executions.reconciliation_observability import (
+    registrar_reconciliacao_unknown,
+    registrar_reconciliacao_estado_agent,
+)
 # ============================================================
 # RESERVA ATÔMICA DO AGENT PARA EXECUÇÃO DIRETA
 # ============================================================
@@ -294,9 +330,21 @@ def _finalizar_reserva_execucao(
 
         return linhas == 1
 
-    except Exception:
+    except Exception as error:
 
         db.rollback()
+
+        registrar_falha_criacao_fila_execucao(
+            robot_id=robot_id,
+            robot_name=robot_name,
+            robot_filename=robot_filename,
+            robot_version=robot_version,
+            agent_id=agent_id,
+            agent_name=agent.name,
+            user_id=request.user_id,
+            error=error,
+        )
+
         raise
 
     finally:
@@ -926,17 +974,11 @@ def _executar_robot(
 
                 except Exception as error:
 
-                    logger.exception(
-                        "Falha ao montar pacote de Desenvolvimento",
-                        extra={
-                            "event": "development_package_build_failed",
-                            "project_id": project_id,
-                            "agent_id": agent_id,
-                            "user_id": request.user_id,
-                            "status": "error",
-                            "error_type": type(error).__name__,
-                            "error_message": str(error)
-                        }
+                    registrar_falha_build_pacote_desenvolvimento(
+                        project_id=project_id,
+                        agent_id=agent_id,
+                        user_id=request.user_id,
+                        error=error,
                     )
 
                     return {
@@ -1080,9 +1122,6 @@ def _executar_robot(
                     "agent_unavailable": True,
                 }
 
-            started_at = (
-                resultado_claim["started_at"]
-            )
 
             # ========================================================
             # MANTÉM OS DADOS DO AGENT CARREGADOS APÓS O COMMIT
@@ -1103,26 +1142,6 @@ def _executar_robot(
             agent.host
             agent.port
             agent.agent_token_encrypted
-
-            # A alteração de status já foi persistida no banco.
-            # Portanto, este evento representa efetivamente
-            # a transição da execução de queued para running.
-            contexto_log = obter_contexto_execucao_log(
-                execution_id=execution_id,
-                robot_id=robot_id,
-                agent_id=agent_id
-            )
-
-            logger.info(
-                "Execução retirada da fila e iniciada",
-                extra={
-                    "event": "queued_execution_started",
-                    **contexto_log,
-                    "status": "running",
-                    "status_before": "queued",
-                    "status_after": "running"
-                }
-            )
 
         # EXECUÇÃO NORMAL
         # ========================================================
@@ -1172,18 +1191,17 @@ def _executar_robot(
         #
         # O nome lógico do arquivo é suficiente para identificar
         # qual artefato apresentou problema.
-        logger.error(
-            "Arquivo do Robot não encontrado no Control Room",
-            extra={
-                "event": "execution_robot_file_not_found",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "agent_id": agent_id,
-                "user_id": request.user_id,
-                "file_path": str(robot_path),
-                "status": "error",
-            }
+        contexto_log = obter_contexto_execucao_log(
+            execution_id=execution_id,
+            robot_id=robot_id,
+            agent_id=agent_id,
+            user_id=request.user_id,
+        )
+
+        registrar_artefato_execucao_nao_encontrado(
+            contexto_log=contexto_log,
+            robot_name=robot_name,
+            robot_filename=robot_filename,
         )
 
         return {
@@ -1236,6 +1254,12 @@ def _executar_robot(
     agent_token = descriptografar_agent_token(
         agent.agent_token_encrypted
     )
+    contexto_log_agent = obter_contexto_execucao_log(
+        execution_id=execution_id,
+        robot_id=robot_id,
+        agent_id=agent_id,
+        user_id=request.user_id,
+    )
 
     try:
 
@@ -1246,7 +1270,7 @@ def _executar_robot(
             },
             timeout=5
         )
-            
+
     except requests.RequestException as error:
 
         # ====================================================
@@ -1269,21 +1293,10 @@ def _executar_robot(
 
             db.close()
 
-        logger.error(
-            "Agent indisponível durante validação de health",
-            extra={
-                "event": "execution_agent_health_failed",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "robot_version": robot_version,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "offline",
-                "error_type": type(error).__name__,
-                "error_message": str(error)
-            }
+        registrar_falha_health_agent(
+            contexto_log=contexto_log_agent,
+            agent_name=agent.name,
+            error=error,
         )
 
         return {
@@ -1315,20 +1328,10 @@ def _executar_robot(
 
             db.close()
 
-        logger.error(
-            "Agent respondeu com erro na validação de health",
-            extra={
-                "event": "execution_agent_health_http_error",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "robot_version": robot_version,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "offline",
-                "http_status": health_response.status_code
-            }
+        registrar_erro_http_health_agent(
+            contexto_log=contexto_log_agent,
+            agent_name=agent.name,
+            http_status=health_response.status_code,
         )
 
         return {
@@ -1349,19 +1352,9 @@ def _executar_robot(
 
     except ValueError:
 
-        logger.error(
-            "Agent retornou JSON inválido na validação de health",
-            extra={
-                "event": "execution_agent_health_invalid_json",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "robot_version": robot_version,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "error"
-            }
+        registrar_json_invalido_health_agent(
+            contexto_log=contexto_log_agent,
+            agent_name=agent.name,
         )
 
         return {
@@ -1393,19 +1386,10 @@ def _executar_robot(
 
             db.close()
 
-        logger.error(
-            "Agent não está online para execução",
-            extra={
-                "event": "execution_agent_not_online",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "robot_version": robot_version,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "offline"
-            }
+        registrar_agent_nao_online_execucao(
+            contexto_log=contexto_log_agent,
+            agent_name=agent.name,
+            health_status=health.get("status"),
         )
         return {
             "status": "error",
@@ -1413,20 +1397,6 @@ def _executar_robot(
             "agent_id": agent_id,
             "health": health
         }
-
-
-    # ========================================================
-    # 5.4 AGENT ESTÁ ACESSÍVEL
-    # ========================================================
-
-    logger.info(
-    "Agent acessível para execução",
-    extra={
-        "event": "execution_agent_available",
-        "agent_id": agent_id,
-        "agent_name": agent.name
-    }
-    )
 
 
     # ========================================================
@@ -1482,16 +1452,9 @@ def _executar_robot(
             user_id=request.user_id,
         )
 
-        logger.exception(
-            "Falha inesperada ao preparar sessão Windows do Agent",
-            extra={
-                "event": (
-                    "windows_session_preparation_failed"
-                ),
-                **contexto_log,
-                "status": "error",
-                "error_type": type(error).__name__,
-            },
+        registrar_falha_preparacao_sessao_windows(
+            contexto_log=contexto_log,
+            error=error,
         )
 
         return {
@@ -1519,22 +1482,11 @@ def _executar_robot(
             user_id=request.user_id,
         )
 
-        logger.error(
-            (
-                "Sessão Windows não disponível para execução | "
-                f"Status: "
-                f"{windows_session_result.get('status')}"
+        registrar_sessao_windows_indisponivel(
+            contexto_log=contexto_log,
+            session_status=windows_session_result.get(
+                "status"
             ),
-            extra={
-                "event": "windows_session_not_ready",
-                **contexto_log,
-                "status": "blocked",
-                "session_status": (
-                    windows_session_result.get(
-                        "status"
-                    )
-                ),
-            },
         )
 
         return {
@@ -1555,43 +1507,6 @@ def _executar_robot(
             ),
         }
 
-
-    # ========================================================
-    # SESSÃO WINDOWS VALIDADA
-    # ========================================================
-
-    username = windows_session_result.get(
-        "username"
-    )
-
-    domain = windows_session_result.get(
-        "domain"
-    )
-
-    session_action = windows_session_result.get(
-        "action"
-    )
-
-    contexto_log = obter_contexto_execucao_log(
-        execution_id=execution_id,
-        robot_id=robot_id,
-        agent_id=agent_id,
-        user_id=request.user_id,
-    )
-
-    logger.info(
-        (
-            "Sessão Windows validada | "
-            f"Windows User: "
-            f"{domain or '-'}\\{username or '-'} | "
-            f"Action: {session_action or '-'}"
-        ),
-        extra={
-            "event": "windows_session_validated",
-            **contexto_log,
-            "session_action": session_action,
-        },
-    )
     # ========================================================
     # 5.5 AGORA CONSULTA STATUS DE EXECUÇÃO
     # ========================================================
@@ -1615,6 +1530,12 @@ def _executar_robot(
 
     except requests.RequestException as error:
 
+        registrar_falha_consulta_status_agent(
+            contexto_log=contexto_log_agent,
+            agent_name=agent.name,
+            error=error,
+        )
+
         return {
             "status": "error",
             "message": "Não foi possível consultar o status de execução do Agent",
@@ -1625,18 +1546,10 @@ def _executar_robot(
     # ========================================================
 
     if response.status_code != 200:
-        logger.error(
-            "Agent respondeu com erro ao consultar status de execução",
-            extra={
-                "event": "execution_status_http_error",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "error",
-                "http_status": response.status_code
-            }
+        registrar_erro_http_status_agent(
+            contexto_log=contexto_log_agent,
+            agent_name=agent.name,
+            http_status=response.status_code,
         )
         return {
             "status": "error",
@@ -1656,17 +1569,9 @@ def _executar_robot(
 
     except ValueError:
 
-        logger.error(
-            "Agent retornou JSON inválido ao consultar status de execução",
-            extra={
-                "event": "execution_status_invalid_json",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "error"
-            }
+        registrar_json_invalido_status_agent(
+            contexto_log=contexto_log_agent,
+            agent_name=agent.name,
         )
 
         return {
@@ -1678,15 +1583,6 @@ def _executar_robot(
 
     execution_status = status_response.get(
         "execution_status"
-    )
-    logger.debug(
-        "Status de execução recebido do Agent",
-        extra={
-            "event": "agent_execution_status_received",
-            "agent_id": agent_id,
-            "agent_name": agent.name,
-            "status": execution_status
-        }
     )
 
 
@@ -1769,37 +1665,17 @@ def _executar_robot(
 
             execution_id = execucao.id
 
-            contexto_log = obter_contexto_execucao_log(
-                execution_id=execution_id,
-                robot_id=robot_id,
-                agent_id=agent_id,
-                user_id=request.user_id
-            )
 
-            logger.info(
-                "Execução adicionada à fila",
-                extra={
-                    "event": "execution_queued",
-                    **contexto_log,
-                    "status": "queued"
-                }
-            )
         except Exception as error:
-            logger.exception(
-                "Falha ao criar execução na fila",
-                extra={
-                    "event": "execution_queue_creation_failed",
-                    "robot_id": robot_id,
-                    "robot_name": robot_name,
-                    "robot_filename": robot_filename,
-                    "robot_version": robot_version,
-                    "agent_id": agent_id,
-                    "agent_name": agent.name,
-                    "user_id": request.user_id,
-                    "status": "error",
-                    "error_type": type(error).__name__,
-                    "error_message": str(error)
-                }
+            registrar_falha_criacao_fila_execucao(
+                robot_id=robot_id,
+                robot_name=robot_name,
+                robot_filename=robot_filename,
+                robot_version=robot_version,
+                agent_id=agent_id,
+                agent_name=agent.name,
+                user_id=request.user_id,
+                error=error,
             )
             raise
 
@@ -1908,18 +1784,6 @@ def _executar_robot(
 
         execution_id = reserva["execution_id"]
 
-        logger.info(
-            "Agent reservado para execução direta",
-            extra={
-                "event": "direct_execution_reserved",
-                "execution_id": execution_id,
-                "agent_id": agent_id,
-                "robot_id": robot_id,
-                "project_id": project_id,
-                "user_id": request.user_id,
-                "status": "running",
-            }
-        )
     # ========================================================
     # 9. DEPLOY DO ROBÔ NO AGENT
     # ========================================================
@@ -1936,6 +1800,19 @@ def _executar_robot(
     f"http://{agent.host}:{agent.port}"
     "/robots/upload"
 )
+
+    contexto_log_deploy = {
+        **obter_contexto_execucao_log(
+            execution_id=execution_id,
+            robot_id=robot_id,
+            agent_id=agent_id,
+            user_id=request.user_id,
+        ),
+        "robot_name": robot_name,
+        "robot_filename": robot_filename,
+        "robot_version": robot_version,
+        "agent_name": agent.name,
+    }
 
     try:
 
@@ -1976,21 +1853,9 @@ def _executar_robot(
                 "para o Agent."
             ),
         )
-        logger.error(
-            "Falha de comunicação durante deploy do robô",
-            extra={
-                "event": "robot_deploy_request_failed",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "robot_version": robot_version,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "error",
-                "error_type": type(error).__name__,
-                "error_message": str(error)
-            }
+        registrar_falha_comunicacao_deploy(
+            contexto_log=contexto_log_deploy,
+            error=error,
         )
 
         return {
@@ -2018,20 +1883,9 @@ def _executar_robot(
             ),
         )
 
-        logger.error(
-            "Agent recusou o deploy do robô",
-            extra={
-                "event": "robot_deploy_rejected",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "robot_version": robot_version,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "error",
-                "http_status": deploy_response_http.status_code
-            }
+        registrar_deploy_recusado(
+            contexto_log=contexto_log_deploy,
+            http_status=deploy_response_http.status_code,
         )
 
         return {
@@ -2055,19 +1909,8 @@ def _executar_robot(
                 "durante o deploy do Robot."
             ),
         )
-        logger.error(
-            "Agent retornou JSON inválido durante deploy do robô",
-            extra={
-                "event": "robot_deploy_invalid_json",
-                "robot_id": robot_id,
-                "robot_name": robot_name,
-                "robot_filename": robot_filename,
-                "robot_version": robot_version,
-                "agent_id": agent_id,
-                "agent_name": agent.name,
-                "user_id": request.user_id,
-                "status": "error"
-            }
+        registrar_json_invalido_deploy(
+            contexto_log=contexto_log_deploy,
         )
         return {
             "status": "error",
@@ -2076,7 +1919,7 @@ def _executar_robot(
             "robot_id": robot_id
         }
     # ========================================================
-    
+
         # ========================================================
         #
         # IMPORTANTE:
@@ -2089,21 +1932,6 @@ def _executar_robot(
     execution_url = (
         f"http://{agent.host}:{agent.port}"
         "/execution/run"
-    )
-    contexto_log = obter_contexto_execucao_log(
-        execution_id=execution_id,
-        robot_id=robot_id,
-        agent_id=agent_id,
-        user_id=request.user_id
-    )
-
-    logger.info(
-        "Envio do comando de execução ao Agent iniciado",
-        extra={
-            "event": "execution_command_sending",
-            **contexto_log,
-            "status": "running"
-        }
     )
 
     try:
@@ -2144,16 +1972,9 @@ def _executar_robot(
             user_id=request.user_id
         )
 
-        logger.warning(
-            "Timeout ao aguardar confirmação de início do Agent",
-            extra={
-                "event": "execution_start_timeout",
-                **contexto_log,
-                "status": "running",
-                "result": "indeterminate",
-                "error_type": type(error).__name__,
-                "error_message": str(error)
-            }
+        registrar_timeout_inicio_execucao(
+            contexto_log=contexto_log,
+            error=error,
         )
 
         return {
@@ -2189,16 +2010,9 @@ def _executar_robot(
             user_id=request.user_id
         )
 
-        logger.error(
-            "Falha de comunicação ao aguardar início da execução",
-            extra={
-                "event": "execution_start_request_failed",
-                **contexto_log,
-                "status": "running",
-                "result": "indeterminate",
-                "error_type": type(error).__name__,
-                "error_message": str(error)
-            }
+        registrar_falha_comunicacao_inicio_execucao(
+            contexto_log=contexto_log,
+            error=error,
         )
 
         return {
@@ -2259,16 +2073,9 @@ def _executar_robot(
             user_id=request.user_id
         )
 
-        logger.error(
-            "Agent recusou o comando de execução",
-            extra={
-                "event": "execution_command_rejected",
-                **contexto_log,
-                "status": "error",
-                "status_before": "running",
-                "status_after": "error",
-                "http_status": response.status_code
-            }
+        registrar_comando_execucao_recusado(
+            contexto_log=contexto_log,
+            http_status=response.status_code,
         )
 
         return {
@@ -2328,15 +2135,8 @@ def _executar_robot(
             user_id=request.user_id
         )
 
-        logger.error(
-            "Agent retornou JSON inválido ao iniciar execução",
-            extra={
-                "event": "execution_start_invalid_json",
-                **contexto_log,
-                "status": "error",
-                "status_before": "running",
-                "status_after": "error"
-            }
+        registrar_json_invalido_inicio_execucao(
+            contexto_log=contexto_log,
         )
 
         return {
@@ -2395,18 +2195,15 @@ def _executar_robot(
 
             db.close()
 
-        logger.error(
-            "Agent informou execução iniciada sem PID",
-            extra={
-                "event": "execution_started_without_pid",
-                "execution_id": execution_id,
-                "robot_id": robot_id,
-                "agent_id": agent_id,
-                "user_id": request.user_id,
-                "status": "error",
-                "status_before": "running",
-                "status_after": "error"
-            }
+        contexto_log = obter_contexto_execucao_log(
+            execution_id=execution_id,
+            robot_id=robot_id,
+            agent_id=agent_id,
+            user_id=request.user_id,
+        )
+
+        registrar_execucao_iniciada_sem_pid(
+            contexto_log=contexto_log,
         )
 
         return {
@@ -2435,24 +2232,6 @@ def _executar_robot(
             if execucao:
                 execucao.pid = pid
                 db.commit()
-
-                # Neste momento o Agent já retornou o PID real
-                # e ele já foi persistido na Execution.
-                contexto_log = obter_contexto_execucao_log(
-                    execution_id=execution_id,
-                    robot_id=robot_id,
-                    agent_id=agent_id
-                )
-
-                logger.info(
-                    "Processo do robô iniciado no Agent",
-                    extra={
-                        "event": "execution_started",
-                        **contexto_log,
-                        "pid": pid,
-                        "status": "running"
-                    }
-                )
 
         finally:
             db.close()
@@ -2504,19 +2283,12 @@ def _executar_robot(
             user_id=request.user_id
         )
 
-        logger.error(
-            "Agent não conseguiu iniciar o robô",
-            extra={
-                "event": "execution_start_failed",
-                **contexto_log,
-                "status": "error",
-                "status_before": "running",
-                "status_after": "error",
-                "error_message": execution_response.get(
-                    "message",
-                    "Agent recusou a execução do Robot"
-                )
-            }
+        registrar_falha_inicio_execucao(
+            contexto_log=contexto_log,
+            error_message=execution_response.get(
+                "message",
+                "Agent recusou a execução do Robot",
+            ),
         )
 
         # ========================================================
@@ -2995,14 +2767,10 @@ def reconciliar_execucao_running(
 
             db.close()
 
-        logger.warning(
-            "Execution órfã reconciliada como unknown",
-            extra={
-                "event": "execution_reconciled_unknown",
-                "execution_id": execution_id,
-                "agent_id": agent_id,
-                "pid": execution_pid,
-            }
+        registrar_reconciliacao_unknown(
+            execution_id=execution_id,
+            agent_id=agent_id,
+            pid=execution_pid,
         )
 
         return {
@@ -3110,14 +2878,10 @@ def reconciliar_execucao_running(
 
         db.close()
 
-    logger.warning(
-        "Execution reconciliada a partir do estado do Agent",
-        extra={
-            "event": "execution_reconciled",
-            "execution_id": execution_id,
-            "agent_id": agent_id,
-            "status_after": agent_execution_status,
-        }
+    registrar_reconciliacao_estado_agent(
+        execution_id=execution_id,
+        agent_id=agent_id,
+        status_after=agent_execution_status,
     )
 
     return {

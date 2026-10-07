@@ -1,0 +1,498 @@
+/* ============================================================
+   LibraryDetails
+   Detalhes: resumo, versões, localização e estado sem seleção.
+
+   Escopo: .libraries-module.
+   A ordem das regras preserva a cascata do CSS de origem.
+   Estados e condições diferentes continuam em blocos próprios.
+   Cores e variáveis existentes foram preservadas nesta extração.
+   ============================================================ */
+
+.libraries-module .libraries-details {
+    min-width: 0;
+}
+
+.libraries-module .libraries-details-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.libraries-module .libraries-details-heading {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.libraries-module .libraries-details-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+}
+
+.libraries-module .library-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-bottom: 5px;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.libraries-module .library-breadcrumb-part {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.libraries-module .libraries-details-heading h3 {
+    overflow: hidden;
+    margin: 0;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .libraries-details-heading p {
+    margin: 4px 0 0;
+    color: var(--color-text-muted);
+    font-size: 11px;
+}
+
+.libraries-module .libraries-details-heading code {
+    display: inline-flex;
+    border-radius: 6px;
+}
+
+.libraries-module .libraries-details-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.libraries-module .library-detail-summary {
+    display: grid;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.libraries-module .library-detail-description,
+.libraries-module .library-detail-location,
+.libraries-module .library-folder-overview-card {
+    min-width: 0;
+    border: 1px solid var(--color-border-light);
+}
+
+.libraries-module .library-detail-label,
+.libraries-module .library-folder-overview-card span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--color-text-muted);
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.libraries-module .library-detail-description p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.libraries-module .library-detail-location strong,
+.libraries-module .library-folder-overview-card strong {
+    display: block;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-folder-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 160px;
+}
+
+.libraries-module .library-versions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 13px;
+}
+
+.libraries-module .library-versions-header h4 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.libraries-module .library-versions-header p {
+    margin: 3px 0 0;
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
+.libraries-module .library-versions-count {
+    min-width: 26px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+    border: 1px solid var(--color-border);
+    border-radius: 7px;
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.libraries-module .library-versions-list {
+    display: grid;
+    gap: 8px;
+}
+
+.libraries-module .library-version-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border-light);
+    background: var(--color-surface);
+}
+
+.libraries-module .library-version-main {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.libraries-module .library-version-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+    border-radius: 8px;
+    font-family: "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.libraries-module .library-version-main > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.libraries-module .library-version-main strong {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.libraries-module .library-version-main small {
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.libraries-module .library-version-status {
+    padding: 4px 7px;
+    flex-shrink: 0;
+    border: 1px solid;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.libraries-module .library-version-status-active {
+    border-color: color-mix(in srgb, var(--color-success) 30%, var(--color-border));
+    background: var(--color-success-soft);
+    color: var(--color-success);
+}
+
+.libraries-module .library-version-status-inactive {
+    border-color: var(--color-border);
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+}
+
+.libraries-module .library-versions-state {
+    padding: 30px 16px;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    text-align: center;
+}
+
+.libraries-module .library-versions-empty {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 15px;
+    border: 1px dashed var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+}
+
+.libraries-module .library-versions-empty > svg {
+    flex-shrink: 0;
+}
+
+.libraries-module .library-versions-empty > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.libraries-module .library-versions-empty strong {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.libraries-module .library-versions-empty span {
+    color: var(--color-text-muted);
+    font-size: 10px;
+}
+
+.libraries-module .libraries-details-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.libraries-module .libraries-details-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+}
+
+.libraries-module .libraries-details-empty h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+}
+
+.libraries-module .libraries-details-empty p {
+    margin: 7px 0 0;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+}
+
+.libraries-module .libraries-details-empty-actions {
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+@media (max-width: 720px) {
+    .libraries-module .libraries-details-header {
+        flex-direction: column;
+        padding: 18px;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .libraries-details-actions {
+        width: 100%;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .libraries-details-actions button {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-detail-summary,
+    .libraries-module .library-folder-overview {
+        grid-template-columns: 1fr;
+        padding: 16px 18px;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .library-versions-section {
+        padding: 16px 18px 20px;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .libraries-details-empty-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 720px) {
+    .libraries-module .libraries-details-empty-actions button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.libraries-module .libraries-details {
+    min-height: 330px;
+}
+
+.libraries-module .libraries-details-header {
+    padding: 18px 20px;
+}
+
+.libraries-module .libraries-details-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+}
+
+.libraries-module .library-details-code-icon {
+    border-color: var(--color-primary-soft);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.libraries-module .libraries-details-heading h3 {
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.libraries-module .libraries-details-heading code {
+    margin-top: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 10px;
+}
+
+.libraries-module .library-detail-summary {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.55fr);
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.libraries-module .library-detail-description,
+.libraries-module .library-detail-location,
+.libraries-module .library-folder-overview-card {
+    padding: 12px 13px;
+    border-color: var(--color-border);
+    border-radius: 9px;
+    background: var(--color-surface-muted);
+}
+
+.libraries-module .library-folder-overview {
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.libraries-module .library-versions-section {
+    padding: 16px 20px 20px;
+}
+
+.libraries-module .library-version-row {
+    min-height: 52px;
+    border-color: var(--color-border);
+    border-radius: 9px;
+}
+
+.libraries-module .library-version-badge {
+    min-width: 56px;
+    height: 27px;
+    border-color: var(--color-primary-soft);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.libraries-module .library-versions-empty > svg {
+    color: var(--color-text-secondary);
+}
+
+.libraries-module .libraries-details-empty {
+    min-height: 330px;
+    padding: 28px 24px;
+}
+
+.libraries-module .libraries-details-empty-icon {
+    width: 46px;
+    height: 46px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+}
+
+.libraries-module .libraries-details-empty h3 {
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.libraries-module .libraries-details-empty p {
+    max-width: 360px;
+    margin-top: 6px;
+    font-size: 11px;
+}
+
+.libraries-module .libraries-details-empty-actions {
+    display: none;
+}
+
+@media (max-width: 1100px) {
+    .libraries-module .libraries-details,
+    .libraries-module .libraries-details-empty {
+        min-height: 280px;
+    }
+}
+
+.libraries-module .library-production-version {
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+    border-radius: 7px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-size: 9px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.libraries-module .libraries-details {
+    background: var(--color-surface);
+}
+
+.libraries-module .libraries-details-empty-icon {
+    border-color: rgba(139, 92, 246, 0.24);
+    background: rgba(139, 92, 246, 0.10);
+    color: #8b5cf6;
+}

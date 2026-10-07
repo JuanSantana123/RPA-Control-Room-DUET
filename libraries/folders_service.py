@@ -11,7 +11,7 @@
 # - listar pastas;
 # - criar pastas;
 # - renomear/mover pastas;
-# - desativar pastas vazias;
+# - excluir fisicamente pastas vazias;
 # - mover Libraries entre pastas.
 #
 # IMPORTANTE:
@@ -63,7 +63,9 @@ from libraries.validators import (
     validar_nome_pasta_unico,
 )
 
-
+from libraries.identity_service import (
+    obter_estado_identidade_library,
+)
 # Mesmo logger utilizado pelo restante do Control Room.
 logger = logging.getLogger(
     "control_room"
@@ -104,6 +106,8 @@ def obter_arvore_bibliotecas_service(
 
     if not include_inactive:
 
+        # Catálogo operacional:
+        # somente pastas e Libraries ativas.
         folder_query = folder_query.filter(
             LibraryFolder.is_active == 1
         )
@@ -133,6 +137,31 @@ def obter_arvore_bibliotecas_service(
         )
         .all()
     )
+
+
+    # ========================================================
+    # REMOVER IDENTIDADES RESERVADAS PELO DEVELOPMENT
+    # ========================================================
+    #
+    # include_inactive=True significa:
+    #
+    #   - Libraries ativas;
+    #   - Libraries arquivadas.
+    #
+    # Não significa expor identidades internas que ainda estão
+    # somente em Working Copy de Development.
+    # ========================================================
+
+    if include_inactive:
+
+        libraries = [
+            library
+            for library in libraries
+            if obter_estado_identidade_library(
+                db,
+                library,
+            ) != "reserved"
+        ]
 
     tree = construir_arvore_bibliotecas(
         folders,
@@ -437,52 +466,51 @@ def atualizar_pasta_bibliotecas_service(
 # ============================================================
 # CATÁLOGO - EXCLUIR PASTA VAZIA
 # ============================================================
-
 def excluir_pasta_bibliotecas_service(
     folder_id: int,
     db: Session,
     usuario,
 ) -> dict:
     """
-    Desativa logicamente uma LibraryFolder.
+    Exclui fisicamente uma LibraryFolder vazia.
 
-    A pasta somente pode ser desativada quando estiver vazia.
+    A pasta somente pode ser removida quando estiver
+    completamente vazia.
 
     A operação é bloqueada quando existe:
 
-    - subpasta ativa;
-    - Library ativa.
+    - qualquer subpasta, ativa ou inativa;
+    - qualquer Library vinculada, ativa ou arquivada.
 
-    Nenhum conteúdo é movimentado silenciosamente.
+    Nenhum conteúdo é movimentado ou removido
+    silenciosamente.
     """
 
+    # Busca a pasta independentemente do estado atual.
+    #
+    # Isso também permite que registros antigos, criados pela
+    # regra anterior de exclusão lógica, possam ser tratados
+    # corretamente quando necessário.
     folder = obter_library_folder_or_404(
         db,
         folder_id,
     )
 
-    # Operação idempotente:
-    # excluir novamente uma pasta já inativa continua retornando
-    # sucesso, sem criar nova alteração no banco.
-    if not folder.is_active:
-
-        return {
-            "status": "success",
-            "message": (
-                "A pasta já está desativada."
-            ),
-            "already_inactive": True,
-            "folder": serializar_library_folder(
-                folder
-            ),
-        }
+    # ========================================================
+    # VALIDAR SUBPASTAS
+    # ========================================================
+    #
+    # Não filtramos por is_active.
+    #
+    # Uma pasta somente é considerada realmente vazia quando
+    # não existe nenhuma outra LibraryFolder apontando para ela.
+    # ========================================================
 
     subfolder = (
         db.query(LibraryFolder)
         .filter(
             LibraryFolder.parent_id
             == folder.id,
-            LibraryFolder.is_active == 1,
         )
         .first()
     )
@@ -492,17 +520,26 @@ def excluir_pasta_bibliotecas_service(
         raise HTTPException(
             status_code=409,
             detail=(
-                "A pasta possui subpastas ativas. "
+                "A pasta possui subpastas vinculadas. "
                 "Mova ou exclua as subpastas antes."
             ),
         )
+
+    # ========================================================
+    # VALIDAR LIBRARIES
+    # ========================================================
+    #
+    # Também não filtramos por is_active.
+    #
+    # Libraries arquivadas continuam sendo identidades válidas
+    # e não podem perder sua organização silenciosamente.
+    # ========================================================
 
     library = (
         db.query(Library)
         .filter(
             Library.folder_id
             == folder.id,
-            Library.is_active == 1,
         )
         .first()
     )
@@ -512,28 +549,38 @@ def excluir_pasta_bibliotecas_service(
         raise HTTPException(
             status_code=409,
             detail=(
-                "A pasta possui bibliotecas ativas. "
+                "A pasta possui bibliotecas vinculadas. "
                 "Mova as bibliotecas antes de excluir a pasta."
             ),
         )
 
-    # Exclusão lógica.
-    folder.is_active = 0
+    # Serializamos antes do DELETE para preservar o mesmo formato
+    # de resposta utilizado atualmente pela API/frontend.
+    folder_data = serializar_library_folder(
+        folder
+    )
 
     try:
 
-        db.commit()
-
-        db.refresh(
+        # A pasta está realmente vazia.
+        #
+        # Diferentemente da regra antiga, não utilizamos mais:
+        #
+        #     folder.is_active = 0
+        #
+        # O registro é removido definitivamente do banco.
+        db.delete(
             folder
         )
 
+        db.commit()
+
         logger.info(
-            "Pasta de bibliotecas desativada",
+            "Pasta de bibliotecas excluída",
             extra={
-                "event": "library_folder_deactivated",
+                "event": "library_folder_deleted",
                 "user_id": usuario.id,
-                "folder_id": folder.id,
+                "folder_id": folder_id,
                 "status": "success",
             },
         )
@@ -543,10 +590,7 @@ def excluir_pasta_bibliotecas_service(
             "message": (
                 "Pasta excluída com sucesso."
             ),
-            "already_inactive": False,
-            "folder": serializar_library_folder(
-                folder
-            ),
+            "folder": folder_data,
         }
 
     except Exception as error:
@@ -556,7 +600,7 @@ def excluir_pasta_bibliotecas_service(
         logger.exception(
             "Falha ao excluir pasta de bibliotecas",
             extra={
-                "event": "library_folder_deactivate_failed",
+                "event": "library_folder_delete_failed",
                 "user_id": usuario.id,
                 "folder_id": folder_id,
                 "status": "error",
@@ -571,7 +615,6 @@ def excluir_pasta_bibliotecas_service(
                 "Não foi possível excluir a pasta."
             ),
         )
-
 
 # ============================================================
 # CATÁLOGO - MOVER LIBRARY
@@ -600,6 +643,20 @@ def mover_biblioteca_service(
         db,
         library_id,
     )
+
+    # Library arquivada é somente leitura no catálogo.
+    #
+    # Para alterar sua organização novamente, ela deve ser
+    # reativada primeiro.
+    if not library.is_active:
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "A biblioteca está arquivada. "
+                "Reative-a antes de movê-la."
+            ),
+        )
 
     validar_destino_pasta(
         db,

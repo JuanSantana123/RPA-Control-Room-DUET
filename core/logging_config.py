@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from core.request_context import get_request_id
-
+from core.log_sanitizer import sanitize_log_payload
 
 # ============================================================
 # FORMATTER JSON
@@ -93,7 +93,28 @@ class JsonFormatter(logging.Formatter):
         "request_id",
         "correlation_id",
         "http_status",
+        # Auditoria e classificação do evento.
+        "actor_user_id",
+        "actor_username",
 
+        "action",
+
+        "resource_type",
+        "resource_id",
+        "resource_name",
+
+        # Metadado específico de versionamento publicado.
+        # Necessário para diagnosticar referências quebradas
+        # entre Library e sua versão vigente em Produção.
+        "production_version_id",
+
+        "workspace_path",
+
+        "client_ip",
+
+        # Preparação para tracing distribuído.
+        "trace_id",
+        "span_id",
         "error_type",
         "error_message",
     )
@@ -128,6 +149,47 @@ class JsonFormatter(logging.Formatter):
             "timestamp": timestamp,
             "level": record.levelname,
             "service": "rpa-control-room",
+
+            # Categoria funcional utilizada pela área
+            # "Logs do sistema".
+            #
+            # Exemplos:
+            # SYSTEM
+            # AUDIT
+            # SECURITY
+            # INTEGRATION
+            # EXECUTION
+            # HTTP
+            "category": str(
+                getattr(
+                    record,
+                    "category",
+                    "SYSTEM",
+                )
+            ).upper(),
+
+            # Componente interno que originou o evento.
+            #
+            # Quando nenhum componente explícito é informado,
+            # utilizamos o nome do módulo Python.
+            "component": str(
+                getattr(
+                    record,
+                    "component",
+                    record.module,
+                )
+            ),
+
+            # Alguns eventos são importantes para telemetria
+            # externa, mas não devem poluir a interface de
+            # Logs do sistema.
+            "ui_visible": bool(
+                getattr(
+                    record,
+                    "ui_visible",
+                    True,
+                )
+            ),
 
             # Permite diferenciar development, homologation,
             # production etc. sem alterar o código.
@@ -200,6 +262,11 @@ class JsonFormatter(logging.Formatter):
                 )
             }
 
+        # Nenhuma informação é persistida antes de passar
+        # pela sanitização central de segredos.
+        log_data = sanitize_log_payload(
+            log_data
+        )
         # ensure_ascii=False mantém caracteres como:
         #
         # execução
@@ -263,35 +330,45 @@ file_handler.setFormatter(
     json_formatter
 )
 
-
 # ============================================================
-# CONFIGURAÇÃO GLOBAL DO LOGGING
-# ============================================================
-#
-# Os logs estruturados do Control Room são gravados
-# somente no arquivo de log.
-#
-# Isso evita poluir o console do servidor com cada
-# evento de execução, fila, Agent e demais operações.
-# ============================================================
-
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[
-        file_handler
-    ],
-    force=True
-)
-
-
-# ============================================================
-# LOGGER PRINCIPAL
+# LOGGER PRINCIPAL DO CONTROL ROOM
 # ============================================================
 #
-# Logger compartilhado utilizado pelos módulos do
-# Control Room.
+# O logger do DUET possui seu próprio handler em vez de
+# depender do root logger do Python.
+#
+# Isso é importante porque bibliotecas e ferramentas externas,
+# como Alembic e Uvicorn, podem reconfigurar o root logger
+# durante o ciclo de vida da aplicação.
+#
+# Dessa forma:
+#
+# - logs do DUET continuam indo para control_room.log;
+# - Alembic pode configurar seu próprio logging;
+# - Uvicorn pode configurar seu próprio logging;
+# - nenhuma dessas configurações remove o handler do DUET;
+# - evita duplicação através do root logger.
 # ============================================================
 
 logger = logging.getLogger(
     "control_room"
 )
+
+logger.setLevel(
+    logging.INFO
+)
+
+# O próprio logger "control_room" é responsável pela
+# persistência no arquivo estruturado.
+file_handler.setLevel(
+    logging.INFO
+)
+
+logger.addHandler(
+    file_handler
+)
+
+# Impede que o mesmo registro seja propagado novamente
+# para o root logger e apareça duplicado no console ou
+# em outro handler configurado por terceiros.
+logger.propagate = False

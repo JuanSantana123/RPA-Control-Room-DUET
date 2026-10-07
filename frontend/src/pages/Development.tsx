@@ -42,10 +42,28 @@
     //     - estados e feedback do modal.
     //
     // Development.tsx apenas conecta esse fluxo aos componentes.
-    import useDevelopmentExecution
+    // DUET_PROJECT_CHECKOUT_V22_20261002:DEVELOPMENT_PAGE
+import useDevelopmentCheckoutOverview
+    from "../hooks/development/useDevelopmentCheckoutOverview";
+import useProjectCheckoutHistory
+    from "../hooks/development/useProjectCheckoutHistory";
+import ProjectCheckoutHistoryModal
+    from "../components/development/projects/ProjectCheckoutHistoryModal";
+
+import useDevelopmentExecution
         from "../hooks/development/useDevelopmentExecution";
 
+    // ============================================================
+    // IDE EXTERNA
+    // ============================================================
+    //
+    // Orquestra a abertura do AutomationProject através do
+    // DUET Developer Bridge sem acoplar Development.tsx
+    // a uma IDE específica.
+    // ============================================================
 
+    import useExternalIde
+        from "../hooks/development/useExternalIde";
     // ============================================================
     // LIXEIRA DE PROJETOS DE DESENVOLVIMENTO
     // ============================================================
@@ -115,6 +133,18 @@
     // de projetos e do Workflow.
     import useDevelopmentProjectCreation
         from "../hooks/development/useDevelopmentProjectCreation";
+
+
+    // ============================================================
+    // IMPORTAÇÃO DE AUTOMATION PROJECT
+    // ============================================================
+    //
+    // O hook mantém o fluxo analyze/confirm fora da página.
+    // O AutomationProject só é criado depois da escolha explícita
+    // do EntryPoint pelo usuário.
+    // ============================================================
+    import useDevelopmentProjectImport
+        from "../hooks/development/useDevelopmentProjectImport";
 
 
     // ============================================================
@@ -221,6 +251,10 @@
     // oficial de projetos e ao Workflow.
     import CreateProjectForm
         from "../components/development/projects/CreateProjectForm";
+
+    // Modal visual do fluxo de importação de projeto Python.
+    import ProjectImportDialog
+        from "../components/development/import/ProjectImportDialog";
 
     // Grade responsável pela visualização dos projetos ativos.
     //
@@ -386,29 +420,51 @@
         const canMoveDevelopmentStage =
             permissions.includes("Development:move_stage");
 
-        
+
 
         const canPublishDevelopment =
         permissions.includes("Development:publish");
 
 
-        // Permissão utilizada pelos metadados do Kanban:
         //
-        // - responsáveis;
-        // - datas;
-        // - esforço;
-        // - comentários.
         const canEditDevelopment =
-            permissions.includes("Development:edit");
+    permissions.includes("Development:edit");
 
 
-        // Para executar também continua sendo necessária
-        // a permissão específica de execução.
-        const canExecuteDevelopment =
-            canEditDevelopment &&
-            permissions.includes("Executions:execute");
+    // ========================================================
+    // IDE EXTERNA
+    // ========================================================
+    //
+    // Para editar o Workspace por uma IDE externa o usuário
+    // precisa ter as mesmas capacidades fundamentais usadas
+    // pelo fluxo de Desenvolvimento:
+    //
+    // - visualizar Development;
+    // - editar Development;
+    // - realizar Checkout.
+    //
+    // O backend valida novamente essas permissões.
+    // Esta verificação aqui controla apenas a disponibilidade
+    // da ação na interface.
+    // ========================================================
+
+    const canCheckoutDevelopment =
+        permissions.includes(
+            "Development:checkout"
+        );
 
 
+    const canOpenExternalIde =
+        canViewDevelopment &&
+        canEditDevelopment &&
+        canCheckoutDevelopment;
+
+
+    // Para executar também continua sendo necessária
+    // a permissão específica de execução.
+    const canExecuteDevelopment =
+        canEditDevelopment &&
+        permissions.includes("Executions:execute");
         // Controla qual menu de três pontos está atualmente aberto.
         //
         // null:
@@ -454,7 +510,61 @@
         });
 
 
+
         // ========================================================
+        // IDE EXTERNA
+        // ========================================================
+        //
+        // Toda a orquestração específica da abertura em IDE externa
+        // permanece isolada no hook useExternalIde.
+        //
+        // Development.tsx apenas fornece:
+        //
+        // - a permissão efetiva;
+        // - feedback global de erro;
+        // - feedback global de sucesso.
+        //
+        // A escolha da IDE e a sincronização de arquivos não
+        // pertencem a esta página.
+        // ========================================================
+
+        const {
+            openingIdeProjectId,
+            openExternalIde,
+        } = useExternalIde({
+            canOpenExternalIde,
+
+            onError: (message) => {
+
+                setError(
+                    message
+                );
+            },
+
+            onSuccess: (message) => {
+
+                setSuccessMessage(
+                    message
+                );
+            },
+        });
+
+
+        // DUET_PROJECT_CHECKOUT_V22_20261002:DEVELOPMENT_PAGE
+        const { checkoutStates } = useDevelopmentCheckoutOverview({
+            enabled: permissionsLoaded && canViewDevelopment,
+        });
+
+        const {
+            checkoutHistoryProject,
+            checkoutHistoryEvents,
+            loadingCheckoutHistory,
+            checkoutHistoryError,
+            openCheckoutHistory,
+            closeCheckoutHistory,
+        } = useProjectCheckoutHistory();
+
+        // ==============================   ==========================
         // ESTADOS - VISUALIZAÇÃO / KANBAN
         // ========================================================
 
@@ -533,8 +643,8 @@
                 );
             },
         });
-        
-        
+
+
 
 
 
@@ -599,7 +709,7 @@
                 );
             },
         });
- 
+
 
         // ========================================================
         // WORKFLOW / KANBAN
@@ -747,6 +857,64 @@
                 );
             },
         });
+
+
+        // ========================================================
+        // IMPORTAÇÃO DE AUTOMATION PROJECT
+        // ========================================================
+        //
+        // O hook controla o upload temporário, a análise do ZIP,
+        // a escolha obrigatória do EntryPoint e a confirmação final.
+        // Development.tsx continua dono da coleção oficial.
+        // ========================================================
+
+        const {
+            importDialogOpen,
+            selectedImportFile,
+            importAnalysis,
+
+            importProjectName,
+            importProjectDescription,
+            importEntrypointPath,
+
+            analyzingImport,
+            confirmingImport,
+            importError,
+
+            openImportDialog,
+            closeImportDialog,
+
+            changeImportFile,
+            setImportProjectName,
+            setImportProjectDescription,
+            setImportEntrypointPath,
+
+            analyzeImport,
+            confirmImport,
+        } = useDevelopmentProjectImport({
+            canCreateDevelopment,
+
+            isKanbanView:
+                viewMode === "kanban",
+
+            onProjectImported: (project) => {
+                setProjects((current) => [
+                    project,
+                    ...current.filter(
+                        (item) =>
+                            item.id !== project.id
+                    ),
+                ]);
+
+                setSuccessMessage(
+                    `Projeto "${project.name}" importado com sucesso.`
+                );
+            },
+
+            onRefreshKanban:
+                loadKanban,
+        });
+
 
         const initialActionHandled = useRef(false);
 
@@ -1089,7 +1257,7 @@
             });
         };
 
-        
+
         // ========================================================
         // ABRIR LIXEIRA
         // ========================================================
@@ -1203,7 +1371,7 @@
         };
 
 
-        
+
 
 
     // ========================================================
@@ -1249,7 +1417,7 @@
                 {!showCreateForm && <DevelopmentOverview projects={projects} stages={kanbanStages} />}
                 <section className="content-panel">
 
-                    
+
 
                     {/* =============================================
                             CABEÇALHO / NAVEGAÇÃO / PESQUISA
@@ -1363,6 +1531,10 @@
                             // inicialização limpa do formulário.
                             onCreateProject={
                                 openCreateForm
+                            }
+
+                            onImportProject={
+                                openImportDialog
                             }
                         />
 
@@ -1584,7 +1756,7 @@
                             }
                         />
                     )}
-                    
+
                     {/* =============================================
                             PROJETOS ATIVOS
                         ============================================= */}
@@ -1641,6 +1813,15 @@
                                 }
 
 
+
+
+                                checkoutStates={
+                                    checkoutStates
+                                }
+canOpenExternalIde={
+                                    canOpenExternalIde
+                                }
+
                                 // ====================================================
                                 // MENU DE OPÇÕES
                                 // ====================================================
@@ -1657,6 +1838,10 @@
 
                                 executingProjectId={
                                     executingProjectId
+                                }
+
+                                openingIdeProjectId={
+                                    openingIdeProjectId
                                 }
 
 
@@ -1681,6 +1866,10 @@
                                     openProject
                                 }
 
+                                onOpenExternalIde={
+                                    openExternalIde
+                                }
+
 
                                 // ====================================================
                                 // EXECUÇÃO
@@ -1689,9 +1878,14 @@
                                 onExecute={
                                     openExecutionModal
                                 }
-                            />
+
+
+                                onOpenCheckoutHistory={
+                                    openCheckoutHistory
+                                }
+/>
                         )}
-                
+
 
                     {/* =============================================
                         KANBAN / WORKFLOW
@@ -1819,7 +2013,7 @@
                 </section>
                 </>
                 )}
-                
+
 
                 {/* =========================================================
                     MENU DE OPÇÕES DO PROJETO
@@ -1885,7 +2079,7 @@
                     PAINEL LATERAL - DETALHES DO CARD
                 ========================================================= */}
 
-                {/* 
+                {/*
                         O conteúdo visual pertence ao CardDetailsPanel.
 
                         Estados, carregamento e persistência pertencem ao
@@ -2007,9 +2201,47 @@
                     onRemoveCommentAttachment={removeCommentAttachment}
                 />
                 {/* =========================================================
+                    MODAL - IMPORTAR PROJETO PYTHON
+                ========================================================= */}
+
+                <ProjectImportDialog
+                    open={importDialogOpen}
+                    canCreate={canCreateDevelopment}
+
+                    selectedFile={selectedImportFile}
+                    analysis={importAnalysis}
+
+                    projectName={importProjectName}
+                    projectDescription={importProjectDescription}
+                    entrypointPath={importEntrypointPath}
+
+                    analyzing={analyzingImport}
+                    confirming={confirmingImport}
+                    error={importError}
+
+                    onFileChange={changeImportFile}
+                    onProjectNameChange={setImportProjectName}
+                    onProjectDescriptionChange={setImportProjectDescription}
+                    onEntrypointChange={setImportEntrypointPath}
+
+                    onAnalyze={analyzeImport}
+                    onConfirm={confirmImport}
+                    onClose={closeImportDialog}
+                />
+
+                {/* =========================================================
                     MODAL - EXECUTAR PROJETO DE DESENVOLVIMENTO
                 ========================================================= */}
 
+                <ProjectCheckoutHistoryModal
+                    project={checkoutHistoryProject}
+                    events={checkoutHistoryEvents}
+                    loading={loadingCheckoutHistory}
+                    error={checkoutHistoryError}
+                    onClose={closeCheckoutHistory}
+                />
+
+                {/* DUET_PROJECT_CHECKOUT_V22_20261002:DEVELOPMENT_PAGE */}
                 <ExecutionModal
 
                     // Projeto selecionado para execução.
@@ -2077,7 +2309,7 @@
                         executeDevelopmentProject
                     }
                 />
-                
+
                 {/* =========================================================
                         MODAL - RELEASE / PUBLICAÇÃO
                     ========================================================= */}

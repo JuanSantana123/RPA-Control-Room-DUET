@@ -65,6 +65,55 @@ import { useInteraction } from "../../context/useInteraction";
 // CONTRATO DO HOOK
 // ============================================================
 
+// ============================================================
+// ARQUIVOS NÃO EDITÁVEIS NO MONACO
+// ============================================================
+//
+// O Studio continua exibindo estes arquivos no Explorer, porém
+// não tenta carregá-los como UTF-8. Eles podem ser baixados ou
+// manipulados pela IDE externa.
+// ============================================================
+
+const NON_EDITABLE_BINARY_EXTENSIONS = new Set([
+    ".dll",
+    ".exe",
+    ".pyd",
+    ".so",
+    ".dylib",
+    ".bin",
+    ".zip",
+    ".rar",
+    ".7z",
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".ico",
+    ".xlsx",
+    ".xls",
+    ".docx",
+    ".doc",
+]);
+
+const isNonEditableBinaryFile = (
+    filename: string
+): boolean => {
+    const normalized =
+        filename.toLowerCase();
+
+    return Array.from(
+        NON_EDITABLE_BINARY_EXTENSIONS
+    ).some(
+        (extension) =>
+            normalized.endsWith(
+                extension
+            )
+    );
+};
+
+
 interface UseRobotStudioWorkspaceParams {
 
     projectId?: string;
@@ -209,11 +258,10 @@ export function useRobotStudioWorkspace({
     // CARREGAR WORKSPACE REAL
     // ========================================================
     //
-    // 1. consulta a árvore;
+    // 1. consulta a árvore real do projeto;
     // 2. não baixa o conteúdo de todos os arquivos;
-    // 3. procura main.py;
-    // 4. carrega somente main.py;
-    // 5. abre main.py automaticamente.
+    // 3. limpa os estados pertencentes ao projeto anterior;
+    // 4. deixa a abertura do arquivo inicial para o domínio de EntryPoint.
     // ========================================================
 
     useEffect(() => {
@@ -273,78 +321,17 @@ export function useRobotStudioWorkspace({
 
 
                     // --------------------------------------------
-                    // MAIN.PY
                     // --------------------------------------------
-
-                    const mainFile =
-                        findNodeById(
-                            tree,
-                            "main.py"
-                        );
-
-
-                    if (
-                        !mainFile ||
-                        mainFile.type !== "file"
-                    ) {
-
-                        setOutputLines(
-                            (current) => [
-                                ...current,
-
-                                "[DUET] Workspace carregado sem main.py.",
-                            ]
-                        );
-
-                        return;
-                    }
-
-
-                    const fileResponse =
-                        await api.get(
-                            `/development/projects/${projectId}/workspace/file`,
-                            {
-                                params: {
-                                    path:
-                                        mainFile.id,
-                                },
-                            }
-                        );
-
-
-                    const content =
-                        fileResponse.data
-                            ?.content ?? "";
-
-
-                    const workspaceComMain =
-                        updateFileContent(
-                            tree,
-                            mainFile.id,
-                            content
-                        );
-
-
-                    setWorkspace(
-                        workspaceComMain
-                    );
-
-
-                    setActiveFileId(
-                        mainFile.id
-                    );
-
-
-                    setOpenTabs([
-                        {
-                            id:
-                                mainFile.id,
-
-                            name:
-                                mainFile.name,
-                        },
-                    ]);
-
+                    // WORKSPACE PRONTO
+                    // --------------------------------------------
+                    //
+                    // O Workspace carrega apenas a árvore e seus estados.
+                    // A seleção/abertura do arquivo inicial pertence ao
+                    // useRobotStudioEntrypoint, que respeita entrypoint_path.
+                    //
+                    // main.py continua sendo apenas o padrão legado do
+                    // AutomationProject, não um arquivo especial do Studio.
+                    // --------------------------------------------
 
                     setOutputLines(
                         (current) => [
@@ -403,6 +390,24 @@ export function useRobotStudioWorkspace({
                 !projectId ||
                 !canViewDevelopment
             ) {
+                return;
+            }
+
+
+            // Arquivos binários/empacotados aparecem no Explorer,
+            // mas não são enviados ao endpoint textual do Monaco.
+            if (
+                isNonEditableBinaryFile(
+                    node.name
+                )
+            ) {
+                setOutputLines(
+                    (current) => [
+                        ...current,
+                        `[DUET] ${node.name} é um arquivo não textual. Use Download ou abra o projeto na IDE externa.`,
+                    ]
+                );
+
                 return;
             }
 

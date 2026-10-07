@@ -193,7 +193,7 @@ function RobotCard({
                             />
 
                             <span>
-                                Baixar versão atual
+                                Exportar versão atual
                             </span>
                         </button>
 

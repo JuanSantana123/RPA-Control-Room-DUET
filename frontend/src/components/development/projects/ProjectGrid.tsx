@@ -41,9 +41,9 @@
 //     - apresenta os cards;
 //     - encaminha as interações através de callbacks.
 // ============================================================
-
 import {
     Code2,
+    ExternalLink,
     MoreVertical,
     Play,
 } from "lucide-react";
@@ -107,6 +107,27 @@ interface ProjectGridProps {
         boolean;
 
 
+
+    // DUET_PROJECT_CHECKOUT_V22_20261002:PROJECT_GRID
+    checkoutStates:
+        Record<number, {
+            project_id: number;
+            checked_out: boolean;
+            owns_checkout: boolean;
+            checkout: {
+                id: number;
+                project_id: number;
+                user_id: number;
+                user_name: string | null;
+                checked_out_at: string | null;
+            } | null;
+        }>;
+    // Permite disponibilizar a abertura do Workspace
+    // em uma IDE externa.
+    canOpenExternalIde:
+        boolean;
+
+
     // ========================================================
     // MENU
     // ========================================================
@@ -129,6 +150,10 @@ interface ProjectGridProps {
     executingProjectId:
         number | null;
 
+    // Projeto que está iniciando uma sessão
+    // no DUET Developer Bridge.
+    openingIdeProjectId:
+        number | null;
 
     // ========================================================
     // CALLBACKS
@@ -146,7 +171,17 @@ interface ProjectGridProps {
         ) => void;
 
 
+    onOpenExternalIde:
+        (
+            project: DevelopmentProject
+        ) => void | Promise<void>;
     onExecute:
+        (
+            project: DevelopmentProject
+        ) => void | Promise<void>;
+
+
+    onOpenCheckoutHistory:
         (
             project: DevelopmentProject
         ) => void | Promise<void>;
@@ -206,14 +241,19 @@ function ProjectGrid({
 
     canDelete,
     canExecute,
+    checkoutStates,
+    canOpenExternalIde,
 
     openMenuProjectId,
 
     executingProjectId,
+    openingIdeProjectId,
 
     onToggleMenu,
     onOpenStudio,
+    onOpenExternalIde,
     onExecute,
+    onOpenCheckoutHistory,
 }: ProjectGridProps) {
 
     // ========================================================
@@ -394,6 +434,23 @@ function ProjectGrid({
 
                             </div>
 
+                            {/* DUET_PROJECT_CHECKOUT_V22_20261002:PROJECT_GRID */}
+                            <div className="robot-card-meta">
+                                <span>Checkout</span>
+                                <strong>
+                                    {checkoutStates[project.id] === undefined
+                                        ? "Consultando..."
+                                        : checkoutStates[project.id]?.checked_out
+                                            ? `Em edição por ${
+                                                checkoutStates[project.id]?.owns_checkout
+                                                    ? "você"
+                                                    : checkoutStates[project.id]?.checkout?.user_name ||
+                                                    "outro usuário"
+                                            }`
+                                            : "Disponível"}
+                                </strong>
+                            </div>
+
                         </div>
 
 
@@ -401,7 +458,7 @@ function ProjectGrid({
                             AÇÕES
                         ========================================= */}
 
-                        <div className="robot-card-actions">
+                        <div className="robot-card-actions development-project-actions">
 
                             {/* =====================================
                                 STUDIO
@@ -428,6 +485,49 @@ function ProjectGrid({
                             </Button>
 
 
+
+                            {/* =====================================
+                                    IDE EXTERNA
+                                ===================================== */}
+
+                                {canOpenExternalIde && (
+
+                                    <button
+                                        type="button"
+
+                                        className="secondary-button"
+
+                                        disabled={
+                                            openingIdeProjectId !== null ||
+                                            checkoutStates[project.id] === undefined ||
+                                            (
+                                                checkoutStates[project.id]?.checked_out === true &&
+                                                checkoutStates[project.id]?.owns_checkout !== true
+                                            )
+                                        }
+
+                                        onClick={() => {
+
+                                            onOpenExternalIde(
+                                                project
+                                            );
+                                        }}
+
+                                        title="Abrir o Workspace em uma IDE externa"
+                                    >
+
+                                        <ExternalLink
+                                            size={15}
+                                            strokeWidth={1.9}
+                                        />
+
+                                        {openingIdeProjectId === project.id
+                                            ? "Abrindo..."
+                                            : "Abrir em IDE"}
+
+                                    </button>
+                                )}
+
                             {/* =====================================
                                 EXECUÇÃO
                             ===================================== */}
@@ -439,9 +539,9 @@ function ProjectGrid({
                                     size="sm"
 
                                     disabled={
-                                        executingProjectId !==
-                                        null
-                                    }
+            executingProjectId !== null ||
+            checkoutStates[project.id]?.owns_checkout !== true
+        }
 
                                     onClick={() => {
 
@@ -461,7 +561,19 @@ function ProjectGrid({
                                 </Button>
                             )}
 
-                        </div>
+
+
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={() => {
+                                    onOpenCheckoutHistory(project);
+                                }}
+                                title="Ver histórico de Checkout"
+                            >
+                                Histórico
+                            </button>
+</div>
 
                     </article>
                 )

@@ -27,6 +27,7 @@ import api from "./api";
 
 
 import type {
+    AutomationTemplate,
     CardComment,
     CardDetailsUpdatePayload,
     CardUser,
@@ -38,6 +39,8 @@ import type {
     OriginRobotFolder,
     PublishDevelopmentProjectPayload,
     ReleasePreview,
+    TemplateLibrarySelection,
+    TemplateVersionLibrariesResponse,
 } from "../types/development";
 
 
@@ -107,6 +110,230 @@ export const getDevelopmentReleaseRobots =
 
             robots:
                 response.data?.robots || [],
+        };
+    };
+
+
+// ============================================================
+// TEMPLATES DE AUTOMAÇÃO
+// ============================================================
+
+export const getAvailableAutomationTemplates =
+    async (): Promise<AutomationTemplate[]> => {
+
+        const response =
+            await api.get(
+                "/templates/available"
+            );
+
+
+        return response.data?.templates || [];
+    };
+
+
+export const getAutomationTemplates =
+    async (
+        includeInactive: boolean = false
+    ): Promise<AutomationTemplate[]> => {
+
+        const response =
+            await api.get(
+                "/templates",
+                {
+                    params: {
+                        include_inactive:
+                            includeInactive,
+                    },
+                }
+            );
+
+
+        return response.data?.templates || [];
+    };
+
+
+export const createAutomationTemplate =
+    async (
+        payload: {
+            name: string;
+            description: string | null;
+            file: File;
+
+            // undefined preserva compatibilidade com clientes antigos.
+            // [] significa explicitamente "sem Libraries".
+            libraries?: TemplateLibrarySelection[];
+        }
+    ): Promise<AutomationTemplate> => {
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "name",
+            payload.name
+        );
+
+        if (
+            payload.description
+        ) {
+            formData.append(
+                "description",
+                payload.description
+            );
+        }
+
+        if (payload.libraries !== undefined) {
+            formData.append(
+                "libraries",
+                JSON.stringify(payload.libraries)
+            );
+        }
+
+
+        formData.append(
+            "file",
+            payload.file
+        );
+
+
+        const response =
+            await api.post(
+                "/templates",
+                formData
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const publishAutomationTemplateVersion =
+    async (
+        templateId: number,
+        file: File,
+        libraries?: TemplateLibrarySelection[]
+    ): Promise<AutomationTemplate> => {
+
+        const formData =
+            new FormData();
+
+        // Campo ausente = backend herda a composição atual.
+        // [] explícito = nova versão sem Libraries.
+        if (libraries !== undefined) {
+            formData.append(
+                "libraries",
+                JSON.stringify(libraries)
+            );
+        }
+
+        formData.append(
+            "file",
+            file
+        );
+
+
+        const response =
+            await api.post(
+                `/templates/${templateId}/versions`,
+                formData
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const updateAutomationTemplate =
+    async (
+        templateId: number,
+        payload: {
+            name?: string;
+            description?: string | null;
+            is_active?: boolean;
+        }
+    ): Promise<AutomationTemplate> => {
+
+        const response =
+            await api.patch(
+                `/templates/${templateId}`,
+                payload
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const setAutomationTemplateCurrentVersion =
+    async (
+        templateId: number,
+        versionId: number
+    ): Promise<AutomationTemplate> => {
+
+        const response =
+            await api.post(
+                `/templates/${templateId}/versions/${versionId}/set-current`
+            );
+
+
+        return response.data?.template;
+    };
+
+
+export const downloadAutomationTemplateVersion =
+    async (
+        templateId: number,
+        versionId: number
+    ): Promise<Blob> => {
+
+        const response =
+            await api.get(
+                `/templates/${templateId}/versions/${versionId}/download`,
+                {
+                    responseType:
+                        "blob",
+                }
+            );
+
+
+        return response.data;
+    };
+
+
+// ============================================================
+// LIBRARIES DE UMA VERSÃO DE TEMPLATE
+// ============================================================
+
+export const getAutomationTemplateVersionLibraries =
+    async (
+        templateId: number,
+        versionId: number
+    ): Promise<TemplateVersionLibrariesResponse> => {
+
+        const response =
+            await api.get(
+                `/templates/${templateId}/versions/${versionId}/libraries`
+            );
+
+
+        return {
+            template_id:
+                response.data?.template_id ?? templateId,
+
+            template_version_id:
+                response.data?.template_version_id ?? versionId,
+
+            template_version:
+                response.data?.template_version ?? 0,
+
+            is_current:
+                Boolean(response.data?.is_current),
+
+            total:
+                Number(response.data?.total ?? 0),
+
+            libraries:
+                response.data?.libraries || [],
         };
     };
 

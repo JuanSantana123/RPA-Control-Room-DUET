@@ -1,0 +1,14 @@
+{
+    "schema_version": 1,
+    "default_version": "3.12",
+    "versions": [
+        {
+            "version": "3.12",
+            "label": "Python 3.12 (Recomendado)"
+        },
+        {
+            "version": "3.14",
+            "label": "Python 3.14"
+        }
+    ]
+}

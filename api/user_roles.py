@@ -193,4 +193,7 @@ def remover_role_usuario(
         user_id=user_id,
         role_id=role_id,
         db=db,
+
+        # Usuário autenticado responsável pela remoção da Role.
+        usuario_executor=usuario,
     )

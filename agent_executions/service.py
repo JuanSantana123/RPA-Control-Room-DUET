@@ -54,6 +54,21 @@ from schemas.agent_executions import (
     ExecutionResultRequest,
 )
 
+from agent_executions.callback_observability import (
+    registrar_execution_id_inconsistente,
+    registrar_resultado_execucao_inexistente,
+    registrar_agent_autenticado_incompativel,
+    registrar_agent_execucao_incompativel,
+    registrar_status_final_invalido,
+    registrar_conflito_resultado_terminal,
+    registrar_transicao_resultado_invalida,
+    registrar_conflito_atomico_resultado,
+)
+
+from agent_executions.processing_observability import (
+    registrar_falha_agendamento_idle,
+    registrar_falha_atualizacao_resultado,
+)
 
 # ============================================================
 # LOGGER
@@ -131,14 +146,10 @@ def receber_resultado_execucao_service(
 
     if execution_id != request.execution_id:
 
-        logger.warning(
-            "execution_id da URL não corresponde ao execution_id informado pelo Agent",
-            extra={
-                "event": "execution_result_id_mismatch",
-                "execution_id_url": execution_id,
-                "execution_id_body": request.execution_id,
-                "agent_id": request.agent_id,
-            },
+        registrar_execution_id_inconsistente(
+            execution_id_url=execution_id,
+            execution_id_body=request.execution_id,
+            agent_id=request.agent_id,
         )
 
         return {
@@ -178,13 +189,9 @@ def receber_resultado_execucao_service(
             # AUDITORIA
             # ------------------------------------------------
 
-            logger.warning(
-                "Resultado recebido para execução inexistente",
-                extra={
-                    "event": "execution_result_not_found",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                },
+            registrar_resultado_execucao_inexistente(
+                execution_id=execution_id,
+                agent_id=request.agent_id,
             )
 
 
@@ -205,18 +212,10 @@ def receber_resultado_execucao_service(
 
         if agent_autenticado.agent_id != request.agent_id:
 
-            logger.warning(
-                (
-                    "Agent autenticado não corresponde ao Agent "
-                    "informado no resultado"
-                ),
-                extra={
-                    "event": (
-                        "execution_result_agent_auth_mismatch"
-                    ),
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                },
+            registrar_agent_autenticado_incompativel(
+                execution_id=execution_id,
+                authenticated_agent_id=agent_autenticado.agent_id,
+                reported_agent_id=request.agent_id,
             )
 
 
@@ -240,16 +239,10 @@ def receber_resultado_execucao_service(
 
         if execucao.agent_id != request.agent_id:
 
-            logger.warning(
-                (
-                    "Agent não corresponde à execução "
-                    "ao enviar resultado"
-                ),
-                extra={
-                    "event": "execution_result_agent_mismatch",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                },
+            registrar_agent_execucao_incompativel(
+                execution_id=execution_id,
+                expected_agent_id=execucao.agent_id,
+                reported_agent_id=request.agent_id,
             )
 
 
@@ -283,15 +276,11 @@ def receber_resultado_execucao_service(
 
         if request.status not in status_finais_permitidos:
 
-            logger.warning(
-                "Agent tentou informar status final inválido",
-                extra={
-                    "event": "execution_result_invalid_status",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                    "current_status": execucao.status,
-                    "received_status": request.status,
-                },
+            registrar_status_final_invalido(
+                execution_id=execution_id,
+                agent_id=request.agent_id,
+                current_status=execucao.status,
+                received_status=request.status,
             )
 
             return {
@@ -327,15 +316,7 @@ def receber_resultado_execucao_service(
 
             if status_atual == request.status:
 
-                logger.info(
-                    "Callback duplicado de execução ignorado",
-                    extra={
-                        "event": "execution_result_duplicate",
-                        "execution_id": execution_id,
-                        "agent_id": request.agent_id,
-                        "status": status_atual,
-                    },
-                )
+
 
                 return {
                     "status": "success",
@@ -348,15 +329,11 @@ def receber_resultado_execucao_service(
                     "duplicate": True,
                 }
 
-            logger.warning(
-                "Tentativa de alterar execução já finalizada",
-                extra={
-                    "event": "execution_result_terminal_conflict",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                    "current_status": status_atual,
-                    "received_status": request.status,
-                },
+            registrar_conflito_resultado_terminal(
+                execution_id=execution_id,
+                agent_id=request.agent_id,
+                current_status=status_atual,
+                received_status=request.status,
             )
 
             return {
@@ -383,15 +360,11 @@ def receber_resultado_execucao_service(
 
         if status_atual != "running":
 
-            logger.warning(
-                "Resultado recebido para execução fora de running",
-                extra={
-                    "event": "execution_result_invalid_transition",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                    "current_status": status_atual,
-                    "received_status": request.status,
-                },
+            registrar_transicao_resultado_invalida(
+                execution_id=execution_id,
+                agent_id=request.agent_id,
+                current_status=status_atual,
+                received_status=request.status,
             )
 
             return {
@@ -487,18 +460,6 @@ def receber_resultado_execucao_service(
                 and execucao_atual.status == request.status
             ):
 
-                logger.info(
-                    "Callback concorrente duplicado ignorado",
-                    extra={
-                        "event": (
-                            "execution_result_concurrent_duplicate"
-                        ),
-                        "execution_id": execution_id,
-                        "agent_id": request.agent_id,
-                        "status": execucao_atual.status,
-                    },
-                )
-
                 return {
                     "status": "success",
                     "message": (
@@ -510,21 +471,15 @@ def receber_resultado_execucao_service(
                     "duplicate": True,
                 }
 
-            logger.warning(
-                "Callback perdeu transição atômica da execução",
-                extra={
-                    "event": (
-                        "execution_result_atomic_conflict"
-                    ),
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                    "current_status": (
-                        execucao_atual.status
-                        if execucao_atual
-                        else None
-                    ),
-                    "received_status": request.status,
-                },
+            registrar_conflito_atomico_resultado(
+                execution_id=execution_id,
+                agent_id=request.agent_id,
+                current_status=(
+                    execucao_atual.status
+                    if execucao_atual
+                    else None
+                ),
+                received_status=request.status,
             )
 
             return {
@@ -560,49 +515,18 @@ def receber_resultado_execucao_service(
         # ====================================================
 
         db.refresh(execucao)
-
-
         # ====================================================
-        # 8. LOG DO RESULTADO
+        # RESULTADO FINAL PERSISTIDO
         # ====================================================
         #
-        # Execuções com erro utilizam logger.error.
+        # O estado final da automação pertence ao Histórico de
+        # Executions.
         #
-        # Demais resultados utilizam logger.info.
+        # Falhas funcionais do Robot, incluindo erros de código,
+        # Selenium ou regra de negócio, não são duplicadas nos
+        # Logs do Sistema.
         #
-        # Isso preserva a semântica atual para ferramentas
-        # externas de observabilidade.
         # ====================================================
-
-        if request.status == "error":
-
-            logger.error(
-                "Execução finalizada com erro",
-                extra={
-                    "event": "execution_result_received",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                    "status": execucao.status,
-                    "error_message": request.message,
-                },
-            )
-
-
-        else:
-
-            logger.info(
-                (
-                    "Resultado final da execução "
-                    "recebido do Agent"
-                ),
-                extra={
-                    "event": "execution_result_received",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                    "status": execucao.status,
-                },
-            )
-
 
         # ====================================================
         # 9. AGENDA VERIFICAÇÃO DE OCIOSIDADE DO AGENT
@@ -635,20 +559,10 @@ def receber_resultado_execucao_service(
 
         except Exception as idle_error:
 
-            logger.exception(
-                "Não foi possível agendar verificação de idle "
-                "após a execução",
-                extra={
-                    "event": "agent_idle_schedule_failed",
-                    "execution_id": execution_id,
-                    "agent_id": request.agent_id,
-                    "error_type": (
-                        type(idle_error).__name__
-                    ),
-                    "error_message": str(
-                        idle_error
-                    ),
-                },
+            registrar_falha_agendamento_idle(
+                execution_id=execution_id,
+                agent_id=request.agent_id,
+                error=idle_error,
             )
         # ====================================================
         # 10. RETORNO
@@ -677,15 +591,10 @@ def receber_resultado_execucao_service(
         # LOG DA EXCEÇÃO
         # ====================================================
 
-        logger.exception(
-            "Erro ao atualizar resultado da execução",
-            extra={
-                "event": "execution_result_update_failed",
-                "execution_id": execution_id,
-                "agent_id": request.agent_id,
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-            },
+        registrar_falha_atualizacao_resultado(
+            execution_id=execution_id,
+            agent_id=request.agent_id,
+            error=error,
         )
 
 

@@ -38,6 +38,10 @@ logger = logging.getLogger(
     "control_room"
 )
 
+from scheduler.observability import (
+    registrar_falha_ciclo_scheduler,
+    registrar_timeout_parada_scheduler,
+)
 
 SCHEDULER_POLL_SECONDS = 5
 scheduler_stop_event = threading.Event()
@@ -165,27 +169,8 @@ def processar_ciclo_scheduler():
 
     for schedule_id in schedule_ids:
 
-        resultado = executar_agendamento(
+        executar_agendamento(
             schedule_id
-        )
-
-        # O resultado fica registrado de forma estruturada.
-        logger.info(
-            "Ciclo do Scheduler processou agendamento",
-            extra={
-                "event":
-                    "scheduler_schedule_processed",
-                "schedule_id":
-                    schedule_id,
-                "result_status":
-                    (
-                        resultado.get("status")
-                        if isinstance(resultado, dict)
-                        else None
-                    ),
-                "status":
-                    "success",
-            }
         )
 
 
@@ -198,9 +183,12 @@ def scheduler_loop():
     logger.info(
         "Scheduler iniciado",
         extra={
-            "event": "scheduler_worker_started",
+            "event": "scheduler.worker.started",
+            "category": "SYSTEM",
+            "component": "scheduler",
+            "ui_visible": False,
             "status": "running",
-        }
+        },
     )
 
     while not scheduler_stop_event.is_set():
@@ -211,25 +199,21 @@ def scheduler_loop():
 
         except Exception as error:
 
-            logger.exception(
-                "Erro no ciclo do Scheduler",
-                extra={
-                    "event":
-                        "scheduler_cycle_failed",
-                    "status":
-                        "error",
-                    "error_type":
-                        type(error).__name__,
-                    "error_message":
-                        str(error),
-                }
+            registrar_falha_ciclo_scheduler(
+                error=error,
             )
 
         scheduler_stop_event.wait(SCHEDULER_POLL_SECONDS)
 
     logger.info(
         "Scheduler finalizado",
-        extra={"event": "scheduler_worker_stopped", "status": "stopped"},
+        extra={
+            "event": "scheduler.worker.stopped",
+            "category": "SYSTEM",
+            "component": "scheduler",
+            "ui_visible": False,
+            "status": "stopped",
+        },
     )
 
 
@@ -287,10 +271,9 @@ def parar_scheduler(timeout_seconds=10):
     current_thread.join(timeout=timeout_seconds)
 
     if current_thread.is_alive():
-        logger.warning(
-            "Scheduler não finalizou dentro do prazo",
-            extra={"event": "scheduler_stop_timeout", "status": "warning"},
-        )
+
+        registrar_timeout_parada_scheduler()
+
         return
 
     with scheduler_thread_lock:

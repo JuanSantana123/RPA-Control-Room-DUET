@@ -467,7 +467,11 @@ def _solicitar_bloqueio(
             "lock_status": resultado.get(
                 "status"
             ),
-            "message": resultado.get(
+
+            # "message" é um atributo reservado do LogRecord.
+            # Usamos um nome próprio da aplicação para evitar
+            # conflito com o módulo logging do Python.
+            "response_message": resultado.get(
                 "message"
             ),
         },

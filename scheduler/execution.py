@@ -43,7 +43,11 @@ from models import (
 from scheduler.calculations import (
     proxima_execucao_apos_execucao,
 )
-
+from scheduler.observability import (
+    registrar_falha_materializacao_ocorrencia_scheduler,
+    registrar_robot_agendamento_nao_encontrado,
+    registrar_robot_sem_versao_publicada,
+)
 
 logger = logging.getLogger(
     "control_room"
@@ -301,14 +305,28 @@ def executar_agendamento(
 
             db.commit()
 
-            logger.warning(
+            logger.info(
                 "Ocorrência vencida ignorada conforme política do agendamento",
                 extra={
-                    "event": "schedule_occurrence_skipped",
+                    "event": "schedule.occurrence.skipped",
+                    "category": "SYSTEM",
+                    "component": "scheduler",
+                    "ui_visible": False,
+
+                    "status": "skipped",
+                    "action": "skip_expired_schedule_occurrence",
+                    "reason": "schedule_occurrence_expired",
+
                     "schedule_id": schedule_id_perdido,
                     "scheduled_for": scheduled_for.isoformat(),
-                    "next_run": next_run.isoformat() if next_run else None,
-                    "status": "skipped",
+                    "next_run": (
+                        next_run.isoformat()
+                        if next_run
+                        else None
+                    ),
+
+                    "resource_type": "schedule",
+                    "resource_id": schedule_id_perdido,
                 },
             )
 
@@ -341,22 +359,6 @@ def executar_agendamento(
 
         if execucao_existente:
 
-            logger.info(
-                "Ocorrência do Scheduler já materializada",
-                extra={
-                    "event":
-                        "schedule_occurrence_already_materialized",
-                    "schedule_id":
-                        schedule.id,
-                    "schedule_run_id":
-                        schedule_run_id,
-                    "execution_id":
-                        execucao_existente.id,
-                    "status":
-                        execucao_existente.status,
-                }
-            )
-
             return {
                 "status": "duplicate",
                 "schedule_id": schedule.id,
@@ -378,18 +380,9 @@ def executar_agendamento(
 
         if not robot:
 
-            logger.error(
-                "Robot do agendamento não encontrado",
-                extra={
-                    "event":
-                        "schedule_robot_not_found",
-                    "schedule_id":
-                        schedule.id,
-                    "robot_id":
-                        schedule.robot_id,
-                    "status":
-                        "error",
-                }
+            registrar_robot_agendamento_nao_encontrado(
+                schedule_id=schedule.id,
+                robot_id=schedule.robot_id,
             )
 
             return {
@@ -411,23 +404,7 @@ def executar_agendamento(
 
         if not agent:
 
-            # Não consumimos a ocorrência.
-            #
-            # Quando um Agent ativo voltar a existir,
-            # o Scheduler encontrará a mesma ocorrência.
-            logger.warning(
-                "Nenhum Agent ativo disponível para materializar ocorrência",
-                extra={
-                    "event":
-                        "schedule_no_active_agent",
-                    "schedule_id":
-                        schedule.id,
-                    "schedule_run_id":
-                        schedule_run_id,
-                    "status":
-                        "waiting",
-                }
-            )
+
 
             return {
                 "status": "waiting",
@@ -457,6 +434,11 @@ def executar_agendamento(
         )
 
         if robot_version is None:
+
+            registrar_robot_sem_versao_publicada(
+                schedule_id=schedule.id,
+                robot_id=robot.id,
+            )
 
             return {
                 "status": "error",
@@ -586,28 +568,6 @@ def executar_agendamento(
 
         db.commit()
 
-        logger.info(
-            "Ocorrência do Scheduler adicionada à fila",
-            extra={
-                "event":
-                    "schedule_occurrence_queued",
-                "schedule_id":
-                    schedule_id_historico,
-                "schedule_run_id":
-                    schedule_run_id,
-                "execution_id":
-                    execution_id,
-                "robot_id":
-                    robot.id,
-                "agent_id":
-                    agent.agent_id,
-                "user_id":
-                    schedule_user_id,
-                "status":
-                    "queued",
-            }
-        )
-
         return {
             "status": "queued",
             "schedule_id": schedule_id_historico,
@@ -633,13 +593,20 @@ def executar_agendamento(
         logger.info(
             "Ocorrência já consumida por outro Scheduler",
             extra={
-                "event":
-                    "schedule_occurrence_claim_lost",
-                "schedule_id":
-                    schedule_id,
-                "status":
-                    "duplicate",
-            }
+                "event": "schedule.occurrence.claim_lost",
+                "category": "SYSTEM",
+                "component": "scheduler",
+                "ui_visible": False,
+
+                "status": "duplicate",
+                "action": "claim_schedule_occurrence",
+                "reason": "schedule_occurrence_claim_lost",
+
+                "schedule_id": schedule_id,
+
+                "resource_type": "schedule",
+                "resource_id": schedule_id,
+            },
         )
 
         return {
@@ -655,30 +622,19 @@ def executar_agendamento(
 
         db.rollback()
 
-        logger.exception(
-            "Falha ao materializar ocorrência do Scheduler",
-            extra={
-                "event":
-                    "schedule_occurrence_materialization_failed",
-                "schedule_id":
-                    schedule_id,
-                "status":
-                    "error",
-                "error_type":
-                    type(error).__name__,
-                "error_message":
-                    str(error),
-            }
+        registrar_falha_materializacao_ocorrencia_scheduler(
+            schedule_id=schedule_id,
+            error=error,
         )
 
         return {
-        "status": "error",
-        "message": (
-            "Não foi possível materializar "
-            "a ocorrência do agendamento."
-        ),
-        "schedule_id": schedule_id,
-    }
+            "status": "error",
+            "message": (
+                "Não foi possível materializar "
+                "a ocorrência do agendamento."
+            ),
+            "schedule_id": schedule_id,
+        }
 
     finally:
 

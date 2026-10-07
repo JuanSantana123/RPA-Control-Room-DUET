@@ -1,0 +1,149 @@
+DUET CORE - TEMPLATES VERSIONADOS V1
+=====================================
+
+OBJETIVO DESTA ENTREGA
+----------------------
+Esta etapa adiciona a base funcional de Templates versionados ao DUET:
+
+- Template possui identidade própria.
+- Cada upload gera uma versão imutável.
+- O primeiro upload cria a versão 1.
+- Uma nova publicação cria automaticamente v2, v3, v4...
+- Existe uma versão atual por Template.
+- O formulário de criação de projeto passa a oferecer:
+    1. Nova automação (workspace limpo)
+    2. Usar Template
+    3. Evoluir robô publicado
+- Ao escolher Template, a versão atual é selecionada por padrão.
+- Uma versão histórica também pode ser escolhida explicitamente.
+- O ZIP é copiado/descompactado somente na criação do projeto.
+- Atualizações futuras do Template NÃO modificam projetos já criados.
+- O projeto guarda somente a proveniência do Template utilizado.
+
+IMPORTANTE
+----------
+Esta entrega NÃO altera a execução dos Robots e NÃO modifica o Scheduler.
+Também NÃO utiliza placeholders.
+
+A tela administrativa "Administração > Templates" ainda precisa ser ligada
+à navegação do frontend. Para essa próxima etapa serão necessários os arquivos
+atuais App.tsx e Sidebar.tsx. O backend de Templates e a escolha do Template
+na criação do projeto já ficam preparados nesta entrega.
+
+
+ARQUIVOS NOVOS
+--------------
+Copiar mantendo exatamente estes destinos:
+
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\automation_templates\__init__.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\automation_templates\service.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\schemas\templates.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\api\templates.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\migracao_templates.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend\src\hooks\development\useDevelopmentTemplates.ts
+
+
+ARQUIVOS PARA SUBSTITUIR
+------------------------
+Substituir pelos arquivos desta entrega:
+
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\models.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\main.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\development\projects_service.py
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend\src\types\development.ts
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend\src\services\developmentApi.ts
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend\src\hooks\development\useDevelopmentProjectCreation.ts
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend\src\components\development\projects\CreateProjectForm.tsx
+
+O arquivo development\workspace_service.py enviado para análise NÃO precisa
+ser alterado nesta etapa.
+
+
+ORDEM DE APLICAÇÃO
+------------------
+1. Pare o Control Room antes de substituir os arquivos.
+
+2. Copie os arquivos novos e substitua os arquivos indicados acima.
+
+3. No CMD, valide a sintaxe Python:
+
+cd /d "C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room"
+python -m py_compile models.py main.py development\projects_service.py automation_templates\service.py api\templates.py schemas\templates.py migracao_templates.py
+
+Se o comando não exibir nada, a compilação sintática passou.
+
+4. Execute a migration UMA VEZ após colocar o models.py novo:
+
+python migracao_templates.py
+
+A migration é idempotente e foi preparada para PostgreSQL. Ela cria:
+
+- automation_templates
+- automation_template_versions
+
+E adiciona em automation_projects:
+
+- base_template_id
+- base_template_name
+- base_template_version_id
+- base_template_version
+
+5. Inicie o Control Room normalmente.
+
+6. No frontend, valide o build com o comando que o projeto já utiliza.
+Se estiver usando o script padrão atual do projeto:
+
+cd /d "C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend"
+npm run build
+
+
+FORMATO DO ZIP DO TEMPLATE
+--------------------------
+O Template deve ser um ZIP contendo o projeto-base.
+
+Formato aceito A - arquivos diretamente na raiz:
+
+main.py
+requirements.txt
+src\...
+config\...
+
+Formato aceito B - uma única pasta externa:
+
+MeuTemplate\main.py
+MeuTemplate\requirements.txt
+MeuTemplate\src\...
+
+Ao criar o projeto, a pasta externa única é removida e o conteúdo vira a raiz
+do workspace.
+
+O Template precisa conter main.py na raiz lógica.
+
+
+ROTAS ADICIONADAS
+-----------------
+GET   /templates/available
+GET   /templates
+POST  /templates
+PATCH /templates/{template_id}
+POST  /templates/{template_id}/versions
+POST  /templates/{template_id}/versions/{version_id}/set-current
+GET   /templates/{template_id}/versions/{version_id}/download
+POST  /templates/projects
+
+
+PRÓXIMA ETAPA
+-------------
+Depois de validar esta base, enviar os arquivos atuais:
+
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend\src\App.tsx
+C:\Users\Usuario\Desktop\Projeto RPA\RPA-Control-Room\frontend\src\components\navigation\Sidebar.tsx
+
+Com eles será adicionada a tela visual Administração > Templates para:
+
+- criar Template por ZIP;
+- visualizar versão atual;
+- publicar nova versão;
+- visualizar histórico;
+- tornar uma versão antiga a versão atual;
+- baixar uma versão.

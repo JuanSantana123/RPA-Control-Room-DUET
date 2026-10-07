@@ -11,7 +11,7 @@
 //
 // IMPORTANTE:
 // Este componente faz parte de uma refatoração estrutural.
-// Nenhuma regra funcional ou visual está sendo alterada.
+// Nenhuma regra funcional ou visual está s} from "lucide-react";endo alterada.
 //
 // Este componente NÃO deve:
 // - executar chamadas HTTP;
@@ -30,10 +30,12 @@ import type {
 import { createPortal } from "react-dom";
 
 import {
+    FileArchive,
     FolderOpen,
     Plus,
     X,
 } from "lucide-react";
+
 import { useDialogFocus } from "../../../hooks/ui/useDialogFocus";
 import { Button, IconButton } from "../../ui/Button";
 
@@ -62,10 +64,17 @@ interface LibraryActionsModalProps {
     styles: LibraryActionsModalStyles;
 
     onClose: () => void;
+
+    // Cria uma Working Copy vazia.
     onCreateLibrary: () => void;
+
+    // Importa um ZIP diretamente como Working Copy
+    // do projeto em Desenvolvimento.
+    onImportLibrary: () => void;
+
+    // Adiciona uma Library já publicada.
     onAddExistingLibraries: () => void;
 }
-
 
 function LibraryActionsModal({
     open,
@@ -75,6 +84,7 @@ function LibraryActionsModal({
     styles,
     onClose,
     onCreateLibrary,
+    onImportLibrary,
     onAddExistingLibraries,
 }: LibraryActionsModalProps) {
     const dialogRef = useDialogFocus<HTMLDivElement>({
@@ -128,8 +138,8 @@ function LibraryActionsModal({
                         </h2>
 
                         <p style={styles.modalSubtitle}>
-                            Crie uma nova Working Copy ou utilize
-                            bibliotecas que já estão publicadas.
+                            Crie uma nova Working Copy, importe um pacote ZIP
+                            ou utilize bibliotecas já publicadas.
                         </p>
                     </div>
 
@@ -189,7 +199,51 @@ function LibraryActionsModal({
                             )}
                         </div>
                     </Button>
+                    
 
+                    {/* =========================================
+                        IMPORTAR ZIP
+                    ========================================= */}
+
+                    <Button
+                        variant="secondary"
+                        onClick={onImportLibrary}
+                        disabled={!canCreateLibrary}
+                        style={{
+                            ...styles.libraryChoiceButton,
+
+                            opacity:
+                                canCreateLibrary
+                                    ? 1
+                                    : 0.45,
+
+                            cursor:
+                                canCreateLibrary
+                                    ? "pointer"
+                                    : "not-allowed",
+                        }}
+                    >
+                        <div style={styles.libraryChoiceIcon}>
+                            <FileArchive size={20} />
+                        </div>
+
+                        <div>
+                            <strong>
+                                Importar ZIP
+                            </strong>
+
+                            <span>
+                                Importa uma biblioteca diretamente
+                                como Working Copy deste projeto.
+                            </span>
+
+                            {!canCreateLibrary && (
+                                <small>
+                                    Requer Libraries:create
+                                </small>
+                            )}
+                        </div>
+                    </Button>
 
                     {/* =========================================
                         USAR EXISTENTE

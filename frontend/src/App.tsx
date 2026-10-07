@@ -18,6 +18,7 @@ const Logs = lazy(() => import("./pages/Logs"));
 const Vault = lazy(() => import("./pages/Vault"));
 const Roles = lazy(() => import("./pages/Roles"));
 const Users = lazy(() => import("./pages/Users"));
+const Templates = lazy(() => import("./pages/Templates"));
 const ComponentLab = import.meta.env.DEV ? lazy(() => import("./pages/ComponentLab")) : null;
 
 function PageLoading() {
@@ -64,6 +65,7 @@ function App() {
               <Route path="/vault" element={<Vault />} />
               <Route path="/roles" element={<Roles />} />
               <Route path="/users" element={<Users />} />
+              <Route path="/templates" element={<Templates />} />
               {ComponentLab && <Route path="/component-lab" element={<ComponentLab />} />}
               <Route path="*" element={<NotFound />} />
             </Route>

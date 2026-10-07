@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
-import { LayoutDashboard, Monitor, Workflow, PlayCircle, History, CalendarClock, KeyRound, ShieldCheck, Users, FileText, LogOut, X, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Monitor, Workflow, PlayCircle, History, CalendarClock, KeyRound, ShieldCheck, Users, FileText, LayoutTemplate, LogOut, X, type LucideIcon } from "lucide-react";
 import { BrandMark } from "../brand/BrandMark";
 import { Button, IconButton } from "../ui/Button";
 
@@ -22,6 +22,7 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
     { to: "/schedules", label: "Agendamentos", permissions: ["Schedules:view"], icon: CalendarClock },
   ]},
   { label: "Administração", items: [
+    { to: "/templates", label: "Templates", permissions: ["Templates:view"], icon: LayoutTemplate },
     { to: "/vault", label: "Credenciais", permissions: ["Vault:view"], icon: KeyRound },
     { to: "/roles", label: "Perfis de acesso", permissions: ["Roles:view"], icon: ShieldCheck },
     { to: "/users", label: "Usuários", permissions: ["Users:view"], icon: Users },

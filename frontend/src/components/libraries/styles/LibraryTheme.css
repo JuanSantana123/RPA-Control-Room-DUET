@@ -1,0 +1,90 @@
+/* ============================================================
+   LibraryTheme
+   Tema escuro: adaptações que dependem do tema global do DUET.
+
+   Escopo: .libraries-module.
+   A ordem das regras preserva a cascata do CSS de origem.
+   Estados e condições diferentes continuam em blocos próprios.
+   Cores e variáveis existentes foram preservadas nesta extração.
+   ============================================================ */
+
+:root[data-theme="dark"] .libraries-module .libraries-catalog-panel,
+:root[data-theme="dark"] .libraries-module .libraries-catalog-header,
+:root[data-theme="dark"] .libraries-module .libraries-explorer,
+:root[data-theme="dark"] .libraries-module .libraries-explorer-toolbar,
+:root[data-theme="dark"] .libraries-module .libraries-details,
+:root[data-theme="dark"] .libraries-module .libraries-details-empty,
+:root[data-theme="dark"] .libraries-module .library-modal,
+:root[data-theme="dark"] .libraries-module .library-picker-modal,
+:root[data-theme="dark"] .libraries-module .library-confirm-modal {
+    color: var(--color-text-primary) !important;
+    background: var(--color-surface-raised) !important;
+    border-color: var(--color-border) !important;
+}
+
+:root[data-theme="dark"] .libraries-module .libraries-search,
+:root[data-theme="dark"] .libraries-module .library-detail-description,
+:root[data-theme="dark"] .libraries-module .library-detail-location,
+:root[data-theme="dark"] .libraries-module .library-folder-overview-card,
+:root[data-theme="dark"] .libraries-module .library-version-row,
+:root[data-theme="dark"] .libraries-module .library-usage-row,
+:root[data-theme="dark"] .libraries-module .library-usage-empty,
+:root[data-theme="dark"] .libraries-module .library-modal-location-card,
+:root[data-theme="dark"] .libraries-module .library-picker-current-path,
+:root[data-theme="dark"] .libraries-module .library-picker-search,
+:root[data-theme="dark"] .libraries-module .library-picker-tree {
+    color: var(--color-text-primary) !important;
+    background: var(--color-surface-muted) !important;
+    border-color: var(--color-border) !important;
+}
+
+:root[data-theme="dark"] .libraries-module .libraries-catalog-title-group h2,
+:root[data-theme="dark"] .libraries-module .libraries-details-heading h3,
+:root[data-theme="dark"] .libraries-module .libraries-details-empty h3,
+:root[data-theme="dark"] .libraries-module .library-versions-header h4,
+:root[data-theme="dark"] .libraries-module .library-version-main strong,
+:root[data-theme="dark"] .libraries-module .library-detail-description p,
+:root[data-theme="dark"] .libraries-module .library-detail-location strong,
+:root[data-theme="dark"] .libraries-module .library-folder-overview-card strong,
+:root[data-theme="dark"] .libraries-module .library-usage-header h4,
+:root[data-theme="dark"] .libraries-module .library-usage-robot strong,
+:root[data-theme="dark"] .libraries-module .library-usage-empty strong {
+    color: var(--color-text-primary) !important;
+}
+
+:root[data-theme="dark"] .libraries-module .libraries-catalog-title-group p,
+:root[data-theme="dark"] .libraries-module .libraries-tree-root-label,
+:root[data-theme="dark"] .libraries-module .library-catalog-name,
+:root[data-theme="dark"] .libraries-module .libraries-details-heading code,
+:root[data-theme="dark"] .libraries-module .libraries-details-empty p,
+:root[data-theme="dark"] .libraries-module .library-versions-header p,
+:root[data-theme="dark"] .libraries-module .library-version-main small,
+:root[data-theme="dark"] .libraries-module .library-usage-header p,
+:root[data-theme="dark"] .libraries-module .library-usage-robot span,
+:root[data-theme="dark"] .libraries-module .library-usage-empty span {
+    color: var(--color-text-secondary) !important;
+}
+
+:root[data-theme="dark"] .libraries-module .library-catalog-row:hover,
+:root[data-theme="dark"] .libraries-module .library-picker-row:hover {
+    color: var(--color-text-primary) !important;
+    background: var(--color-surface-subtle) !important;
+    border-color: var(--color-border-strong) !important;
+}
+
+:root[data-theme="dark"] .libraries-module .library-catalog-row-selected,
+:root[data-theme="dark"] .libraries-module .library-picker-row-selected,
+:root[data-theme="dark"] .libraries-module .library-folder-picker-row-selected {
+    color: var(--color-primary) !important;
+    background: var(--color-primary-soft) !important;
+    border-color: var(--color-border-focus) !important;
+}
+
+:root[data-theme="dark"] .libraries-module .libraries-details-empty-icon,
+:root[data-theme="dark"] .libraries-module .libraries-catalog-title-icon,
+:root[data-theme="dark"] .libraries-module .library-details-code-icon,
+:root[data-theme="dark"] .libraries-module .library-version-badge {
+    color: var(--color-primary) !important;
+    background: var(--color-primary-soft) !important;
+    border-color: var(--color-border) !important;
+}

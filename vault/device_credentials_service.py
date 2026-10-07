@@ -73,7 +73,9 @@ from schemas.vault_device_credentials import (
 )
 
 from vault.crypto import criptografar
-
+from vault.observability import (
+    registrar_evento_credencial_vault,
+)
 
 # ============================================================
 # CONSTANTES DO DOMÍNIO
@@ -497,11 +499,14 @@ def criar_credencial_dispositivo_service(
         # 7. AUDITORIA SEGURA
         # ====================================================
 
-        logger.info(
-            "[VAULT DEVICE] Credencial Windows criada | "
-            f"Usuário DUET: {usuario.username} | "
-            f"Credential ID: {credencial.id} | "
-            f"Nome: {credencial.name}"
+        registrar_evento_credencial_vault(
+            event="vault.credential.created",
+            action="create",
+            message="Credencial Windows de Device criada",
+            credential_id=credencial.id,
+            credential_name=credencial.name,
+            usuario=usuario,
+            resource_type="device_credential",
         )
 
 
@@ -913,13 +918,14 @@ def editar_credencial_dispositivo_service(
         # 7. AUDITORIA SEGURA
         # ====================================================
 
-        logger.info(
-            "[VAULT DEVICE] Credencial Windows alterada | "
-            f"Usuário DUET: {usuario.username} | "
-            f"Credential ID: {credential_id} | "
-            f"Nome: {credencial.name} | "
-            "Senha alterada: "
-            f"{not request.keep_existing_password}"
+        registrar_evento_credencial_vault(
+            event="vault.credential.updated",
+            action="update",
+            message="Credencial Windows de Device alterada",
+            credential_id=credential_id,
+            credential_name=credencial.name,
+            usuario=usuario,
+            resource_type="device_credential",
         )
 
 
@@ -1029,11 +1035,14 @@ def excluir_credencial_dispositivo_service(
         db.commit()
 
 
-        logger.info(
-            "[VAULT DEVICE] Credencial Windows excluída | "
-            f"Usuário DUET: {usuario.username} | "
-            f"Credential ID: {credential_id} | "
-            f"Nome: {nome_credencial}"
+        registrar_evento_credencial_vault(
+            event="vault.credential.deleted",
+            action="delete",
+            message="Credencial Windows de Device excluída",
+            credential_id=credential_id,
+            credential_name=nome_credencial,
+            usuario=usuario,
+            resource_type="device_credential",
         )
 
 

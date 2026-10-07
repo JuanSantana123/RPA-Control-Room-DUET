@@ -73,10 +73,17 @@ from robots.upload_service import (
     upload_robot_service,
 )
 
+from robots.import_service import (
+    import_robot_package_service,
+)
+
+from robots.import_analysis_service import (
+    analyze_robot_package_service,
+)
+
 from robots.delete_service import (
     delete_robot_service,
 )
-
 from robots.folders_service import (
     create_robot_folder_service,
     delete_robot_folder_service,
@@ -181,6 +188,104 @@ async def upload_robot(
     return await upload_robot_service(
         file=file,
         folder_id=folder_id,
+        usuario=usuario,
+    )
+
+
+# ============================================================
+# ANALISAR PACOTE ANTES DA IMPORTAÇÃO
+# ============================================================
+
+@router.post(
+    "/robots/import/analyze",
+    summary="Analisar pacote de Robot",
+    description=(
+        "Valida o ZIP e retorna os arquivos Python disponíveis "
+        "para seleção do EntryPoint. "
+        "Esta operação não cria Robot nem RobotVersion."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Robots",
+                "create",
+            )
+        )
+    ],
+)
+async def analyze_robot_package(
+    file: UploadFile = File(
+        ...,
+        description="Pacote ZIP do Robot.",
+    ),
+):
+    return await analyze_robot_package_service(
+        file=file,
+    )
+
+# ============================================================
+# IMPORTAÇÃO DE PACOTE DUET
+# ============================================================
+
+@router.post(
+    "/robots/import",
+    summary="Importar pacote de Robot",
+    description=(
+        "Importa um pacote ZIP para o catálogo de Robots e "
+        "regenera o manifesto utilizando a identidade local."
+    ),
+    dependencies=[
+        Depends(
+            require_permission(
+                "Robots",
+                "create",
+            )
+        )
+    ],
+)
+async def import_robot_package(
+    file: UploadFile = File(
+        ...,
+        description="Pacote ZIP do Robot."
+    ),
+
+    folder_id: int | None = Form(
+        None,
+        description="Pasta de destino do Robot."
+    ),
+
+    # ========================================================
+    # ENTRYPOINT
+    # ========================================================
+    #
+    # Para ZIPs Python comuns, o usuário escolhe explicitamente
+    # qual arquivo .py será usado como ponto de entrada.
+    #
+    # Pacotes DUET que já possuem entrypoint_path no
+    # duet-release.json preservam o EntryPoint publicado.
+    # ========================================================
+
+    entrypoint_path: str | None = Form(
+        None,
+        description=(
+            "EntryPoint Python escolhido para ZIPs sem "
+            "EntryPoint definido no duet-release.json."
+        ),
+    ),
+
+    usuario=Depends(
+        get_usuario_atual
+    ),
+):
+    """
+    Recebe o pacote pelo HTTP e delega toda a regra de
+    importação ao import_service.
+    """
+
+    return await import_robot_package_service(
+        file=file,
+        folder_id=folder_id,
+        entrypoint_path=entrypoint_path,
         usuario=usuario,
     )
 # ============================================================

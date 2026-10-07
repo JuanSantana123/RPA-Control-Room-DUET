@@ -24,7 +24,10 @@ from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-
+from auth.authentication_audit import (
+    registrar_login_conta_inativa,
+    registrar_login_falho,
+)
 from models import (
     User,
     UserSession,
@@ -147,6 +150,7 @@ def gerar_token_api_service(
             username=request.username,
             ip_origem=ip_origem,
         )
+
 
         return {
             "status": "error",
@@ -432,6 +436,11 @@ def fazer_login_service(
             ip_origem=ip_origem,
         )
 
+        # Registra a tentativa recusada sem registrar a senha.
+        registrar_login_falho(
+            username=request.username,
+        )
+
         return {
             "status": "error",
             "message": "Usuário ou senha inválidos.",
@@ -450,15 +459,6 @@ def fazer_login_service(
 
     if not usuario:
 
-        # ----------------------------------------------------
-        # NORMALIZAR CUSTO DA VERIFICAÇÃO DE SENHA
-        # ----------------------------------------------------
-        #
-        # Mantemos o caminho de username inexistente mais
-        # próximo do custo computacional de uma autenticação
-        # com username existente e senha incorreta.
-        # ----------------------------------------------------
-
         executar_verificacao_senha_dummy(
             request.password,
         )
@@ -467,6 +467,11 @@ def fazer_login_service(
             db=db,
             username=request.username,
             ip_origem=ip_origem,
+        )
+
+        # Username inexistente também é uma falha de login.
+        registrar_login_falho(
+            username=request.username,
         )
 
         return {
@@ -480,9 +485,6 @@ def fazer_login_service(
 
     if usuario.is_active != 1:
 
-        # Executa bcrypt dummy para que o caminho de uma conta
-        # inativa não seja significativamente mais barato que
-        # os demais caminhos de falha de autenticação.
         executar_verificacao_senha_dummy(
             request.password,
         )
@@ -491,6 +493,12 @@ def fazer_login_service(
             db=db,
             username=request.username,
             ip_origem=ip_origem,
+        )
+
+        # A conta existe, mas está administrativamente inativa.
+        registrar_login_conta_inativa(
+            user_id=usuario.id,
+            username=usuario.username,
         )
 
         return {
@@ -513,6 +521,12 @@ def fazer_login_service(
             db=db,
             username=request.username,
             ip_origem=ip_origem,
+        )
+
+        # A conta existe, mas a credencial informada é inválida.
+        registrar_login_falho(
+            username=usuario.username,
+            user_id=usuario.id,
         )
 
         return {

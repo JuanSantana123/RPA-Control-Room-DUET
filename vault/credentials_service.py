@@ -45,7 +45,9 @@ from schemas.vault_credentials import (
 )
 
 from vault.crypto import criptografar
-
+from vault.observability import (
+    registrar_evento_credencial_vault,
+)
 
 # ============================================================
 # LOGGER
@@ -274,12 +276,13 @@ def criar_credencial_service(
         # - qualquer outro valor de VaultField.
         # ====================================================
 
-        logger.info(
-            "[VAULT] Credencial criada | "
-            f"Usuário: {usuario.username} | "
-            f"ID: {credencial.id} | "
-            f"Nome: {credencial.name} | "
-            f"Folder ID: {credencial.folder_id}"
+        registrar_evento_credencial_vault(
+            event="vault.credential.created",
+            action="create",
+            message="Credencial do Vault criada",
+            credential_id=credencial.id,
+            credential_name=credencial.name,
+            usuario=usuario,
         )
 
 
@@ -762,12 +765,13 @@ def editar_credencial_service(
         # 8. AUDITORIA
         # ====================================================
 
-        logger.info(
-            "[VAULT] Credencial alterada | "
-            f"Usuário: {usuario.username} | "
-            f"ID: {credencial.id} | "
-            f"Nome: {credencial.name} | "
-            f"Folder ID: {credencial.folder_id}"
+        registrar_evento_credencial_vault(
+            event="vault.credential.updated",
+            action="update",
+            message="Credencial do Vault alterada",
+            credential_id=credencial.id,
+            credential_name=credencial.name,
+            usuario=usuario,
         )
 
 
@@ -891,12 +895,13 @@ def excluir_credencial_service(
         # 5. AUDITORIA
         # ====================================================
 
-        logger.info(
-            "[VAULT] Credencial excluída | "
-            f"Usuário: {usuario.username} | "
-            f"ID: {credential_id} | "
-            f"Nome: {credencial.name} | "
-            f"Folder ID: {credencial.folder_id}"
+        registrar_evento_credencial_vault(
+            event="vault.credential.deleted",
+            action="delete",
+            message="Credencial do Vault excluída",
+            credential_id=credential_id,
+            credential_name=credencial.name,
+            usuario=usuario,
         )
 
 

@@ -126,7 +126,12 @@
 
 .logs-toolbar {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) auto;
+    grid-template-columns:
+        minmax(260px, 1fr)
+        minmax(150px, 180px)
+        minmax(150px, 190px)
+        minmax(150px, 210px)
+        auto;
     gap: 14px;
     align-items: end;
     margin-bottom: 16px;
@@ -145,8 +150,12 @@
     display: grid;
     gap: 7px;
 }
-
-.logs-toolbar__level > label {
+.logs-toolbar__filter {
+    display: grid;
+    gap: 7px;
+}
+.logs-toolbar__level > label,
+.logs-toolbar__filter > label {
     color: var(--color-text-secondary);
     font-size: 11px;
     font-weight: 700;
@@ -386,6 +395,18 @@
 /* =========================================================
    RESPONSIVIDADE
    ========================================================= */
+@media (max-width: 1150px) {
+    .logs-toolbar {
+        grid-template-columns:
+            minmax(240px, 1fr)
+            minmax(160px, 1fr)
+            minmax(160px, 1fr);
+    }
+
+    .logs-toolbar .ui-switch {
+        grid-column: span 2;
+    }
+}
 
 @media (max-width: 850px) {
     .logs-toolbar {

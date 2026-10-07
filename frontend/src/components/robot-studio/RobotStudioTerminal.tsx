@@ -33,6 +33,11 @@ interface RobotStudioTerminalProps {
    * o Workspace. Isso acompanha a regra de Checkout do Studio.
    */
   enabled: boolean;
+
+  // DUET_LIBRARY_CHECKOUT_V1:TERMINAL_MESSAGE
+  // Explica por que o terminal está bloqueado sem acoplar o
+  // componente às regras de Project/Library Checkout.
+  disabledMessage?: string;
 }
 
 
@@ -43,6 +48,7 @@ interface RobotStudioTerminalProps {
 export default function RobotStudioTerminal({
   projectId,
   enabled,
+  disabledMessage,
 }: RobotStudioTerminalProps) {
 
   const containerRef =
@@ -299,7 +305,8 @@ export default function RobotStudioTerminal({
 
         <div className="studio-terminal__disabled">
 
-          Faça Checkout do projeto para utilizar o terminal.
+          {disabledMessage ||
+            "Faça Checkout do projeto para utilizar o terminal."}
 
         </div>
 

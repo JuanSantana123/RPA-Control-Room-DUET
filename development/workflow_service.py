@@ -42,6 +42,10 @@ from releases.service import (
     prepare_release,
 )
 
+from development.release_observability import (
+    registrar_falha_publicacao_robot,
+)
+
 from development.serializers import (
     serializar_checkout,
     serializar_estagio,
@@ -1071,22 +1075,14 @@ def publicar_projeto_workflow_service(
     # ERRO INESPERADO
     # ========================================================
 
-    except Exception:
+    except Exception as error:
 
         db.rollback()
 
-        logger.exception(
-            "Falha ao publicar Release",
-            extra={
-                "event":
-                    "automation_project_release_failed",
-
-                "project_id":
-                    project_id,
-
-                "user_id":
-                    usuario.id,
-            },
+        registrar_falha_publicacao_robot(
+            project_id=project_id,
+            user_id=usuario.id,
+            error=error,
         )
 
         raise HTTPException(

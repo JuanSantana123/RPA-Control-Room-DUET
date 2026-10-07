@@ -55,7 +55,8 @@ from user_roles.repository import (
     remover_relacionamento,
     remover_relacionamentos_usuario,
 )
-
+# Auditoria estruturada das alterações de autorização do usuário.
+from user_roles.audit import registrar_alteracao_roles_usuario
 
 # ============================================================
 # SERIALIZAÇÃO INTERNA DA ROLE
@@ -247,6 +248,24 @@ def associar_role_usuario_service(
 
         raise
 
+
+    # --------------------------------------------------------
+    # AUDITORIA - ROLE ASSOCIADA
+    # --------------------------------------------------------
+    #
+    # O evento é registrado somente depois que o commit da
+    # associação foi concluído com sucesso.
+    # --------------------------------------------------------
+
+    registrar_alteracao_roles_usuario(
+        usuario_executor=usuario_executor,
+        usuario_alvo=usuario_alvo,
+        action="role_add",
+        message=(
+            f'Role "{role.name}" associada ao usuário'
+        ),
+    )
+
     return {
         "message": "Role associada ao usuário com sucesso.",
         "user_id": user_id,
@@ -349,6 +368,45 @@ def substituir_roles_usuario_service(
     }
 
     # --------------------------------------------------------
+    # ESTADO ANTERIOR PARA AUDITORIA
+    # --------------------------------------------------------
+    #
+    # A comparação utiliza conjuntos porque a ordem das Roles
+    # não representa alteração de autorização.
+    #
+    # Exemplo:
+    #
+    #     [Admin, Developer]
+    #
+    # é equivalente a:
+    #
+    #     [Developer, Admin]
+    # --------------------------------------------------------
+
+    roles_foram_alteradas = (
+        set(role_ids) != role_ids_atuais
+    )
+
+    roles_atuais = (
+        buscar_roles_por_ids(
+            db=db,
+            role_ids=list(role_ids_atuais),
+        )
+        if role_ids_atuais
+        else []
+    )
+
+    nomes_roles_antes = sorted(
+        role.name
+        for role in roles_atuais
+    )
+
+    nomes_roles_depois = sorted(
+        role.name
+        for role in roles
+    )
+
+    # --------------------------------------------------------
     # IDENTIFICAR SOMENTE NOVAS CONCESSÕES
     # --------------------------------------------------------
     #
@@ -439,6 +497,39 @@ def substituir_roles_usuario_service(
 
         raise
 
+
+    # --------------------------------------------------------
+    # AUDITORIA - SUBSTITUIÇÃO DE ROLES
+    # --------------------------------------------------------
+    #
+    # Um PUT contendo exatamente as mesmas Roles não gera
+    # evento, evitando ruído desnecessário nos Logs do sistema.
+    # --------------------------------------------------------
+
+    if roles_foram_alteradas:
+
+        roles_antes_texto = (
+            ", ".join(nomes_roles_antes)
+            if nomes_roles_antes
+            else "sem Roles"
+        )
+
+        roles_depois_texto = (
+            ", ".join(nomes_roles_depois)
+            if nomes_roles_depois
+            else "sem Roles"
+        )
+
+        registrar_alteracao_roles_usuario(
+            usuario_executor=usuario_executor,
+            usuario_alvo=usuario_alvo,
+            action="roles_replace",
+            message=(
+                "Roles do usuário alteradas: "
+                f"{roles_antes_texto} -> "
+                f"{roles_depois_texto}"
+            ),
+        )
     # --------------------------------------------------------
     # RESPOSTA
     # --------------------------------------------------------
@@ -466,11 +557,11 @@ def substituir_roles_usuario_service(
 # ============================================================
 # REMOVER ROLE DO USUÁRIO
 # ============================================================
-
 def remover_role_usuario_service(
     user_id: int,
     role_id: int,
     db: Session,
+    usuario_executor: User,
 ) -> dict:
     """
     Remove uma associação existente entre usuário e Role.
@@ -492,6 +583,26 @@ def remover_role_usuario_service(
             detail=(
                 "Essa Role não está associada ao usuário."
             ),
+        )
+
+
+    # --------------------------------------------------------
+    # USUÁRIO ALVO
+    # --------------------------------------------------------
+    #
+    # Precisamos da identidade do usuário afetado para registrar
+    # corretamente o recurso alterado no evento de auditoria.
+    # --------------------------------------------------------
+
+    usuario_alvo = buscar_usuario_por_id(
+        db=db,
+        user_id=user_id,
+    )
+
+    if not usuario_alvo:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado.",
         )
 
     role = buscar_role_por_id(
@@ -551,6 +662,20 @@ def remover_role_usuario_service(
         db.rollback()
 
         raise
+
+
+    # --------------------------------------------------------
+    # AUDITORIA - ROLE REMOVIDA
+    # --------------------------------------------------------
+
+    registrar_alteracao_roles_usuario(
+        usuario_executor=usuario_executor,
+        usuario_alvo=usuario_alvo,
+        action="role_remove",
+        message=(
+            f'Role "{role.name}" removida do usuário'
+        ),
+    )
 
     return {
         "message": "Role removida do usuário com sucesso.",

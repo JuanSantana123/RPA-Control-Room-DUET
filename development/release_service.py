@@ -42,8 +42,6 @@
 # ============================================================
 
 
-import logging
-
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -78,15 +76,9 @@ from releases.service import (
     preview_release,
 )
 
-
-# ============================================================
-# LOGGER
-# ============================================================
-
-logger = logging.getLogger(
-    "control_room"
+from development.release_observability import (
+    registrar_falha_previa_release,
 )
-
 
 # ============================================================
 # CONSULTAR PRÉVIA DE RELEASE
@@ -176,10 +168,11 @@ def consultar_previa_release_service(
     # ERRO INESPERADO
     # ========================================================
 
-    except Exception:
+    except Exception as error:
 
-        logger.exception(
-            "Falha ao preparar prévia de Release"
+        registrar_falha_previa_release(
+            project_id=project_id,
+            error=error,
         )
 
         raise HTTPException(

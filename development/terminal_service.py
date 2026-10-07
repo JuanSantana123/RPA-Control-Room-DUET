@@ -44,11 +44,20 @@ from development.checkout_service import (
     exigir_checkout_workspace,
 )
 
+
+# DUET_LIBRARY_CHECKOUT_V1:TERMINAL_GUARD
+from libraries.checkout_service import (
+    exigir_checkouts_bibliotecas_para_terminal,
+)
+
 from development.repository import (
     garantir_workspace,
 )
 
-
+from development.terminal_observability import (
+    registrar_falha_inicio_terminal,
+    registrar_falha_encerramento_terminal,
+)
 # ============================================================
 # LOGGER
 # ============================================================
@@ -68,6 +77,26 @@ logger = logging.getLogger(
 # quantidade arbitrária de dados no stdin do processo.
 MAX_TERMINAL_INPUT_BYTES = 64 * 1024
 
+def _carregar_pty_process():
+    """
+    Carrega a implementação do pseudoterminal Windows.
+
+    Mantém a dependência opcional isolada para que a ausência
+    de pywinpty não impeça a inicialização de todo o Control Room.
+    """
+
+    try:
+
+        from winpty import PtyProcess
+
+    except ImportError as error:
+
+        raise RuntimeError(
+            "O suporte ao terminal Windows requer "
+            "a dependência 'pywinpty'."
+        ) from error
+
+    return PtyProcess
 
 # ============================================================
 # SESSÃO DE TERMINAL
@@ -118,49 +147,60 @@ class DevelopmentTerminalSession:
         são deslocadas para threads através de asyncio.to_thread().
         """
 
+        # Uma sessão já iniciada não precisa criar outro processo.
         if self.process is not None:
             return
 
-        if self._closed:
-
-            raise RuntimeError(
-                "A sessão de terminal já foi encerrada."
-            )
-
-
-        # ----------------------------------------------------
-        # VALIDA WORKSPACE
-        # ----------------------------------------------------
-
-        if not self.workspace_path.exists():
-
-            raise RuntimeError(
-                "Workspace do projeto não existe."
-            )
-
-        if not self.workspace_path.is_dir():
-
-            raise RuntimeError(
-                "Workspace do projeto é inválido."
-            )
-
-
-        # ----------------------------------------------------
-        # SHELL WINDOWS
-        # ----------------------------------------------------
-
-        shell_executable = (
-            os.environ.get("COMSPEC")
-            or "cmd.exe"
-        )
-
-
         try:
 
-            # pywinpty fornece a integração com o
-            # pseudoterminal nativo do Windows (ConPTY).
-            from winpty import PtyProcess
+            # ----------------------------------------------------
+            # ESTADO DA SESSÃO
+            # ----------------------------------------------------
 
+            if self._closed:
+
+                raise RuntimeError(
+                    "A sessão de terminal já foi encerrada."
+                )
+
+
+            # ----------------------------------------------------
+            # VALIDA WORKSPACE
+            # ----------------------------------------------------
+
+            if not self.workspace_path.exists():
+
+                raise RuntimeError(
+                    "Workspace do projeto não existe."
+                )
+
+            if not self.workspace_path.is_dir():
+
+                raise RuntimeError(
+                    "Workspace do projeto é inválido."
+                )
+
+
+            # ----------------------------------------------------
+            # SHELL WINDOWS
+            # ----------------------------------------------------
+
+            shell_executable = (
+                os.environ.get("COMSPEC")
+                or "cmd.exe"
+            )
+
+
+            # ----------------------------------------------------
+            # DEPENDÊNCIA DO PSEUDOTERMINAL
+            # ----------------------------------------------------
+
+            PtyProcess = _carregar_pty_process()
+
+
+            # ----------------------------------------------------
+            # CRIAÇÃO DO PSEUDOTERMINAL
+            # ----------------------------------------------------
 
             def _spawn_terminal():
                 """
@@ -185,35 +225,24 @@ class DevelopmentTerminalSession:
             )
 
 
-        except ImportError as error:
+        # --------------------------------------------------------
+        # FALHA TÉCNICA DE INICIALIZAÇÃO
+        # --------------------------------------------------------
 
-            raise RuntimeError(
-                "O suporte ao terminal Windows requer "
-                "a dependência 'pywinpty'."
-            ) from error
+        except Exception as error:
 
-
-        except Exception:
-
-            logger.exception(
-                "Falha ao iniciar terminal do Development",
-                extra={
-                    "event":
-                        "development_terminal_start_failed",
-
-                    "user_id":
-                        self.user_id,
-
-                    "project_id":
-                        self.project_id,
-
-                    "status":
-                        "error",
-                },
+            registrar_falha_inicio_terminal(
+                project_id=self.project_id,
+                user_id=self.user_id,
+                error=error,
             )
 
             raise
 
+
+        # --------------------------------------------------------
+        # SUCESSO
+        # --------------------------------------------------------
 
         logger.info(
             "Terminal do Development iniciado",
@@ -227,8 +256,6 @@ class DevelopmentTerminalSession:
                 "project_id":
                     self.project_id,
 
-                # PtyProcess não possui obrigatoriamente a mesma
-                # interface de asyncio.subprocess.Process.
                 "pid":
                     getattr(
                         self.process,
@@ -238,9 +265,13 @@ class DevelopmentTerminalSession:
 
                 "status":
                     "success",
+
+                # Evento operacional útil no arquivo físico,
+                # mas não deve aparecer em Logs do Sistema.
+                "ui_visible":
+                    False,
             },
         )
-
 
     # ========================================================
     # WRITE
@@ -502,30 +533,17 @@ class DevelopmentTerminalSession:
                 )
 
 
-        except Exception:
+        except Exception as error:
 
-            logger.exception(
-                "Falha ao encerrar terminal do Development",
-                extra={
-                    "event":
-                        "development_terminal_close_failed",
-
-                    "user_id":
-                        self.user_id,
-
-                    "project_id":
-                        self.project_id,
-
-                    "pid":
-                        getattr(
-                            process,
-                            "pid",
-                            None,
-                        ),
-
-                    "status":
-                        "error",
-                },
+            registrar_falha_encerramento_terminal(
+                project_id=self.project_id,
+                user_id=self.user_id,
+                pid=getattr(
+                    process,
+                    "pid",
+                    None,
+                ),
+                error=error,
             )
 
 
@@ -552,8 +570,39 @@ class DevelopmentTerminalSession:
 
                     "status":
                         "success",
+                    "ui_visible":
+                        False,
                 },
             )
+# ============================================================
+# REVALIDAR CHECKOUT DE UMA SESSÃO ATIVA
+# ============================================================
+
+def validar_checkout_terminal_development(
+    *,
+    project_id: int,
+    user_id: int,
+    db: Session,
+) -> None:
+    """
+    Revalida o Checkout enquanto o terminal já está aberto.
+
+    O Checkout pode ser encerrado por Checkin ou Force Release depois
+    que o WebSocket foi aceito. Sem esta revalidação, um cmd.exe já
+    aberto continuaria com capacidade de alterar o Workspace.
+    """
+
+    # Descarta estado ORM potencialmente antigo da sessão longa usada
+    # pelo WebSocket antes de consultar o lock oficial novamente.
+    db.expire_all()
+
+    exigir_checkout_workspace(
+        project_id=project_id,
+        user_id=user_id,
+        db=db,
+    )
+
+
 # ============================================================
 # PREPARAR TERMINAL
 # ============================================================
@@ -626,6 +675,18 @@ def preparar_terminal_development(
         project_id=project_id,
         user_id=usuario.id,
         db=db,
+    )
+
+
+    # O Terminal possui acesso direto ao filesystem do projeto.
+    # Portanto, quando o projeto utiliza Libraries, exigimos que
+    # todas estejam em Checkout pelo mesmo usuário/projeto antes
+    # de abrir o shell. Isto impede que o terminal contorne os
+    # guards por path aplicados às APIs oficiais de Workspace.
+    exigir_checkouts_bibliotecas_para_terminal(
+        db=db,
+        project_id=project_id,
+        user_id=usuario.id,
     )
 
 

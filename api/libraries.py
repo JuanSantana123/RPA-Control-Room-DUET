@@ -1,34 +1,30 @@
 # ============================================================
-# API - LIBRARIES
+# LIBRARIES API
 # ============================================================
 #
-# Router HTTP do domínio de Libraries.
+# Camada HTTP do domínio global de Libraries do DUET CORE.
 #
 # RESPONSABILIDADES DESTE ARQUIVO:
 #
-# - registrar URLs;
-# - declarar métodos HTTP;
-# - declarar status codes;
-# - aplicar autenticação/RBAC;
-# - receber Query / Body / Form / File;
-# - delegar regras de negócio aos services.
+# - declarar endpoints FastAPI;
+# - receber parâmetros HTTP;
+# - abrir a sessão SQLAlchemy;
+# - aplicar RBAC;
+# - delegar cada operação ao service correto.
 #
 # IMPORTANTE:
 #
 # Regras de negócio NÃO devem voltar para este arquivo.
+# O router deve permanecer fino.
 #
-# Estrutura:
+# Domínios utilizados:
 #
-# api/libraries.py
-#       │
-#       ├── libraries/dependencies_service.py
-#       ├── libraries/folders_service.py
-#       ├── libraries/catalog_service.py
-#       ├── libraries/versions_service.py
-#       └── libraries/snapshot_service.py
-#
-# A ordem das rotas é intencional.
-# Rotas estáticas ficam antes de /{library_id}.
+#     libraries/dependencies_service.py
+#     libraries/folders_service.py
+#     libraries/catalog_service.py
+#     libraries/versions_service.py
+#     libraries/snapshot_service.py
+#     libraries/import_service.py
 # ============================================================
 
 
@@ -64,7 +60,7 @@ from schemas.libraries import (
 
 
 # ============================================================
-# DEPENDENCIES SERVICES
+# SERVICES - DEPENDÊNCIAS DE PROJETO
 # ============================================================
 
 from libraries.dependencies_service import (
@@ -78,7 +74,7 @@ from libraries.dependencies_service import (
 
 
 # ============================================================
-# FOLDERS SERVICES
+# SERVICES - PASTAS / ORGANIZAÇÃO DO CATÁLOGO
 # ============================================================
 
 from libraries.folders_service import (
@@ -92,7 +88,7 @@ from libraries.folders_service import (
 
 
 # ============================================================
-# CATALOG SERVICES
+# SERVICES - CATÁLOGO DE LIBRARIES
 # ============================================================
 
 from libraries.catalog_service import (
@@ -101,11 +97,12 @@ from libraries.catalog_service import (
     criar_biblioteca_service,
     desativar_biblioteca_service,
     listar_bibliotecas_service,
+    reativar_biblioteca_service,
 )
 
 
 # ============================================================
-# VERSIONS SERVICES
+# SERVICES - VERSÕES PUBLICADAS
 # ============================================================
 
 from libraries.versions_service import (
@@ -117,13 +114,22 @@ from libraries.versions_service import (
 
 
 # ============================================================
-# SNAPSHOT SERVICES
+# SERVICES - SNAPSHOTS IMUTÁVEIS
 # ============================================================
 
 from libraries.snapshot_service import (
     baixar_versao_service,
     visualizar_arquivo_versao_service,
     visualizar_arvore_versao_service,
+)
+
+
+# ============================================================
+# SERVICE - IMPORTAÇÃO DIRETA DE LIBRARY
+# ============================================================
+
+from libraries.import_service import (
+    importar_biblioteca_standalone_service,
 )
 
 
@@ -138,14 +144,13 @@ router = APIRouter(
 
 
 # ============================================================
-# DATABASE
+# DATABASE DEPENDENCY
 # ============================================================
 
 def get_db():
     """
-    Cria uma sessão SQLAlchemy por request.
-
-    A sessão é sempre encerrada após o processamento da rota.
+    Abre uma sessão SQLAlchemy por requisição e garante o
+    fechamento ao final.
     """
 
     db = SessionLocal()
@@ -161,11 +166,8 @@ def get_db():
 # PROJETOS - LISTAR DEPENDÊNCIAS
 # ============================================================
 #
-# IMPORTANTE:
-#
-# As rotas /projects/... aparecem antes de /{library_id}.
-#
-# Isso impede que "projects" seja interpretado como library_id.
+# Estas rotas aparecem antes de /{library_id} para que palavras
+# estáticas como "projects" nunca concorram com a rota dinâmica.
 # ============================================================
 
 @router.get(
@@ -173,18 +175,13 @@ def get_db():
 )
 def listar_dependencias_projeto(
     project_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
             "view",
         )
     ),
-
     _development_view=Depends(
         require_permission(
             "Development",
@@ -193,9 +190,7 @@ def listar_dependencias_projeto(
     ),
 ):
     """
-    Lista as LibraryVersions fixadas no projeto.
-
-    Operação somente leitura.
+    Lista as versões exatas de Libraries fixadas no projeto.
     """
 
     return listar_dependencias_projeto_service(
@@ -213,18 +208,13 @@ def listar_dependencias_projeto(
 )
 def listar_bibliotecas_disponiveis_projeto(
     project_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
             "view",
         )
     ),
-
     _development_view=Depends(
         require_permission(
             "Development",
@@ -233,8 +223,8 @@ def listar_bibliotecas_disponiveis_projeto(
     ),
 ):
     """
-    Retorna o catálogo de Libraries publicadas disponíveis
-    para utilização no AutomationProject.
+    Lista as Libraries publicadas que podem ser adicionadas ao
+    AutomationProject, incluindo a versão vigente em Produção.
     """
 
     return listar_bibliotecas_disponiveis_projeto_service(
@@ -244,52 +234,7 @@ def listar_bibliotecas_disponiveis_projeto(
 
 
 # ============================================================
-# PROJETOS - ADICIONAR DEPENDÊNCIAS EM LOTE
-# ============================================================
-
-@router.post(
-    "/projects/{project_id}/dependencies/bulk",
-    status_code=status.HTTP_201_CREATED,
-)
-def adicionar_dependencias_projeto_em_lote(
-    project_id: int,
-
-    request: ProjectLibraryDependenciesBulkCreate,
-
-    db: Session = Depends(
-        get_db
-    ),
-
-    usuario=Depends(
-        require_permission(
-            "Libraries",
-            "use",
-        )
-    ),
-
-    _development_edit=Depends(
-        require_permission(
-            "Development",
-            "edit",
-        )
-    ),
-):
-    """
-    Adiciona uma ou várias LibraryVersions ao projeto.
-
-    A atomicidade da operação pertence ao service.
-    """
-
-    return adicionar_dependencias_projeto_em_lote_service(
-        project_id=project_id,
-        request=request,
-        db=db,
-        usuario=usuario,
-    )
-
-
-# ============================================================
-# PROJETOS - ADICIONAR UMA DEPENDÊNCIA
+# PROJETOS - ADICIONAR UMA LIBRARY
 # ============================================================
 
 @router.post(
@@ -298,20 +243,14 @@ def adicionar_dependencias_projeto_em_lote(
 )
 def adicionar_dependencia_projeto(
     project_id: int,
-
     request: ProjectLibraryDependencyCreate,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
             "use",
         )
     ),
-
     _development_edit=Depends(
         require_permission(
             "Development",
@@ -320,7 +259,7 @@ def adicionar_dependencia_projeto(
     ),
 ):
     """
-    Adiciona uma versão exata de uma Library ao projeto.
+    Adiciona uma LibraryVersion exata ao projeto.
     """
 
     return adicionar_dependencia_projeto_service(
@@ -332,29 +271,23 @@ def adicionar_dependencia_projeto(
 
 
 # ============================================================
-# PROJETOS - TROCAR VERSÃO
+# PROJETOS - ADICIONAR LIBRARIES EM LOTE
 # ============================================================
 
-@router.put(
-    "/projects/{project_id}/dependencies/{library_id}"
+@router.post(
+    "/projects/{project_id}/dependencies/bulk",
+    status_code=status.HTTP_201_CREATED,
 )
-def trocar_versao_projeto(
+def adicionar_dependencias_projeto_em_lote(
     project_id: int,
-    library_id: int,
-
-    request: ProjectLibraryDependencyUpdate,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    request: ProjectLibraryDependenciesBulkCreate,
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
             "use",
         )
     ),
-
     _development_edit=Depends(
         require_permission(
             "Development",
@@ -363,7 +296,45 @@ def trocar_versao_projeto(
     ),
 ):
     """
-    Troca explicitamente a LibraryVersion fixada no projeto.
+    Adiciona uma ou várias Libraries ao projeto em uma única
+    operação atômica.
+    """
+
+    return adicionar_dependencias_projeto_em_lote_service(
+        project_id=project_id,
+        request=request,
+        db=db,
+        usuario=usuario,
+    )
+
+
+# ============================================================
+# PROJETOS - TROCAR VERSÃO DA LIBRARY
+# ============================================================
+
+@router.put(
+    "/projects/{project_id}/dependencies/{library_id}"
+)
+def trocar_versao_projeto(
+    project_id: int,
+    library_id: int,
+    request: ProjectLibraryDependencyUpdate,
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission(
+            "Libraries",
+            "use",
+        )
+    ),
+    _development_edit=Depends(
+        require_permission(
+            "Development",
+            "edit",
+        )
+    ),
+):
+    """
+    Troca explicitamente a LibraryVersion utilizada pelo projeto.
     """
 
     return trocar_versao_projeto_service(
@@ -376,7 +347,7 @@ def trocar_versao_projeto(
 
 
 # ============================================================
-# PROJETOS - REMOVER DEPENDÊNCIA
+# PROJETOS - REMOVER LIBRARY
 # ============================================================
 
 @router.delete(
@@ -385,18 +356,13 @@ def trocar_versao_projeto(
 def remover_dependencia_projeto(
     project_id: int,
     library_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
             "use",
         )
     ),
-
     _development_edit=Depends(
         require_permission(
             "Development",
@@ -405,7 +371,7 @@ def remover_dependencia_projeto(
     ),
 ):
     """
-    Remove a Library da composição do projeto.
+    Remove o vínculo entre o projeto e a Library.
     """
 
     return remover_dependencia_projeto_service(
@@ -415,12 +381,36 @@ def remover_dependencia_projeto(
         usuario=usuario,
     )
 
+# ============================================================
+# LIBRARIES - REATIVAR
+# ============================================================
 
+@router.post(
+    "/{library_id}/reactivate"
+)
+def reativar_biblioteca(
+    library_id: int,
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission(
+            "Libraries",
+            "edit",
+        )
+    ),
+):
+    """
+    Reativa uma Library previamente desativada.
+
+    A operação preserva identidade, versões e histórico.
+    """
+
+    return reativar_biblioteca_service(
+        library_id=library_id,
+        db=db,
+        usuario=usuario,
+    )
 # ============================================================
-# CATÁLOGO - ÁRVORE GLOBAL
-# ============================================================
-#
-# Esta rota precisa permanecer antes de /{library_id}.
+# CATÁLOGO - ÁRVORE
 # ============================================================
 
 @router.get(
@@ -428,11 +418,7 @@ def remover_dependencia_projeto(
 )
 def obter_arvore_bibliotecas(
     include_inactive: bool = False,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -441,7 +427,7 @@ def obter_arvore_bibliotecas(
     ),
 ):
     """
-    Retorna a árvore organizacional de pastas e Libraries.
+    Retorna a árvore organizacional Folder -> Library.
     """
 
     return obter_arvore_bibliotecas_service(
@@ -459,11 +445,7 @@ def obter_arvore_bibliotecas(
 )
 def listar_pastas_bibliotecas(
     include_inactive: bool = False,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -472,7 +454,7 @@ def listar_pastas_bibliotecas(
     ),
 ):
     """
-    Lista as LibraryFolders.
+    Retorna a lista plana das pastas do catálogo.
     """
 
     return listar_pastas_bibliotecas_service(
@@ -491,11 +473,7 @@ def listar_pastas_bibliotecas(
 )
 def criar_pasta_bibliotecas(
     request: LibraryFolderCreate,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -504,7 +482,7 @@ def criar_pasta_bibliotecas(
     ),
 ):
     """
-    Cria uma pasta organizacional no catálogo de Libraries.
+    Cria uma pasta ou subpasta no catálogo de Libraries.
     """
 
     return criar_pasta_bibliotecas_service(
@@ -515,7 +493,7 @@ def criar_pasta_bibliotecas(
 
 
 # ============================================================
-# CATÁLOGO - ATUALIZAR PASTA
+# CATÁLOGO - RENOMEAR / MOVER PASTA
 # ============================================================
 
 @router.patch(
@@ -523,13 +501,8 @@ def criar_pasta_bibliotecas(
 )
 def atualizar_pasta_bibliotecas(
     folder_id: int,
-
     request: LibraryFolderUpdate,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -538,7 +511,7 @@ def atualizar_pasta_bibliotecas(
     ),
 ):
     """
-    Atualiza nome e/ou posição de uma LibraryFolder.
+    Renomeia e/ou move uma pasta do catálogo.
     """
 
     return atualizar_pasta_bibliotecas_service(
@@ -550,7 +523,7 @@ def atualizar_pasta_bibliotecas(
 
 
 # ============================================================
-# CATÁLOGO - EXCLUIR PASTA
+# CATÁLOGO - EXCLUIR / DESATIVAR PASTA
 # ============================================================
 
 @router.delete(
@@ -558,11 +531,7 @@ def atualizar_pasta_bibliotecas(
 )
 def excluir_pasta_bibliotecas(
     folder_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -571,7 +540,7 @@ def excluir_pasta_bibliotecas(
     ),
 ):
     """
-    Desativa logicamente uma LibraryFolder.
+    Desativa uma pasta vazia do catálogo.
     """
 
     return excluir_pasta_bibliotecas_service(
@@ -590,13 +559,8 @@ def excluir_pasta_bibliotecas(
 )
 def mover_biblioteca(
     library_id: int,
-
     request: LibraryMoveRequest,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -617,24 +581,17 @@ def mover_biblioteca(
 
 
 # ============================================================
-# CATÁLOGO - LISTAR LIBRARIES
-# ============================================================
-#
-# As duas formas são preservadas:
-#
-#     GET /libraries
-#     GET /libraries/
+# LIBRARIES - LISTAR
 # ============================================================
 
 @router.get("")
-@router.get("/")
+@router.get(
+    "/",
+    include_in_schema=False,
+)
 def listar_bibliotecas(
     include_inactive: bool = False,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -643,7 +600,7 @@ def listar_bibliotecas(
     ),
 ):
     """
-    Lista as Libraries cadastradas.
+    Lista as Libraries do catálogo global.
     """
 
     return listar_bibliotecas_service(
@@ -653,12 +610,7 @@ def listar_bibliotecas(
 
 
 # ============================================================
-# CATÁLOGO - CRIAR LIBRARY
-# ============================================================
-#
-# Também preservamos as duas formas.
-#
-# A versão "/" continua fora do OpenAPI.
+# LIBRARIES - CRIAR IDENTIDADE
 # ============================================================
 
 @router.post(
@@ -672,11 +624,7 @@ def listar_bibliotecas(
 )
 def criar_biblioteca(
     request: LibraryCreate,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -685,7 +633,9 @@ def criar_biblioteca(
     ),
 ):
     """
-    Cria a identidade global de uma Library.
+    Cria somente a identidade de uma Library.
+
+    Nenhuma versão é publicada automaticamente por esta rota.
     """
 
     return criar_biblioteca_service(
@@ -696,7 +646,66 @@ def criar_biblioteca(
 
 
 # ============================================================
-# CATÁLOGO - CONSULTAR LIBRARY
+# LIBRARIES - IMPORTAÇÃO DIRETA
+# ============================================================
+#
+# Esta é a única operação nova desta correção.
+#
+# A rota recebe HTTP/multipart e delega TODO o processamento ao
+# libraries/import_service.py. Nenhuma regra de persistência ou
+# manipulação do ZIP fica no router.
+# ============================================================
+
+@router.post(
+    "/import",
+    status_code=status.HTTP_201_CREATED,
+)
+async def importar_biblioteca_standalone(
+    name: str = Form(...),
+    import_name: str = Form(...),
+    version: str = Form(...),
+    description: str | None = Form(None),
+    folder_id: int | None = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario=Depends(
+        require_permission(
+            "Libraries",
+            "create",
+        )
+    ),
+    _publish_permission=Depends(
+        require_permission(
+            "Libraries",
+            "publish",
+        )
+    ),
+):
+    """
+    Importa uma Library pronta sem criar AutomationProject.
+
+    Como a operação cria a Library e já publica sua primeira versão,
+    exige simultaneamente Libraries:create e Libraries:publish.
+    """
+
+    return await importar_biblioteca_standalone_service(
+        name=name,
+        import_name=import_name,
+        version=version,
+        description=description,
+        folder_id=folder_id,
+        file=file,
+        db=db,
+        usuario=usuario,
+    )
+
+
+# ============================================================
+# LIBRARIES - CONSULTAR
+# ============================================================
+#
+# Rotas estáticas como /import, /tree, /folders e /projects ficam
+# acima desta rota dinâmica para preservar o roteamento correto.
 # ============================================================
 
 @router.get(
@@ -704,11 +713,7 @@ def criar_biblioteca(
 )
 def consultar_biblioteca(
     library_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -717,7 +722,7 @@ def consultar_biblioteca(
     ),
 ):
     """
-    Consulta uma Library específica.
+    Consulta uma Library pelo ID.
     """
 
     return consultar_biblioteca_service(
@@ -727,7 +732,7 @@ def consultar_biblioteca(
 
 
 # ============================================================
-# CATÁLOGO - ATUALIZAR LIBRARY
+# LIBRARIES - ATUALIZAR METADADOS
 # ============================================================
 
 @router.patch(
@@ -735,13 +740,8 @@ def consultar_biblioteca(
 )
 def atualizar_biblioteca(
     library_id: int,
-
     request: LibraryUpdate,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -750,7 +750,7 @@ def atualizar_biblioteca(
     ),
 ):
     """
-    Atualiza os metadados editáveis da Library.
+    Atualiza os metadados amigáveis de uma Library.
     """
 
     return atualizar_biblioteca_service(
@@ -762,7 +762,7 @@ def atualizar_biblioteca(
 
 
 # ============================================================
-# CATÁLOGO - DESATIVAR LIBRARY
+# LIBRARIES - DESATIVAR
 # ============================================================
 
 @router.delete(
@@ -770,11 +770,7 @@ def atualizar_biblioteca(
 )
 def desativar_biblioteca(
     library_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -783,9 +779,7 @@ def desativar_biblioteca(
     ),
 ):
     """
-    Desativa logicamente a Library.
-
-    A proteção contra Robots em Produção está no service.
+    Desativa uma Library respeitando as proteções do domínio.
     """
 
     return desativar_biblioteca_service(
@@ -805,11 +799,7 @@ def desativar_biblioteca(
 def listar_versoes(
     library_id: int,
     include_inactive: bool = False,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -818,7 +808,7 @@ def listar_versoes(
     ),
 ):
     """
-    Lista as LibraryVersions publicadas.
+    Lista as versões publicadas de uma Library.
     """
 
     return listar_versoes_service(
@@ -835,18 +825,10 @@ def listar_versoes(
 @router.get(
     "/{library_id}/robots",
     summary="Listar robôs que utilizam a biblioteca",
-    description=(
-        "Retorna os Robots atualmente publicados que possuem "
-        "esta Library em sua versão atual."
-    ),
 )
 def listar_robos_da_biblioteca(
     library_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -865,7 +847,7 @@ def listar_robos_da_biblioteca(
 
 
 # ============================================================
-# VERSÕES - PUBLICAR STANDALONE
+# VERSÕES - PUBLICAR ZIP STANDALONE
 # ============================================================
 
 @router.post(
@@ -874,17 +856,9 @@ def listar_robos_da_biblioteca(
 )
 async def publicar_versao_standalone(
     library_id: int,
-
-    # A versão continua sendo recebida como multipart/form-data.
     version: str = Form(...),
-
-    # O ZIP continua sendo recebido como UploadFile.
     file: UploadFile = File(...),
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -893,10 +867,7 @@ async def publicar_versao_standalone(
     ),
 ):
     """
-    Publica uma nova LibraryVersion standalone.
-
-    O processamento físico e a promoção para Produção pertencem
-    ao versions_service.
+    Publica uma nova versão standalone da Library.
     """
 
     return await publicar_versao_standalone_service(
@@ -909,7 +880,7 @@ async def publicar_versao_standalone(
 
 
 # ============================================================
-# SNAPSHOT - VISUALIZAR ÁRVORE
+# SNAPSHOT - ÁRVORE DE ARQUIVOS
 # ============================================================
 
 @router.get(
@@ -918,11 +889,7 @@ async def publicar_versao_standalone(
 def visualizar_arvore_versao(
     library_id: int,
     version_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -931,7 +898,7 @@ def visualizar_arvore_versao(
     ),
 ):
     """
-    Retorna a árvore do snapshot imutável publicado.
+    Retorna a árvore do snapshot imutável de uma LibraryVersion.
     """
 
     return visualizar_arvore_versao_service(
@@ -952,11 +919,7 @@ def visualizar_arquivo_versao(
     library_id: int,
     version_id: int,
     path: str,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -965,7 +928,7 @@ def visualizar_arquivo_versao(
     ),
 ):
     """
-    Retorna o conteúdo textual UTF-8 de um arquivo do snapshot.
+    Retorna o conteúdo textual de um arquivo do snapshot publicado.
     """
 
     return visualizar_arquivo_versao_service(
@@ -986,11 +949,7 @@ def visualizar_arquivo_versao(
 def baixar_versao(
     library_id: int,
     version_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -999,7 +958,7 @@ def baixar_versao(
     ),
 ):
     """
-    Baixa o ZIP imutável da LibraryVersion.
+    Faz download do ZIP imutável da versão publicada.
     """
 
     return baixar_versao_service(
@@ -1019,11 +978,7 @@ def baixar_versao(
 def desativar_versao(
     library_id: int,
     version_id: int,
-
-    db: Session = Depends(
-        get_db
-    ),
-
+    db: Session = Depends(get_db),
     usuario=Depends(
         require_permission(
             "Libraries",
@@ -1033,9 +988,6 @@ def desativar_versao(
 ):
     """
     Desativa uma LibraryVersion para novos vínculos.
-
-    A versão atualmente vigente em Produção continua protegida
-    pelo versions_service.
     """
 
     return desativar_versao_service(

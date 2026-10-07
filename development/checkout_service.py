@@ -44,6 +44,7 @@ from sqlalchemy.orm import Session
 
 from models import (
     AutomationProject,
+    DeveloperIdeSession,
     ProjectCheckout,
     User,
 )
@@ -53,6 +54,18 @@ from development.serializers import (
 )
 
 
+# DUET_PROJECT_CHECKOUT_V22_20261002:CHECKOUT_HISTORY
+from development.checkout_history_service import (
+    registrar_evento_checkout,
+)
+
+from development.checkout_observability import (
+    registrar_checkout_ocupado,
+    registrar_conflito_corrida_checkout,
+    registrar_falha_checkout_projeto,
+    registrar_falha_checkin_projeto,
+    registrar_falha_force_release_checkout,
+)
 # ============================================================
 # LOGGER
 # ============================================================
@@ -60,6 +73,38 @@ from development.serializers import (
 logger = logging.getLogger(
     "control_room"
 )
+
+
+# ============================================================
+# SESSÕES DE IDE VINCULADAS AO CHECKOUT
+# ============================================================
+
+def _revogar_sessoes_ide_projeto(
+    *,
+    project_id: int,
+    db: Session,
+) -> int:
+    """
+    Revoga sessões do Developer Bridge vinculadas ao projeto.
+
+    A sessão da IDE representa capacidade de escrita remota. Ela não
+    pode sobreviver ao ciclo do Checkout que a autorizou.
+
+    Esta função NÃO executa commit. A revogação participa da mesma
+    transação da aquisição/liberação do Checkout.
+    """
+
+    return (
+        db.query(DeveloperIdeSession)
+        .filter(
+            DeveloperIdeSession.project_id == project_id,
+            DeveloperIdeSession.revoked.is_(False),
+        )
+        .update(
+            {DeveloperIdeSession.revoked: True},
+            synchronize_session=False,
+        )
+    )
 
 
 # ============================================================
@@ -186,7 +231,6 @@ def consultar_checkout_projeto_service(
 
             AutomationProject.is_active == 1,
         )
-        .with_for_update()
         .first()
     )
 
@@ -358,6 +402,11 @@ def realizar_checkout_projeto_service(
             )
             .first()
         )
+        registrar_checkout_ocupado(
+            project_id=project_id,
+            actor_user_id=usuario.id,
+            owner_user_id=checkout_existente.user_id,
+        )
 
         raise HTTPException(
             status_code=409,
@@ -390,8 +439,27 @@ def realizar_checkout_projeto_service(
 
     try:
 
+        # Um novo Checkout inicia um novo ciclo de edição.
+        # Sessões antigas da IDE não podem voltar a ganhar escrita
+        # apenas porque o mesmo usuário adquiriu o projeto novamente.
+        _revogar_sessoes_ide_projeto(
+            project_id=project_id,
+            db=db,
+        )
+
         db.add(
             checkout
+        )
+
+        registrar_evento_checkout(
+            db=db,
+            projeto=projeto,
+            event_type="checkout",
+            actor_user_id=usuario.id,
+            actor_user_name=usuario.name,
+            checkout_owner_user_id=usuario.id,
+            checkout_owner_user_name=usuario.name,
+            checkout_started_at=checkout.checked_out_at,
         )
 
         db.commit()
@@ -460,6 +528,16 @@ def realizar_checkout_projeto_service(
                 .first()
             )
 
+        registrar_conflito_corrida_checkout(
+            project_id=project_id,
+            actor_user_id=usuario.id,
+            owner_user_id=(
+                checkout_atual.user_id
+                if checkout_atual
+                else None
+            ),
+        )
+
         raise HTTPException(
             status_code=409,
             detail={
@@ -488,27 +566,10 @@ def realizar_checkout_projeto_service(
 
         db.rollback()
 
-        logger.exception(
-            "Falha ao realizar Checkout do projeto",
-            extra={
-                "event":
-                    "automation_project_checkout_failed",
-
-                "user_id":
-                    usuario.id,
-
-                "project_id":
-                    project_id,
-
-                "status":
-                    "error",
-
-                "error_type":
-                    type(error).__name__,
-
-                "error_message":
-                    str(error),
-            },
+        registrar_falha_checkout_projeto(
+            project_id=project_id,
+            user_id=usuario.id,
+            error=error,
         )
 
         raise HTTPException(
@@ -637,11 +698,49 @@ def realizar_checkin_projeto_service(
 
     # Guardamos o instante antes de excluir o registro para
     # utilização na auditoria.
+    # DUET_LIBRARY_CHECKOUT_V1:PROJECT_CHECKIN_GUARD
+    # O projeto não pode liberar seu Checkout enquanto possuir
+    # Checkout de Library ativo neste mesmo contexto.
+    from libraries.checkout_service import (
+        possui_checkout_biblioteca_ativo_no_projeto,
+    )
+
+    if possui_checkout_biblioteca_ativo_no_projeto(
+        db=db,
+        project_id=project_id,
+        user_id=usuario.id,
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Faça Check-in das bibliotecas em edição antes "
+                "de liberar o Checkout do projeto."
+            ),
+        )
+
     checked_out_at = (
         checkout.checked_out_at
     )
 
     try:
+
+        # Checkin encerra também qualquer capacidade de escrita
+        # concedida anteriormente ao Developer Bridge.
+        _revogar_sessoes_ide_projeto(
+            project_id=project_id,
+            db=db,
+        )
+
+        registrar_evento_checkout(
+            db=db,
+            projeto=projeto,
+            event_type="checkin",
+            actor_user_id=usuario.id,
+            actor_user_name=usuario.name,
+            checkout_owner_user_id=checkout.user_id,
+            checkout_owner_user_name=usuario.name,
+            checkout_started_at=checked_out_at,
+        )
 
         db.delete(
             checkout
@@ -653,27 +752,10 @@ def realizar_checkin_projeto_service(
 
         db.rollback()
 
-        logger.exception(
-            "Falha ao realizar Checkin do projeto",
-            extra={
-                "event":
-                    "automation_project_checkin_failed",
-
-                "user_id":
-                    usuario.id,
-
-                "project_id":
-                    project_id,
-
-                "status":
-                    "error",
-
-                "error_type":
-                    type(error).__name__,
-
-                "error_message":
-                    str(error),
-            },
+        registrar_falha_checkin_projeto(
+            project_id=project_id,
+            user_id=usuario.id,
+            error=error,
         )
 
         raise HTTPException(
@@ -824,6 +906,24 @@ def force_release_checkout_projeto_service(
 
     try:
 
+        # Force Release precisa invalidar imediatamente qualquer
+        # sessão externa ligada ao Checkout que está sendo removido.
+        _revogar_sessoes_ide_projeto(
+            project_id=project_id,
+            db=db,
+        )
+
+        registrar_evento_checkout(
+            db=db,
+            projeto=projeto,
+            event_type="force_release",
+            actor_user_id=usuario.id,
+            actor_user_name=usuario.name,
+            checkout_owner_user_id=checkout_user_id,
+            checkout_owner_user_name=checkout_user_name,
+            checkout_started_at=checked_out_at,
+        )
+
         db.delete(
             checkout
         )
@@ -834,30 +934,10 @@ def force_release_checkout_projeto_service(
 
         db.rollback()
 
-        logger.exception(
-            "Falha ao executar Force Release de Checkout",
-            extra={
-                "event":
-                    "automation_project_checkout_force_release_failed",
-
-                "user_id":
-                    usuario.id,
-
-                "project_id":
-                    project_id,
-
-                "checkout_user_id":
-                    checkout_user_id,
-
-                "status":
-                    "error",
-
-                "error_type":
-                    type(error).__name__,
-
-                "error_message":
-                    str(error),
-            },
+        registrar_falha_force_release_checkout(
+            project_id=project_id,
+            user_id=usuario.id,
+            error=error,
         )
 
         raise HTTPException(

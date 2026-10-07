@@ -187,6 +187,9 @@ def alterar_senha_usuario(
             user_id=user_id,
             request=request,
             db=db,
+
+            # Usuário autenticado responsável pela alteração.
+            usuario_executor=usuario,
         )
 
     finally:
