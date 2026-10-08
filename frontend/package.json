@@ -19,21 +19,21 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "axios": "^1.20.0",
-    "lucide-react": "^1.45.0",
-    "monaco-editor": "^0.56.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3"
+    "lucide-react": "^1.51.0",
+    "monaco-editor": "^0.57.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.0",
-    "oxlint": "^1.79.0",
+    "oxlint": "^1.86.0",
     "playwright-core": "^1.63.0",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.3.2"
   },
   "optionalDependencies": {
     "lightningcss-win32-x64-msvc": "^1.33.0"
